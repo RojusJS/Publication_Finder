@@ -2,12 +2,18 @@ import { useState } from "react";
 import SearchBar from "../components/searchBar";
 import PublicationCard from "../components/publicationCard";
 import { searchPublications } from "../services/openalexApi";
+import FiltersBar from "../components/filterBar";
 
 function HomePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [yearFrom, setYearFrom] = useState("");
+  const [yearTo, setYearTo] = useState("");
+  const [oaOnly, setOaOnly] = useState(false);
+  const [type, setType] = useState("");
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -16,7 +22,12 @@ function HomePage() {
     setError(null);
 
     try {
-      const data = await searchPublications(query);
+      const data = await searchPublications(query, {
+        yearFrom: yearFrom.trim(),
+        yearTo: yearTo.trim(),
+        oa: oaOnly ? true : undefined,
+        type: type || undefined,
+      });
       setResults(data.results || []);
     } catch (err) {
       setError(err.message || "Nepavyko gauti publikacijų");
@@ -46,6 +57,17 @@ function HomePage() {
           setQuery={setQuery}
           onSearch={handleSearch}
           disabled={loading}
+        />
+        
+        <FiltersBar
+          yearFrom={yearFrom}
+          setYearFrom={setYearFrom}
+          yearTo={yearTo}
+          setYearTo={setYearTo}
+          type={type}
+          setType={setType}
+          oaOnly={oaOnly}
+          setOaOnly={setOaOnly}
         />
 
         {loading && <p>Loading...</p>}

@@ -25,7 +25,8 @@ function SearchBar({ query, setQuery, onSearch, disabled }) {
         style={{
           marginLeft: "10px",
           padding: "8px 16px",
-          background: "#8b8b8b",
+          background: "#f0efef",
+          //border: "2px solid #d12828",
           cursor: disabled ? "not-allowed" : "pointer",
           opacity: disabled ? 0.7 : 1,
         }}

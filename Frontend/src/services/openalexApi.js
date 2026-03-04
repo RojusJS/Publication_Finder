@@ -1,7 +1,16 @@
 const API_BASE = "http://127.0.0.1:8000";
 
-export async function searchPublications(query) {
-  const url = `${API_BASE}/api/search/publications/?q=${encodeURIComponent(query)}`;
+export async function searchPublications(query, filters = {}) {
+  const params = new URLSearchParams();
+  params.set("q", query);
+  
+  if (filters.yearFrom) params.set("year_from", filters.yearFrom);
+  if (filters.yearTo) params.set("year_to", filters.yearTo);
+  if (filters.oa === true) params.set("oa", "true");
+  if (filters.oa === false) params.set("oa", "false");
+  if (filters.type) params.set("type", filters.type);
+
+  const url = `${API_BASE}/api/search/publications/?q=${params.toString()}`;
 
   const response = await fetch(url);
 
@@ -9,7 +18,9 @@ export async function searchPublications(query) {
     let details = "";
     try {
       details = await response.text();
-    } catch () {}
+    } catch (e) {
+        //ignore
+    }
     throw new Error(`Request failed (${response.status}). ${details}`);
   }
 
