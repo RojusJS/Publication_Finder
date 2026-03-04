@@ -27,7 +27,7 @@ def search_publications(request):
         return JsonResponse({"error": "Missing query parameter: q"}, status=400)
 
     sort = request.GET.get("sort")
-    allowed_sorts = {"year_desc", "year_asc"}
+    allowed_sorts = {"year_desc", "year_asc", "", None}
     if sort not in allowed_sorts:
         return JsonResponse({"error": "Invalid sort value"}, status=400)
 
