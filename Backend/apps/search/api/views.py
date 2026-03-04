@@ -26,6 +26,12 @@ def search_publications(request):
     if not q:
         return JsonResponse({"error": "Missing query parameter: q"}, status=400)
 
+    sort = request.GET.get("sort")
+    allowed_sorts = {"year_desc", "year_asc"}
+    if sort not in allowed_sorts:
+        return JsonResponse({"error": "Invalid sort value"}, status=400)
+
+
     year_from = _parse_int(request.GET.get("year_from"))
     year_to = _parse_int(request.GET.get("year_to"))
     oa = _parse_bool(request.GET.get("oa"))
@@ -50,7 +56,8 @@ def search_publications(request):
             year_from=year_from,
             year_to=year_to,
             is_oa=oa,
-            work_type=pub_type,)
+            work_type=pub_type,
+            sort=sort)
         return JsonResponse(data)
     except requests.RequestException as e:
         return JsonResponse({"error": "OpenAlex request failed", "details": str(e)}, status=502)

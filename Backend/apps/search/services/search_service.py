@@ -1,5 +1,8 @@
+from datetime import datetime
+
 from apps.search.integrations.openalex_client import OpenAlexClient
 
+CURRENT_YEAR = datetime.now().year
 
 class SearchService:
     def search(
@@ -11,7 +14,8 @@ class SearchService:
             year_from: int | None = None,
             year_to: int | None = None,
             is_oa: bool | None = None,
-            work_type: str | None = None,) -> dict:
+            work_type: str | None = None,
+            sort: str | None = None) -> dict:
         client = OpenAlexClient()
         data = client.search_publications(
             query=query,
@@ -21,13 +25,16 @@ class SearchService:
             year_to=year_to,
             is_oa=is_oa,
             work_type=work_type,
+            sort=sort,
         )
 
         results = []
         for publication in data.get("results", []):
             primary_location = publication.get("primary_location") or {}
             open_access = publication.get("open_access") or {}
-
+            pub_year = publication.get("publication_year")
+            if pub_year is not None and pub_year > CURRENT_YEAR:
+                continue
             results.append({
                 "openalex_id": publication.get("id"),
                 "title": publication.get("title"),
