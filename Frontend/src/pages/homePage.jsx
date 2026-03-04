@@ -3,6 +3,7 @@ import SearchBar from "../components/searchBar";
 import PublicationCard from "../components/publicationCard";
 import { searchPublications } from "../services/openalexApi";
 import FiltersBar from "../components/filterBar";
+import HeaderBar from "../components/topHeaderBar";
 
 function HomePage() {
   const [query, setQuery] = useState("");
@@ -15,6 +16,19 @@ function HomePage() {
   const [oaOnly, setOaOnly] = useState(false);
   const [type, setType] = useState("");
   const [sort, setSort] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+  };
+
+  const handleRegister = () => {
+    alert("Test");
+  };
+
+  const handleAvatarClick = () => {
+    alert("User nustatymai");
+  };
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -39,48 +53,56 @@ function HomePage() {
   };
 
   return (
-    <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "1000px",
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
-          <h1>Publikacijų paieška</h1>
-        </div>
+    <div style={{ width: "100%" }}>
+      <HeaderBar
+        isLoggedIn={isLoggedIn}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onAvatarClick={handleAvatarClick}
+      />
+      <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "1000px",
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
+            <h1>Publikacijų paieška</h1>
+          </div>
 
-        <SearchBar
-          query={query}
-          setQuery={setQuery}
-          onSearch={handleSearch}
-          disabled={loading}
-        />
-        
-        <FiltersBar
-          yearFrom={yearFrom}
-          setYearFrom={setYearFrom}
-          yearTo={yearTo}
-          setYearTo={setYearTo}
-          type={type}
-          setType={setType}
-          oaOnly={oaOnly}
-          setOaOnly={setOaOnly}
-          sort={sort}
-          setSort={setSort}
-        />
+          <SearchBar
+            query={query}
+            setQuery={setQuery}
+            onSearch={handleSearch}
+            disabled={loading}
+          />
 
-        {loading && <p>Loading...</p>}
-        {error && <p style={{ color: "red" }}>{error}</p>}
+          <FiltersBar
+            yearFrom={yearFrom}
+            setYearFrom={setYearFrom}
+            yearTo={yearTo}
+            setYearTo={setYearTo}
+            type={type}
+            setType={setType}
+            oaOnly={oaOnly}
+            setOaOnly={setOaOnly}
+            sort={sort}
+            setSort={setSort}
+          />
 
-        <div style={{ marginTop: "20px", width: "100%" }}>
-          {results.map((pub, index) => (
-            <PublicationCard key={pub.openalex_id ?? index} pub={pub} />
-          ))}
+          {loading && <p>Loading...</p>}
+          {error && <p style={{ color: "red" }}>{error}</p>}
+
+          <div style={{ marginTop: "20px", width: "100%" }}>
+            {results.map((pub, index) => (
+              <PublicationCard key={pub.openalex_id ?? index} pub={pub} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
