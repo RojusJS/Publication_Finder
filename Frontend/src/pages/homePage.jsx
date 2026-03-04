@@ -14,6 +14,7 @@ function HomePage() {
   const [yearTo, setYearTo] = useState("");
   const [oaOnly, setOaOnly] = useState(false);
   const [type, setType] = useState("");
+  const [sort, setSort] = useState("");
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -23,10 +24,11 @@ function HomePage() {
 
     try {
       const data = await searchPublications(query, {
-        yearFrom: yearFrom.trim(),
-        yearTo: yearTo.trim(),
+        yearFrom,
+        yearTo,
         oa: oaOnly ? true : undefined,
         type: type || undefined,
+        sort: sort || undefined,
       });
       setResults(data.results || []);
     } catch (err) {
@@ -68,6 +70,8 @@ function HomePage() {
           setType={setType}
           oaOnly={oaOnly}
           setOaOnly={setOaOnly}
+          sort={sort}
+          setSort={setSort}
         />
 
         {loading && <p>Loading...</p>}

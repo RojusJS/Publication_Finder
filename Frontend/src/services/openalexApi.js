@@ -9,6 +9,7 @@ export async function searchPublications(query, filters = {}) {
   if (filters.oa === true) params.set("oa", "true");
   if (filters.oa === false) params.set("oa", "false");
   if (filters.type) params.set("type", filters.type);
+  if (filters.sort) params.set("sort", filters.sort);
 
   const url = `${API_BASE}/api/search/publications/?q=${params.toString()}`;
 

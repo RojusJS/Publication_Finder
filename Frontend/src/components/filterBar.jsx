@@ -56,8 +56,8 @@ function FiltersBar({
         style={{ padding: "6px", borderRadius: "10px"}}
       >
         <option value="">Rikiuoti pagal</option>
-        <option value="journal-article">Metai: mažėjimo tvarka</option>
-        <option value="book-chapter">Metai: didėjimo tvarka</option>
+        <option value="year_desc">Metai: mažėjimo tvarka</option>
+        <option value="year_asc">Metai: didėjimo tvarka</option>
       </select>
     </div>
   );
