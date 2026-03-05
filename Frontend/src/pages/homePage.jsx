@@ -4,6 +4,7 @@ import PublicationCard from "../components/publicationCard";
 import { searchPublications } from "../services/openalexApi";
 import FiltersBar from "../components/filterBar";
 import HeaderBar from "../components/topHeaderBar";
+import AuthModal from "../components/AuthModal";
 
 function HomePage() {
   const [query, setQuery] = useState("");
@@ -17,13 +18,15 @@ function HomePage() {
   const [type, setType] = useState("");
   const [sort, setSort] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authMode, setAuthMode] = useState(null);
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-  };
+  const handleLoginClick = () => setAuthMode("login");
+  const handleRegisterClick = () => setAuthMode("register");
+  const closeAuthModal = () => setAuthMode(null);
 
-  const handleRegister = () => {
-    alert("Test");
+  const handleAuthSubmit = (payload) => {
+    console.log("Auth submit:", authMode, payload);
+    closeAuthModal();
   };
 
   const handleAvatarClick = () => {
@@ -56,9 +59,15 @@ function HomePage() {
     <div style={{ width: "100%" }}>
       <HeaderBar
         isLoggedIn={isLoggedIn}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
+        onLogin={handleLoginClick}
+        onRegister={handleRegisterClick}
         onAvatarClick={handleAvatarClick}
+      />
+      <AuthModal
+        mode={authMode === "register" ? "register" : "login"}
+        open={authMode !== null}
+        onCancel={closeAuthModal}
+        onSubmit={handleAuthSubmit}
       />
       <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
         <div
