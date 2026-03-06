@@ -1,6 +1,6 @@
 import React from "react";
 
-function ProjectsSidebar({ onCreateProjectClick, isLoggedIn, projects }) {
+function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
   return (
     <div
       style={{
@@ -30,19 +30,19 @@ function ProjectsSidebar({ onCreateProjectClick, isLoggedIn, projects }) {
           fontSize: "16px",
         }}
       >
-        Sukurti projekta
+        Sukurti projektą
       </button>
 
       {!isLoggedIn && (
         <p style={{ marginTop: "10px", fontSize: "14px", color: "#727272" }}>
-          Noredami kurti projektus, prisijunkite
+          Norėdami kurti projektus, prisijunkite
         </p>
       )}
 
       <div style={{ marginTop: "20px" }}>
-        {length === 0 ? (
+        {projects.length === 0 ? (
           <p style={{ margin: 0, color: "#666" }}>
-            Projektu dar nera
+            Projektų dar nėra
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -50,15 +50,15 @@ function ProjectsSidebar({ onCreateProjectClick, isLoggedIn, projects }) {
               <div
                 key={project.id}
                 style={{
-                  border: "1px solid #c5bfbf",
+                  border: "2px solid #8d56a3",
                   borderRadius: "10px",
                   padding: "10px",
-                  background: "#fcfcfc",
+                  background: "#ffffff",
                 }}
               >
                 <strong>{project.name}</strong>
                 <p style={{ margin: "6px 0 0 0", fontSize: "14px", color: "#555" }}>
-                  {project.description || "Aprasymo nėra"}
+                  {project.description || "Aprašymo nėra"}
                 </p>
               </div>
             ))}
@@ -69,4 +69,4 @@ function ProjectsSidebar({ onCreateProjectClick, isLoggedIn, projects }) {
   );
 }
 
-export default ProjectsSidebar;
+export default ProjectsBar;

@@ -6,6 +6,7 @@ import FiltersBar from "../components/filterBar";
 import HeaderBar from "../components/topHeaderBar";
 import AuthModal from "../components/AuthModal";
 import ProjectsBar from "../components/projectsBar";
+import CreateProjectModal from "../components/projectsModal";
 
 function HomePage() {
   const [query, setQuery] = useState("");
@@ -20,7 +21,8 @@ function HomePage() {
   const [sort, setSort] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authMode, setAuthMode] = useState(null);
-
+  const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
   const handleLoginClick = () => setAuthMode("login");
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
@@ -60,6 +62,31 @@ function HomePage() {
     }
   };
 
+  const handleOpenCreateProject = () => {
+    if (!isLoggedIn) {
+      alert("Pirmiausia prisijunkite.");
+      return;
+    }
+    setIsCreateProjectOpen(true);
+  };
+
+  const handleCloseCreateProject = () => {
+    setIsCreateProjectOpen(false);
+  };
+
+  const handleCreateProject = (projectData) => {
+    const newProject = {
+      id: Date.now(),
+      name: projectData.name,
+      description: projectData.description,
+    };
+
+    setProjects((prev) => [newProject, ...prev]);
+    setIsCreateProjectOpen(false);
+
+    alert(`Projektas "${projectData.name}" sukurtas.`);
+  };
+
   return (
     <div style={{ width: "100%" }}>
       <HeaderBar
@@ -74,6 +101,11 @@ function HomePage() {
         onCancel={closeAuthModal}
         onSubmit={handleAuthSubmit}
       />
+      <CreateProjectModal
+        open={isCreateProjectOpen}
+        onClose={handleCloseCreateProject}
+        onCreate={handleCreateProject}
+      />
 
       <div
         style={{
@@ -82,7 +114,11 @@ function HomePage() {
           alignItems: "stretch",
         }}
       >
-        <ProjectsBar isLoggedIn={isLoggedIn} />
+        <ProjectsBar
+          onCreateProjectClick={handleOpenCreateProject}
+          isLoggedIn={isLoggedIn}
+          projects={projects}
+        />
 
         <div
           style={{ width: "100%", display: "flex", justifyContent: "center" }}
