@@ -9,6 +9,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onAvatarClick }) {
         padding: "16px 20px",
         borderBottom: "1px solid #ddd",
         boxSizing: "border-box",
+        background: "#e7dee7",
       }}
     >
       <div style={{ fontFamily: "Times New Roman" }}>

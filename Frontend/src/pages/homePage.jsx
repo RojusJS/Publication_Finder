@@ -5,6 +5,7 @@ import { searchPublications } from "../services/openalexApi";
 import FiltersBar from "../components/filterBar";
 import HeaderBar from "../components/topHeaderBar";
 import AuthModal from "../components/AuthModal";
+import ProjectsBar from "../components/projectsBar";
 
 function HomePage() {
   const [query, setQuery] = useState("");
@@ -73,48 +74,61 @@ function HomePage() {
         onCancel={closeAuthModal}
         onSubmit={handleAuthSubmit}
       />
-      <div style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+
+      <div
+        style={{
+          display: "flex",
+          width: "100%",
+          alignItems: "stretch",
+        }}
+      >
+        <ProjectsBar isLoggedIn={isLoggedIn} />
+
         <div
-          style={{
-            width: "100%",
-            maxWidth: "1000px",
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
+          style={{ width: "100%", display: "flex", justifyContent: "center" }}
         >
-          <div style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
-            <h1>Publikacijų paieška</h1>
-          </div>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "1000px",
+              padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
+              <h1>Publikacijų paieška</h1>
+            </div>
 
-          <SearchBar
-            query={query}
-            setQuery={setQuery}
-            onSearch={handleSearch}
-            disabled={loading}
-          />
+            <SearchBar
+              query={query}
+              setQuery={setQuery}
+              onSearch={handleSearch}
+              disabled={loading}
+            />
 
-          <FiltersBar
-            yearFrom={yearFrom}
-            setYearFrom={setYearFrom}
-            yearTo={yearTo}
-            setYearTo={setYearTo}
-            type={type}
-            setType={setType}
-            oaOnly={oaOnly}
-            setOaOnly={setOaOnly}
-            sort={sort}
-            setSort={setSort}
-          />
+            <FiltersBar
+              yearFrom={yearFrom}
+              setYearFrom={setYearFrom}
+              yearTo={yearTo}
+              setYearTo={setYearTo}
+              type={type}
+              setType={setType}
+              oaOnly={oaOnly}
+              setOaOnly={setOaOnly}
+              sort={sort}
+              setSort={setSort}
+            />
 
-          {loading && <p>Loading...</p>}
-          {error && <p style={{ color: "red" }}>{error}</p>}
+            {loading && <p>Loading...</p>}
+            {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <div style={{ marginTop: "20px", width: "100%" }}>
-            {results.map((pub, index) => (
-              <PublicationCard key={pub.openalex_id ?? index} pub={pub} />
-            ))}
+            <div style={{ marginTop: "20px", width: "100%" }}>
+              {results.map((pub, index) => (
+                <PublicationCard key={pub.openalex_id ?? index} pub={pub} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
