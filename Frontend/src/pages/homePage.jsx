@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SearchBar from "../components/searchBar";
 import PublicationCard from "../components/publicationCard";
 import { searchPublications } from "../services/openalexApi";
@@ -24,8 +24,8 @@ function HomePage() {
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
 
-  const handleAuthSubmit = (payload) => {
-    console.log("Auth submit:", authMode, payload);
+  const handleAuthSubmit = () => {
+    setIsLoggedIn(true);
     closeAuthModal();
   };
 
@@ -33,6 +33,10 @@ function HomePage() {
     alert("User nustatymai");
   };
 
+  useEffect(() => {
+    const access = localStorage.getItem("access");
+    if (access) setIsLoggedIn(true);
+  }, []);
   const handleSearch = async () => {
     if (!query.trim()) return;
 

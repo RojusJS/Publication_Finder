@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "./modal";
+import { loginUser, registerUser } from "../services/authenticationApi";
 
 const inputStyle = {
   width: "100%",
@@ -29,23 +30,41 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
     }
   }, [open, mode]);
 
-  const handlePrimary = () => {
+  const handlePrimary = async () => {
     setError(null);
-
-    if (!email.trim()) return setError("Įveskite el. pašto adresą");
+    if (!username.trim()) return setError("Įveskite prisijungimo vardą");
     if (!password) return setError("Įveskite slaptažodį");
-
     if (!isLogin) {
       if (!username.trim()) return setError("Įveskite prisijungimo vardą");
       if (!password2) return setError("Pakartokite slaptažodį");
       if (password !== password2) return setError("Slaptažodžiai nesutampa");
     }
 
-    onSubmit?.({
-      email: email.trim(),
-      username: username.trim(),
-      password,
-    });
+    try {
+      if (isLogin) {
+        const tokens = await loginUser({ username: username.trim(), password });
+        localStorage.setItem("access", tokens.access);
+        localStorage.setItem("refresh", tokens.refresh);
+        localStorage.setItem("username", username.trim());
+
+        onSubmit?.({ ok: true, mode: "login" });
+      } else {
+        await registerUser({
+          email: email.trim(),
+          username: username.trim(),
+          password,
+          password2,
+        });
+        const tokens = await loginUser({ username: username.trim(), password });
+        localStorage.setItem("access", tokens.access);
+        localStorage.setItem("refresh", tokens.refresh);
+        localStorage.setItem("username", username.trim());
+
+        onSubmit?.({ ok: true, mode: "register" });
+      }
+    } catch (e) {
+      setError(e.message || "Klaida");
+    }
   };
 
   return (
@@ -55,29 +74,28 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
       onClose={onCancel}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <div>
-          <div style={{ marginBottom: "6px" }}>El. pašto adresas</div>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
-            placeholder="vardas@pastas.lt"
-          />
-        </div>
-
         {!isLogin && (
           <div>
-            <div style={{ marginBottom: "6px" }}>Prisijungimo vardas</div>
+            <div style={{ marginBottom: "6px" }}>El. pašto adresas</div>
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={inputStyle}
-              placeholder="vardas"
+              placeholder="vardas@pastas.lt"
             />
           </div>
         )}
+        <div>
+          <div style={{ marginBottom: "6px" }}>Prisijungimo vardas</div>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            style={inputStyle}
+            placeholder="vardas"
+          />
+        </div>
 
         <div>
           <div style={{ marginBottom: "6px" }}>Slaptažodis</div>
@@ -92,7 +110,9 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
 
         {!isLogin && (
           <div>
-            <div style={{ marginBottom: "6px" }}>Pakartotinas slaptažodžio įvedimas</div>
+            <div style={{ marginBottom: "6px" }}>
+              Pakartotinas slaptažodžio įvedimas
+            </div>
             <input
               type="password"
               value={password2}
@@ -105,7 +125,14 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
 
         {error && <div style={{ color: "red" }}>{error}</div>}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: "10px",
+            marginTop: "8px",
+          }}
+        >
           <button
             onClick={onCancel}
             style={{

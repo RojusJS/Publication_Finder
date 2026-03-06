@@ -43,24 +43,29 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onAvatarClick }) {
             </button>
           </>
         ) : (
-          <button
-            onClick={onAvatarClick}
-            title="Profilis"
-            style={{
-              width: "38px",
-              height: "38px",
-              borderRadius: "50%",
-              border: "1px solid #000000",
-              background: "#f0efef",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: "bold",
-            }}
-          >
-            👤
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
+              Sveiki, {localStorage.getItem("username")}!
+            </span>
+            <button
+              onClick={onAvatarClick}
+              title="Profilis"
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                border: "1px solid #000000",
+                background: "#f0efef",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: "bold",
+              }}
+            >
+              👤
+            </button>
+          </div>
         )}
       </div>
     </div>
