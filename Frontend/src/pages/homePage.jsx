@@ -7,6 +7,7 @@ import HeaderBar from "../components/topHeaderBar";
 import AuthModal from "../components/AuthModal";
 import ProjectsBar from "../components/projectsBar";
 import CreateProjectModal from "../components/projectsModal";
+import { getProjects, createProject } from "../services/projectApi";
 
 function HomePage() {
   const [query, setQuery] = useState("");
@@ -27,9 +28,10 @@ function HomePage() {
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
 
-  const handleAuthSubmit = () => {
+  const handleAuthSubmit = async () => {
     setIsLoggedIn(true);
     closeAuthModal();
+    await fetchProjects();
   };
 
   const handleAvatarClick = () => {
@@ -38,8 +40,22 @@ function HomePage() {
 
   useEffect(() => {
     const access = localStorage.getItem("access");
-    if (access) setIsLoggedIn(true);
+
+    if (access) {
+      setIsLoggedIn(true);
+      fetchProjects();
+    }
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const data = await getProjects();
+      setProjects(data);
+    } catch (err) {
+      console.error("Nepavyko pasiekti projektus.", err);
+    }
+  };
+
   const handleSearch = async () => {
     if (!query.trim()) return;
 
@@ -74,17 +90,16 @@ function HomePage() {
     setIsCreateProjectOpen(false);
   };
 
-  const handleCreateProject = (projectData) => {
-    const newProject = {
-      id: Date.now(),
-      name: projectData.name,
-      description: projectData.description,
-    };
-
-    setProjects((prev) => [newProject, ...prev]);
-    setIsCreateProjectOpen(false);
-
-    alert(`Projektas "${projectData.name}" sukurtas.`);
+  const handleCreateProject = async (projectData) => {
+    try {
+      const newProject = await createProject(projectData);
+      setProjects((prev) => [newProject, ...prev]);
+      setIsCreateProjectOpen(false);
+      alert(`Projektas "${projectData.name}" sukurtas`);
+    } catch (err) {
+      console.error("Nepavyko sukurti projekto:", err);
+      alert("Nepavyko sukurti projekto.");
+    }
   };
 
   return (
