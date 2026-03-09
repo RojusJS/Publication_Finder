@@ -2,7 +2,7 @@ import React from "react";
 
 function SearchBar({ query, setQuery, onSearch, disabled }) {
   return (
-    <div style={{ marginBottom: "20px" }}>
+    <div style={{ marginBottom: "20px"  }}>
       <input
         type="text"
         placeholder="Įveskite užklausą"

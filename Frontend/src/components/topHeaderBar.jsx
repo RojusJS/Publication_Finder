@@ -1,6 +1,17 @@
-import { useState } from "react";
+import { useState,  useEffect, useRef } from "react";
+
 function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const handleLogout = () => {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
@@ -57,7 +68,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
             <span style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
               Sveiki, {localStorage.getItem("username")}!
             </span>
-            <div style={{ position: "relative" }}>
+            <div ref={dropdownRef} style={{ position: "relative" }}>
               <button
                 onClick={() => setDropdownOpen((prev) => !prev)}
                 title="Profilis"

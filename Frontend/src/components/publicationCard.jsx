@@ -1,6 +1,18 @@
-import React from "react";
+import { useState, useEffect, useRef } from "react";
 
 function PublicationCard({ pub }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <div
       style={{
@@ -11,6 +23,7 @@ function PublicationCard({ pub }) {
         width: "100%",
         border: "3px solid #514f58",
         fontFamily: "Times New Roman",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
       }}
     >
       <div
@@ -22,18 +35,54 @@ function PublicationCard({ pub }) {
         }}
       >
         <h3 style={{ margin: 0 }}>{pub.title}</h3>
-        <button
-          type="button"
-          style={{
-            padding: "4px 10px",
-            flexShrink: 0,
-            background: "#8b8b8b",
-            cursor: "pointer",
-          }}
-          onClick={() => alert("Vėliau čia bus meniu (pvz. Išsaugoti, Eksportuoti).")}
-        >
-          ...
-        </button>
+        <div ref={dropdownRef} style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            type="button"
+            style={{
+              padding: "4px 10px",
+              background: "#8b8b8b",
+              cursor: "pointer",
+            }}
+          >
+            Išsaugoti
+          </button>
+
+          {dropdownOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                marginTop: "4px",
+                background: "#fff",
+                border: "1px solid #d6d6d6",
+                borderRadius: "10px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                minWidth: "140px",
+                overflow: "hidden",
+              }}
+            >
+              <button
+                style={{
+                  width: "100%",
+                  padding: "10px 16px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: "Times New Roman",
+                  fontSize: "15px",
+                  color: "#000000",
+                }}
+                onMouseEnter={(e) => (e.target.style.background = "#e2dcdc")}
+                onMouseLeave={(e) => (e.target.style.background = "none")}
+              >
+                Test
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div
