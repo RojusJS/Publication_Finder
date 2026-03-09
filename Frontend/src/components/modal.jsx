@@ -1,4 +1,4 @@
-function Modal({ open, title, children, onClose }) {
+function Modal({ open, title, children, onClose, maxWidth }) {
   if (!open) return null;
 
   return (
@@ -19,7 +19,7 @@ function Modal({ open, title, children, onClose }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: "500px",
+          maxWidth: maxWidth ?? "500px",
           background: "#ffffff",
           borderRadius: "20px",
           border: "2px solid #000000",

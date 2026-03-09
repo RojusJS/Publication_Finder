@@ -1,6 +1,8 @@
-import React from "react";
+import { useState } from "react";import React from "react";
+import ProjectModal from "./savedPublicationsModal.jsx";
 
 function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
+  const [selectedProject, setSelectedProject] = useState(null);
   return (
     <div
       style={{
@@ -41,23 +43,37 @@ function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
 
       <div style={{ marginTop: "20px" }}>
         {projects.length === 0 ? (
-          <p style={{ margin: 0, color: "#666" }}>
-            Projektų dar nėra
-          </p>
+          <p style={{ margin: 0, color: "#666" }}>Projektų dar nėra</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+          >
             {projects.map((project) => (
               <div
                 key={project.id}
+                onClick={() => setSelectedProject(project)}
                 style={{
                   border: "2px solid #8d56a3",
                   borderRadius: "10px",
                   padding: "10px",
                   background: "#ffffff",
+                  cursor: "pointer",
                 }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#f1ebf5")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#ffffff")
+                }
               >
                 <strong>{project.name}</strong>
-                <p style={{ margin: "6px 0 0 0", fontSize: "14px", color: "#555" }}>
+                <p
+                  style={{
+                    margin: "6px 0 0 0",
+                    fontSize: "14px",
+                    color: "#555",
+                  }}
+                >
                   {project.description || "Aprašymo nėra"}
                 </p>
               </div>
@@ -65,6 +81,11 @@ function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
           </div>
         )}
       </div>
+      <ProjectModal
+        open={selectedProject !== null}
+        project={selectedProject}
+        onClose={() => setSelectedProject(null)}
+      />
     </div>
   );
 }

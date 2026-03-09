@@ -180,7 +180,7 @@ function HomePage() {
 
             <div style={{ marginTop: "20px", width: "100%" }}>
               {results.map((pub, index) => (
-                <PublicationCard key={pub.openalex_id ?? index} pub={pub} />
+                <PublicationCard key={pub.openalex_id ?? index} pub={pub} projects={projects}/>
               ))}
             </div>
           </div>

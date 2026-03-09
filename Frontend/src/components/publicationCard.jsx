@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-function PublicationCard({ pub }) {
+function PublicationCard({ pub, projects }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   useEffect(() => {
@@ -41,7 +41,7 @@ function PublicationCard({ pub }) {
             type="button"
             style={{
               padding: "4px 10px",
-              background: "#8b8b8b",
+              background: "#d4d4d4",
               cursor: "pointer",
             }}
           >
@@ -63,23 +63,44 @@ function PublicationCard({ pub }) {
                 overflow: "hidden",
               }}
             >
-              <button
-                style={{
-                  width: "100%",
-                  padding: "10px 16px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontFamily: "Times New Roman",
-                  fontSize: "15px",
-                  color: "#000000",
-                }}
-                onMouseEnter={(e) => (e.target.style.background = "#e2dcdc")}
-                onMouseLeave={(e) => (e.target.style.background = "none")}
-              >
-                Test
-              </button>
+              {projects.length === 0 ? (
+                <div
+                  style={{
+                    padding: "10px 16px",
+                    fontFamily: "Times New Roman",
+                    color: "#888",
+                  }}
+                >
+                  Nėra projektų
+                </div>
+              ) : (
+                projects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => {
+                      console.log("Save to project:", project.id, pub);
+                      setDropdownOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 16px",
+                      background: "none",
+                      border: "none",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      fontSize: "15px",
+                      color: "#000000",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.target.style.background = "#e2dcdc")
+                    }
+                    onMouseLeave={(e) => (e.target.style.background = "none")}
+                  >
+                    {project.name}
+                  </button>
+                ))
+              )}
             </div>
           )}
         </div>
