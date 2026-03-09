@@ -1,4 +1,13 @@
-function HeaderBar({ isLoggedIn, onLogin, onRegister, onAvatarClick }) {
+import { useState } from "react";
+function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const handleLogout = () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("username");
+    setDropdownOpen(false);
+    onLogout?.();
+  };
   return (
     <div
       style={{
@@ -48,24 +57,63 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onAvatarClick }) {
             <span style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
               Sveiki, {localStorage.getItem("username")}!
             </span>
-            <button
-              onClick={onAvatarClick}
-              title="Profilis"
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                border: "1px solid #000000",
-                background: "#f0efef",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: "bold",
-              }}
-            >
-              👤
-            </button>
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setDropdownOpen((prev) => !prev)}
+                title="Profilis"
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "50%",
+                  border: "1px solid #000000",
+                  background: dropdownOpen ? "#d0c8d0" : "#f0efef",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: "bold",
+                }}
+              >
+                👤
+              </button>
+              {dropdownOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "44px",
+                    right: 0,
+                    background: "#fff",
+                    border: "1px solid #d6d6d6",
+                    borderRadius: "10px",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                    minWidth: "140px",
+                    zIndex: 1000,
+                    overflow: "hidden",
+                  }}
+                >
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      width: "100%",
+                      padding: "10px 16px",
+                      background: "none",
+                      border: "none",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      fontSize: "15px",
+                      color: "#000000",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.target.style.background = "#e2dcdc")
+                    }
+                    onMouseLeave={(e) => (e.target.style.background = "none")}
+                  >
+                    Atsijungti
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

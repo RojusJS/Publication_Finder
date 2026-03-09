@@ -34,10 +34,6 @@ function HomePage() {
     await fetchProjects();
   };
 
-  const handleAvatarClick = () => {
-    alert("User nustatymai");
-  };
-
   useEffect(() => {
     const access = localStorage.getItem("access");
 
@@ -90,12 +86,19 @@ function HomePage() {
     setIsCreateProjectOpen(false);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("username");
+    setIsLoggedIn(false);
+    setProjects([]);
+  };
+
   const handleCreateProject = async (projectData) => {
     try {
       const newProject = await createProject(projectData);
       setProjects((prev) => [newProject, ...prev]);
       setIsCreateProjectOpen(false);
-      alert(`Projektas "${projectData.name}" sukurtas`);
     } catch (err) {
       console.error("Nepavyko sukurti projekto:", err);
       alert("Nepavyko sukurti projekto.");
@@ -108,7 +111,7 @@ function HomePage() {
         isLoggedIn={isLoggedIn}
         onLogin={handleLoginClick}
         onRegister={handleRegisterClick}
-        onAvatarClick={handleAvatarClick}
+        onLogout={handleLogout}
       />
       <AuthModal
         mode={authMode === "register" ? "register" : "login"}
