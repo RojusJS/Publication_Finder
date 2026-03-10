@@ -28,7 +28,7 @@ apiClient.interceptors.response.use(
       if (!refresh) return Promise.reject(error);
       try {
         const { data } = await axios.post(
-          "http://127.0.0.1:8000/api/auth/token/refresh/",
+          "http://127.0.0.1:8000/api/auth/refresh/",
           { refresh }
         );
         localStorage.setItem("access", data.access);
