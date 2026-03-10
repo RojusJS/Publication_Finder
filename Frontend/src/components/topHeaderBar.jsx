@@ -27,9 +27,11 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
         justifyContent: "space-between",
         alignItems: "center",
         padding: "16px 20px",
-        borderBottom: "1px solid #ddd",
+        borderBottom: "2px solid #919191",
         boxSizing: "border-box",
-        background: "#e7dee7",
+        background: "#ffffff",
+        borderRadius: "20px",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
       }}
     >
       <div style={{ fontFamily: "Times New Roman" }}>

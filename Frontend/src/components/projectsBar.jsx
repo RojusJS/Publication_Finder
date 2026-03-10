@@ -8,12 +8,14 @@ function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
       style={{
         width: "260px",
         minWidth: "260px",
-        borderRight: "1px solid #c9c9c9",
+        borderRight: "2px solid #acacac",
         padding: "20px",
         boxSizing: "border-box",
         fontFamily: "Times New Roman",
-        background: "#c2bbca",
+        background: "#f1f0f3",
         minHeight: "calc(100vh - 73px)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.20)",
+        borderRadius: "10px",
       }}
     >
       <h3 style={{ marginTop: 0 }}>Projektai</h3>
@@ -53,7 +55,7 @@ function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
                 key={project.id}
                 onClick={() => setSelectedProject(project)}
                 style={{
-                  border: "2px solid #8d56a3",
+                  border: "2px solid #4e4e4e",
                   borderRadius: "10px",
                   padding: "10px",
                   background: "#ffffff",
