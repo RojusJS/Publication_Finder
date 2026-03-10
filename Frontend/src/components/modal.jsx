@@ -11,7 +11,7 @@ function Modal({ open, title, children, onClose, maxWidth }) {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        zIndex: "auto",
+        zIndex: 1000,
         padding: "20px",
       }}
     >

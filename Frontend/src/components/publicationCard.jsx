@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { savePublication } from "../services/projectApi";
 
 function PublicationCard({ pub, projects }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -61,6 +62,7 @@ function PublicationCard({ pub, projects }) {
                 boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
                 minWidth: "140px",
                 overflow: "hidden",
+                zIndex: 1000,
               }}
             >
               {projects.length === 0 ? (
@@ -77,8 +79,19 @@ function PublicationCard({ pub, projects }) {
                 projects.map((project) => (
                   <button
                     key={project.id}
-                    onClick={() => {
-                      console.log("Save to project:", project.id, pub);
+                    onClick={async () => {
+                      try {
+                        await savePublication(project.id, {
+                          openalex_id: pub.openalex_id,
+                          title: pub.title,
+                          year: pub.year,
+                          doi: pub.doi,
+                          pdf_url: pub.pdf_url,
+                        });
+                        alert("Išsaugota");
+                      } catch (err) {
+                        alert("Nepavyko išsaugoti");
+                      }
                       setDropdownOpen(false);
                     }}
                     style={{
