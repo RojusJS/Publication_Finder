@@ -2,6 +2,21 @@ from datetime import datetime
 
 import requests
 
+SELECTED_FIELDS = ",".join([
+    "id",
+    "title",
+    "publication_year",
+    "doi",
+    "open_access",
+    "type",
+    "primary_location",
+    "abstract_inverted_index",
+    "authorships",
+    "cited_by_count",
+    "language",
+    "keywords",
+])
+
 class OpenAlexClient:
     def search_publications(
             self,
@@ -32,6 +47,7 @@ class OpenAlexClient:
             "search": query,
             "per-page": per_page,
             "page": page,
+            "select": SELECTED_FIELDS,
         }
         if filters:
             params["filter"] = ",".join(filters)
