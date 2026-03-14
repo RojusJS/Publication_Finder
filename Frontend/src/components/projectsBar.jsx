@@ -62,7 +62,7 @@ function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#f1ebf5")
+                  (e.currentTarget.style.background = "#dfdfdf")
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.background = "#ffffff")
