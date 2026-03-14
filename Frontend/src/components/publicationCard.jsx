@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { savePublication } from "../services/projectApi";
+import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
 
 function PublicationCard({ pub, projects }) {
@@ -175,11 +176,14 @@ function PublicationCard({ pub, projects }) {
         </div>
       </div>
 
-      <PublicationCardModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        pub={pub}
-      />
+      {createPortal(
+        <PublicationCardModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          pub={pub}
+        />,
+        document.body,
+      )}
     </>
   );
 }

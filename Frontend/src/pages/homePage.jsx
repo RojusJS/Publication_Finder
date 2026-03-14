@@ -130,6 +130,7 @@ function HomePage() {
           display: "flex",
           width: "100%",
           alignItems: "stretch",
+          position: "relative",
         }}
       >
         <ProjectsBar
@@ -139,7 +140,18 @@ function HomePage() {
         />
 
         <div
-          style={{ width: "100%", display: "flex", justifyContent: "center" }}
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "100%",
+            maxWidth: "1000px",
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            boxSizing: "border-box",
+          }}
         >
           <div
             style={{
@@ -180,7 +192,11 @@ function HomePage() {
 
             <div style={{ marginTop: "20px", width: "100%" }}>
               {results.map((pub, index) => (
-                <PublicationCard key={pub.openalex_id ?? index} pub={pub} projects={projects}/>
+                <PublicationCard
+                  key={pub.openalex_id ?? index}
+                  pub={pub}
+                  projects={projects}
+                />
               ))}
             </div>
           </div>
