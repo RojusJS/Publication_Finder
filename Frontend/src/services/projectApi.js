@@ -19,3 +19,8 @@ export const getPublications = async (projectId) => {
   const response = await apiClient.get(`/projects/${projectId}/publications/`);
   return response.data;
 };
+
+export const deletePublication = async (projectId, publicationId) => {
+  const response = await apiClient.delete(`/projects/${projectId}/publications/${publicationId}/`);
+  return response.data;
+};

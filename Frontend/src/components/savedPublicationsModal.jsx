@@ -1,11 +1,20 @@
 import Modal from "./modal";
 import { useState, useEffect } from "react";
 import { getPublications } from "../services/projectApi";
+import { deletePublication } from "../services/projectApi";
 
 function SavedPublicationsModal({ open, project, onClose }) {
   const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const handleDelete = async (pubId) => {
+    try {
+      await deletePublication(project.id, pubId);
+      setPublications((prev) => prev.filter((p) => p.id !== pubId));
+    } catch (err) {
+      alert("Nepavyko ištrinti");
+    }
+  };
   useEffect(() => {
     if (open && project) {
       setLoading(true);
@@ -52,7 +61,26 @@ function SavedPublicationsModal({ open, project, onClose }) {
                 fontFamily: "Times New Roman",
               }}
             >
-              <strong>{pub.title}</strong>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <strong>{pub.title}</strong>
+                <button
+                  onClick={() => handleDelete(pub.id)}
+                  style={{
+                    padding: "4px 10px",
+                    background: "#d4d4d4",
+                    cursor: "pointer",
+                  }}
+                >
+                  Ištrinti
+                </button>
+              </div>
               <div
                 style={{
                   marginTop: "6px",
