@@ -36,3 +36,14 @@ class SavedPublicationDeleteView(generics.DestroyAPIView):
             id=self.kwargs["publication_id"],
             project__user=self.request.user
         )
+
+class ProjectDeleteView(generics.DestroyAPIView):
+    serializer_class = ProjectSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return get_object_or_404(
+            Project,
+            id=self.kwargs["project_id"],
+            user=self.request.user
+        )
