@@ -1,7 +1,8 @@
-import { useState } from "react";import React from "react";
+import { useState } from "react";
+import React from "react";
 import ProjectModal from "./savedPublicationsModal.jsx";
 
-function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
+function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects, onProjectDeleted }) {
   const [selectedProject, setSelectedProject] = useState(null);
   return (
     <div
@@ -87,6 +88,7 @@ function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects }) {
         open={selectedProject !== null}
         project={selectedProject}
         onClose={() => setSelectedProject(null)}
+        onProjectDeleted={onProjectDeleted}
       />
     </div>
   );

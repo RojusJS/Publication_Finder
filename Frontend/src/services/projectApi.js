@@ -24,3 +24,7 @@ export const deletePublication = async (projectId, publicationId) => {
   const response = await apiClient.delete(`/projects/${projectId}/publications/${publicationId}/`);
   return response.data;
 };
+
+export const deleteProject = async (projectId) => {
+  await apiClient.delete(`/projects/${projectId}/`);
+};

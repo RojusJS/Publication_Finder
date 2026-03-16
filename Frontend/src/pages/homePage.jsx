@@ -137,6 +137,7 @@ function HomePage() {
           onCreateProjectClick={handleOpenCreateProject}
           isLoggedIn={isLoggedIn}
           projects={projects}
+          onProjectDeleted={(id) => setProjects((prev) => prev.filter((p) => p.id !== id))}
         />
 
         <div

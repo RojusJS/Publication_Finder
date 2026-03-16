@@ -1,9 +1,8 @@
 import Modal from "./modal";
 import { useState, useEffect } from "react";
-import { getPublications } from "../services/projectApi";
-import { deletePublication } from "../services/projectApi";
+import {getPublications, deletePublication, deleteProject} from "../services/projectApi";
 
-function SavedPublicationsModal({ open, project, onClose }) {
+function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
   const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +14,19 @@ function SavedPublicationsModal({ open, project, onClose }) {
       alert("Nepavyko ištrinti");
     }
   };
+
+  const handleDeleteProject = async () => {
+    if (!confirm(`Ar tikrai norite ištrinti projektą "${project.name}"?`))
+      return;
+    try {
+      await deleteProject(project.id);
+      onProjectDeleted(project.id);
+      onClose();
+    } catch (err) {
+      alert("Nepavyko ištrinti projekto");
+    }
+  };
+
   useEffect(() => {
     if (open && project) {
       setLoading(true);
@@ -29,9 +41,33 @@ function SavedPublicationsModal({ open, project, onClose }) {
 
   return (
     <Modal open={open} title={project.name} onClose={onClose} maxWidth="1200px">
-      <p style={{ color: "#636262", marginTop: 0 }}>
-        {project.description || "Aprašymo nėra"}
-      </p>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginTop: 0,
+        }}
+      >
+        <p style={{ color: "#636262", margin: 0 }}>
+          {project.description || "Aprašymo nėra"}
+        </p>
+        <button
+          onClick={handleDeleteProject}
+          style={{
+            padding: "4px 10px",
+            background: "#e92323a2",
+            border: "1px solid #000000",
+            borderRadius: "8px",
+            cursor: "pointer",
+            color: "#000000",
+            fontFamily: "Times New Roman",
+            fontSize: "15px",
+          }}
+        >
+          Ištrinti projektą
+        </button>
+      </div>
 
       {loading && <p style={{ color: "#979696" }}>Kraunama...</p>}
 
