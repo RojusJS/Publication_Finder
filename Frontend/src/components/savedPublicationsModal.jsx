@@ -4,6 +4,7 @@ import {
   getPublications,
   deletePublication,
   deleteProject,
+  getRecommendations,
 } from "../services/projectApi";
 
 function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
@@ -34,11 +35,16 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
   };
 
   const handleGetRecommendations = async () => {
-    setRecLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setRecommendations([]);
+  setRecLoading(true);
+  try {
+    const data = await getRecommendations(project.id);
+    setRecommendations(data.recommendations);
+  } catch (err) {
+    alert("Nepavyko gauti rekomendacijų");
+  } finally {
     setRecLoading(false);
-  };
+  }
+};
 
   useEffect(() => {
     if (open && project) {

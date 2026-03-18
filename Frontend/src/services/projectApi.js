@@ -28,3 +28,8 @@ export const deletePublication = async (projectId, publicationId) => {
 export const deleteProject = async (projectId) => {
   await apiClient.delete(`/projects/${projectId}/`);
 };
+
+export const getRecommendations = async (projectId) => {
+  const response = await apiClient.post(`/recommendations/${projectId}/`);
+  return response.data;
+};
