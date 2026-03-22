@@ -94,7 +94,6 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
           display: "flex",
           gap: "20px",
           alignItems: "flex-start",
-          minHeight: "500px",
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -26,6 +26,8 @@ function Modal({ open, title, children, onClose, maxWidth }) {
           padding: "20px",
           boxSizing: "border-box",
           fontFamily: "Times New Roman",
+          maxHeight: "90vh",
+          overflowY: "auto",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
