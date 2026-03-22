@@ -10,6 +10,7 @@ SELECTED_FIELDS = ",".join([
     "open_access",
     "type",
     "primary_location",
+    "abstract_inverted_index",
     "authorships",
     "cited_by_count",
     "language",
@@ -54,7 +55,7 @@ class OpenAlexClient:
         params = {
             "per-page": per_page,
             "page": page,
-            "select": SELECTED_FIELDS if search_by == "author" else SELECTED_FIELDS_WITH_ABSTRACT,
+            "select": SELECTED_FIELDS,
         }
 
         if search_by == "author":

@@ -28,6 +28,8 @@ function HomePage() {
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
 
+  const [searchBy, setSearchBy] = useState("title");
+
   const handleAuthSubmit = async () => {
     setIsLoggedIn(true);
     closeAuthModal();
@@ -52,28 +54,26 @@ function HomePage() {
     }
   };
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await searchPublications(query, {
-        yearFrom,
-        yearTo,
-        oa: oaOnly ? true : undefined,
-        type: type || undefined,
-        sort: sort || undefined,
-      });
-      setResults(data.results || []);
-    } catch (err) {
-      setError(err.message || "Nepavyko gauti publikacijų");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const handleSearch = async () => {
+  if (!query.trim()) return;
+  setLoading(true);
+  setError(null);
+  try {
+    const data = await searchPublications(query, {
+      yearFrom,
+      yearTo,
+      oa: oaOnly ? true : undefined,
+      type: type || undefined,
+      sort: sort || undefined,
+      searchBy,
+    });
+    setResults(data.results || []);
+  } catch (err) {
+    setError(err.message || "Nepavyko gauti publikacijų");
+  } finally {
+    setLoading(false);
+  }
+};
   const handleOpenCreateProject = () => {
     if (!isLoggedIn) {
       alert("Pirmiausia prisijunkite.");
@@ -168,12 +168,14 @@ function HomePage() {
               <h1>Publikacijų paieška</h1>
             </div>
 
-            <SearchBar
-              query={query}
-              setQuery={setQuery}
-              onSearch={handleSearch}
-              disabled={loading}
-            />
+           <SearchBar
+  query={query}
+  setQuery={setQuery}
+  onSearch={handleSearch}
+  disabled={loading}
+  searchBy={searchBy}
+  setSearchBy={setSearchBy}
+/>
 
             <FiltersBar
               yearFrom={yearFrom}
