@@ -31,6 +31,10 @@ def search_publications(request):
     if sort not in allowed_sorts:
         return JsonResponse({"error": "Invalid sort value"}, status=400)
 
+    search_by = request.GET.get("search_by", "title")
+    if search_by not in {"title", "author"}:
+        return JsonResponse({"error": "Invalid search_by value"}, status=400)
+
 
     year_from = _parse_int(request.GET.get("year_from"))
     year_to = _parse_int(request.GET.get("year_to"))
@@ -57,7 +61,9 @@ def search_publications(request):
             year_to=year_to,
             is_oa=oa,
             work_type=pub_type,
-            sort=sort)
+            sort=sort,
+            search_by=search_by,
+        )
         return JsonResponse(data)
     except requests.RequestException as e:
         return JsonResponse({"error": "OpenAlex request failed", "details": str(e)}, status=502)

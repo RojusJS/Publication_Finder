@@ -10,12 +10,14 @@ SELECTED_FIELDS = ",".join([
     "open_access",
     "type",
     "primary_location",
-    "abstract_inverted_index",
     "authorships",
     "cited_by_count",
     "language",
     "keywords",
 ])
+
+SELECTED_FIELDS_WITH_ABSTRACT = SELECTED_FIELDS + ",abstract_inverted_index"
+
 
 class OpenAlexClient:
     def search_publications(
@@ -28,14 +30,19 @@ class OpenAlexClient:
             is_oa: bool | None = None,
             work_type: str | None = None,
             sort: str | None = None,
-        ) -> dict:
+            search_by: str = "title",
+    ) -> dict:
         url = "https://api.openalex.org/works"
         filters = []
+
+        if search_by == "author":
+            filters.append(f'raw_author_name.search:{query}')
+
         if year_from is not None:
             filters.append(f"from_publication_date:{year_from}-01-01")
         if year_to is not None:
             filters.append(f"to_publication_date:{year_to}-12-31")
-        if year_to is None:
+        if year_to is None and search_by == "title":
             filters.append(f"to_publication_date:{datetime.now().year}-12-31")
         if is_oa is True:
             filters.append("is_oa:true")
@@ -43,14 +50,19 @@ class OpenAlexClient:
             filters.append("is_oa:false")
         if work_type:
             filters.append(f"type:{work_type}")
+
         params = {
-            "search": query,
             "per-page": per_page,
             "page": page,
-            "select": SELECTED_FIELDS,
+            "select": SELECTED_FIELDS if search_by == "author" else SELECTED_FIELDS_WITH_ABSTRACT,
         }
-        if filters:
+
+        if search_by == "author":
             params["filter"] = ",".join(filters)
+        else:
+            params["search"] = query
+            if filters:
+                params["filter"] = ",".join(filters)
 
         sort_map = {
             "year_desc": "publication_date:desc",

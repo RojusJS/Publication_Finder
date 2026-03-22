@@ -18,14 +18,14 @@ class SearchService:
     def search(
             self,
             query: str,
-            per_page:
-            int = 5,
+            per_page: int = 5,
             page: int = 1,
             year_from: int | None = None,
             year_to: int | None = None,
             is_oa: bool | None = None,
             work_type: str | None = None,
-            sort: str | None = None) -> dict:
+            sort: str | None = None,
+            search_by: str = "title") -> dict:
         client = OpenAlexClient()
         data = client.search_publications(
             query=query,
@@ -36,6 +36,7 @@ class SearchService:
             is_oa=is_oa,
             work_type=work_type,
             sort=sort,
+            search_by=search_by,
         )
 
         results = []
