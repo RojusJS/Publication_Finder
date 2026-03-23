@@ -1,7 +1,73 @@
 import React from "react";
 import Modal from "./modal";
 
-function PublicationCardModal({ open, onClose, pub }) {
+function InstitutionsList({ institutions, highlightName }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const PREVIEW_COUNT = 3;
+
+  const sorted = highlightName
+    ? [
+        ...institutions.filter((i) =>
+          i.toLowerCase().includes(highlightName.toLowerCase()),
+        ),
+        ...institutions.filter(
+          (i) => !i.toLowerCase().includes(highlightName.toLowerCase()),
+        ),
+      ]
+    : institutions;
+
+  const visible = expanded ? sorted : sorted.slice(0, PREVIEW_COUNT);
+
+  return (
+    <div>
+      <strong>Institucijos:</strong>{" "}
+      <span>
+        {visible.join(", ")}
+        {!expanded && sorted.length > PREVIEW_COUNT && (
+          <>
+            {" "}
+            <button
+              onClick={() => setExpanded(true)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#514f58",
+                cursor: "pointer",
+                padding: 0,
+                fontFamily: "Times New Roman",
+                fontSize: "15px",
+                textDecoration: "underline",
+              }}
+            >
+              rodyti dar {sorted.length - PREVIEW_COUNT} ...
+            </button>
+          </>
+        )}
+        {expanded && sorted.length > PREVIEW_COUNT && (
+          <>
+            {" "}
+            <button
+              onClick={() => setExpanded(false)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#514f58",
+                cursor: "pointer",
+                padding: 0,
+                fontFamily: "Times New Roman",
+                fontSize: "15px",
+                textDecoration: "underline",
+              }}
+            >
+              rodyti mažiau
+            </button>
+          </>
+        )}
+      </span>
+    </div>
+  );
+}
+function PublicationCardModal({ open, onClose, pub, institutionName }) {
   if (!pub) return null;
 
   return (
@@ -18,6 +84,13 @@ function PublicationCardModal({ open, onClose, pub }) {
           <div>
             <strong>Autoriai:</strong> {pub.authors.join(", ")}
           </div>
+        )}
+
+        {pub.institutions?.length > 0 && (
+          <InstitutionsList
+            institutions={pub.institutions}
+            highlightName={institutionName}
+          />
         )}
 
         {pub.source_name && (

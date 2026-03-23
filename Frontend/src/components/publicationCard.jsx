@@ -3,7 +3,7 @@ import { savePublication } from "../services/projectApi";
 import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
 
-function PublicationCard({ pub, projects }) {
+function PublicationCard({ pub, projects, institutionName }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -181,6 +181,7 @@ function PublicationCard({ pub, projects }) {
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           pub={pub}
+          institutionName={institutionName}
         />,
         document.body,
       )}

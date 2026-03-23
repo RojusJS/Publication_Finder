@@ -177,6 +177,7 @@ function HomePage() {
                 key={pub.openalex_id ?? index}
                 pub={pub}
                 projects={projects}
+                institutionName={institution?.display_name}
               />
             ))}
           </div>

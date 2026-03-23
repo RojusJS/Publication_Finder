@@ -56,6 +56,13 @@ class SearchService:
                 if authorship.get("author") and authorship["author"].get("display_name")
             ]
 
+            institutions = list({
+                institution["display_name"]
+                for authorship in authorships
+                for institution in (authorship.get("institutions") or [])
+                if institution.get("display_name")
+            })
+
             results.append({
                 "openalex_id": publication.get("id"),
                 "title": publication.get("title"),
@@ -67,6 +74,7 @@ class SearchService:
                 "landing_page_url": primary_location.get("landing_page_url") or open_access.get("oa_url"),
                 "abstract": reconstruct_abstract(publication.get("abstract_inverted_index")),
                 "authors": authors,
+                "institutions": institutions,
                 "source_name": source.get("display_name"),
                 "cited_by_count": publication.get("cited_by_count"),
                 "language": publication.get("language"),
