@@ -54,19 +54,21 @@ function HomePage() {
   };
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() && !institution) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await searchPublications(query, {
-        yearFrom,
-        yearTo,
-        oa: oaOnly ? true : undefined,
-        type: type || undefined,
-        sort: sort || undefined,
-        searchBy,
-        institutionId: institution?.id,
-      });
+      const data = await searchPublications(
+        institution ? institution.id : query,
+        {
+          yearFrom,
+          yearTo,
+          oa: oaOnly ? true : undefined,
+          type: type || undefined,
+          sort: sort || undefined,
+          searchBy: institution ? "institution" : searchBy,
+        },
+      );
       setResults(data.results || []);
     } catch (err) {
       setError(err.message || "Nepavyko gauti publikacijų");

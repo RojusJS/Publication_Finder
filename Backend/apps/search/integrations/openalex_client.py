@@ -39,6 +39,9 @@ class OpenAlexClient:
         if search_by == "author":
             filters.append(f'raw_author_name.search:{query}')
 
+        if search_by == "institution":
+            filters.append(f"institutions.id:{query}")
+
         if year_from is not None:
             filters.append(f"from_publication_date:{year_from}-01-01")
         if year_to is not None:
@@ -55,10 +58,10 @@ class OpenAlexClient:
         params = {
             "per-page": per_page,
             "page": page,
-            "select": SELECTED_FIELDS,
+            "select": SELECTED_FIELDS if search_by in ("author", "institution") else SELECTED_FIELDS_WITH_ABSTRACT,
         }
 
-        if search_by == "author":
+        if search_by in ("author", "institution"):
             params["filter"] = ",".join(filters)
         else:
             params["search"] = query

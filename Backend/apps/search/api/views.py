@@ -32,7 +32,7 @@ def search_publications(request):
         return JsonResponse({"error": "Invalid sort value"}, status=400)
 
     search_by = request.GET.get("search_by", "title")
-    if search_by not in {"title", "author"}:
+    if search_by not in {"title", "author", "institution"}:
         return JsonResponse({"error": "Invalid search_by value"}, status=400)
 
 
