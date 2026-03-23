@@ -11,6 +11,7 @@ export async function searchPublications(query, filters = {}) {
   if (filters.type) params.set("type", filters.type);
   if (filters.sort) params.set("sort", filters.sort);
   if (filters.searchBy) params.set("search_by", filters.searchBy);
+  if (filters.institutionId) params.set("institution_id", filters.institutionId);
 
   const url = `${API_BASE}/api/search/publications/?${params.toString()}`;
 

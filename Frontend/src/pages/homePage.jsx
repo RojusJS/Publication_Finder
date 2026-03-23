@@ -14,7 +14,6 @@ function HomePage() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
   const [oaOnly, setOaOnly] = useState(false);
@@ -24,11 +23,12 @@ function HomePage() {
   const [authMode, setAuthMode] = useState(null);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [institution, setInstitution] = useState(null);
+  const [searchBy, setSearchBy] = useState("title");
+
   const handleLoginClick = () => setAuthMode("login");
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
-
-  const [searchBy, setSearchBy] = useState("title");
 
   const handleAuthSubmit = async () => {
     setIsLoggedIn(true);
@@ -38,7 +38,6 @@ function HomePage() {
 
   useEffect(() => {
     const access = localStorage.getItem("access");
-
     if (access) {
       setIsLoggedIn(true);
       fetchProjects();
@@ -54,36 +53,34 @@ function HomePage() {
     }
   };
 
-const handleSearch = async () => {
-  if (!query.trim()) return;
-  setLoading(true);
-  setError(null);
-  try {
-    const data = await searchPublications(query, {
-      yearFrom,
-      yearTo,
-      oa: oaOnly ? true : undefined,
-      type: type || undefined,
-      sort: sort || undefined,
-      searchBy,
-    });
-    setResults(data.results || []);
-  } catch (err) {
-    setError(err.message || "Nepavyko gauti publikacijų");
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await searchPublications(query, {
+        yearFrom,
+        yearTo,
+        oa: oaOnly ? true : undefined,
+        type: type || undefined,
+        sort: sort || undefined,
+        searchBy,
+        institutionId: institution?.id,
+      });
+      setResults(data.results || []);
+    } catch (err) {
+      setError(err.message || "Nepavyko gauti publikacijų");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOpenCreateProject = () => {
     if (!isLoggedIn) {
       alert("Pirmiausia prisijunkite.");
       return;
     }
     setIsCreateProjectOpen(true);
-  };
-
-  const handleCloseCreateProject = () => {
-    setIsCreateProjectOpen(false);
   };
 
   const handleLogout = () => {
@@ -121,7 +118,7 @@ const handleSearch = async () => {
       />
       <CreateProjectModal
         open={isCreateProjectOpen}
-        onClose={handleCloseCreateProject}
+        onClose={() => setIsCreateProjectOpen(false)}
         onCreate={handleCreateProject}
       />
 
@@ -137,7 +134,9 @@ const handleSearch = async () => {
           onCreateProjectClick={handleOpenCreateProject}
           isLoggedIn={isLoggedIn}
           projects={projects}
-          onProjectDeleted={(id) => setProjects((prev) => prev.filter((p) => p.id !== id))}
+          onProjectDeleted={(id) =>
+            setProjects((prev) => prev.filter((p) => p.id !== id))
+          }
         />
 
         <div
@@ -146,7 +145,7 @@ const handleSearch = async () => {
             left: "50%",
             transform: "translateX(-50%)",
             width: "100%",
-            maxWidth: "1000px",
+            maxWidth: "900px",
             padding: "20px",
             display: "flex",
             flexDirection: "column",
@@ -154,55 +153,48 @@ const handleSearch = async () => {
             boxSizing: "border-box",
           }}
         >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "1000px",
-              padding: "20px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
-              <h1>Publikacijų paieška</h1>
-            </div>
-
-           <SearchBar
-  query={query}
-  setQuery={setQuery}
-  onSearch={handleSearch}
-  disabled={loading}
-  searchBy={searchBy}
-  setSearchBy={setSearchBy}
-/>
-
-            <FiltersBar
-              yearFrom={yearFrom}
-              setYearFrom={setYearFrom}
-              yearTo={yearTo}
-              setYearTo={setYearTo}
-              type={type}
-              setType={setType}
-              oaOnly={oaOnly}
-              setOaOnly={setOaOnly}
-              sort={sort}
-              setSort={setSort}
-            />
-
-            {loading && <p>Loading...</p>}
-            {error && <p style={{ color: "red" }}>{error}</p>}
-
-            <div style={{ marginTop: "20px", width: "100%" }}>
-              {results.map((pub, index) => (
-                <PublicationCard
-                  key={pub.openalex_id ?? index}
-                  pub={pub}
-                  projects={projects}
-                />
-              ))}
-            </div>
+          <div style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
+            <h1>Publikacijų paieška</h1>
           </div>
+
+          <SearchBar
+            query={query}
+            setQuery={setQuery}
+            onSearch={handleSearch}
+            disabled={loading}
+            searchBy={searchBy}
+            setSearchBy={setSearchBy}
+          />
+
+          {loading && <p>Kraunama...</p>}
+          {error && <p style={{ color: "red" }}>{error}</p>}
+
+          <div style={{ marginTop: "20px", width: "100%" }}>
+            {results.map((pub, index) => (
+              <PublicationCard
+                key={pub.openalex_id ?? index}
+                pub={pub}
+                projects={projects}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginLeft: "auto" }}>
+          <FiltersBar
+            yearFrom={yearFrom}
+            setYearFrom={setYearFrom}
+            yearTo={yearTo}
+            setYearTo={setYearTo}
+            type={type}
+            setType={setType}
+            oaOnly={oaOnly}
+            setOaOnly={setOaOnly}
+            sort={sort}
+            setSort={setSort}
+            institution={institution}
+            setInstitution={setInstitution}
+          />
         </div>
       </div>
     </div>
