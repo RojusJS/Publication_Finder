@@ -53,28 +53,34 @@ function HomePage() {
     }
   };
 
-  const handleSearch = async () => {
-    if (!query.trim() && !institution) return;
+  const handleSearch = async (overrideQuery, overrideSearchBy) => {
+    const q = overrideQuery ?? query;
+    const by = overrideSearchBy ?? searchBy;
+    if (!q.trim() && !institution) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await searchPublications(
-        institution ? institution.id : query,
-        {
-          yearFrom,
-          yearTo,
-          oa: oaOnly ? true : undefined,
-          type: type || undefined,
-          sort: sort || undefined,
-          searchBy: institution ? "institution" : searchBy,
-        },
-      );
+      const data = await searchPublications(institution ? institution.id : q, {
+        yearFrom,
+        yearTo,
+        oa: oaOnly ? true : undefined,
+        type: type || undefined,
+        sort: sort || undefined,
+        searchBy: institution ? "institution" : by,
+        institutionId: institution?.id,
+      });
       setResults(data.results || []);
     } catch (err) {
       setError(err.message || "Nepavyko gauti publikacijų");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearchWithQuery = (q, by) => {
+    setQuery(q);
+    setSearchBy(by);
+    handleSearch(q, by);
   };
 
   const handleOpenCreateProject = () => {
@@ -163,6 +169,7 @@ function HomePage() {
             query={query}
             setQuery={setQuery}
             onSearch={handleSearch}
+            onSearchWithQuery={handleSearchWithQuery}
             disabled={loading}
             searchBy={searchBy}
             setSearchBy={setSearchBy}
