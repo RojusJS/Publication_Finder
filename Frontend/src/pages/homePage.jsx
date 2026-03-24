@@ -134,7 +134,9 @@ function HomePage() {
         style={{
           display: "flex",
           width: "100%",
-          alignItems: "stretch",
+          alignItems: "flex-start",
+          height: "calc(100vh - 73px)",
+          overflow: "hidden",
           position: "relative",
         }}
       >
@@ -153,15 +155,16 @@ function HomePage() {
             left: "50%",
             transform: "translateX(-50%)",
             width: "100%",
-            maxWidth: "900px",
+            maxWidth: "1200px",
             padding: "20px",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             boxSizing: "border-box",
+            height: "100%",
           }}
         >
-          <div style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
+          <div style={{ fontFamily: "Times New Roman", fontSize: "16px" }}>
             <h1>Publikacijų paieška</h1>
           </div>
 
@@ -178,7 +181,14 @@ function HomePage() {
           {loading && <p>Kraunama...</p>}
           {error && <p style={{ color: "red" }}>{error}</p>}
 
-          <div style={{ marginTop: "20px", width: "100%" }}>
+          <div
+            style={{
+              marginTop: "18px",
+              width: "100%",
+              overflowY: "auto",
+              flex: 1,
+            }}
+          >
             {results.map((pub, index) => (
               <PublicationCard
                 key={pub.openalex_id ?? index}

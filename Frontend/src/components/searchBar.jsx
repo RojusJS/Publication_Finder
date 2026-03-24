@@ -75,12 +75,6 @@ function SearchBar({
     setHistory(updated);
   };
 
-  const searchByLabel = (by) => {
-    if (by === "author") return "Autorius";
-    if (by === "institution") return "Institucija";
-    return "Pavadinimas";
-  };
-
   return (
     <div
       style={{

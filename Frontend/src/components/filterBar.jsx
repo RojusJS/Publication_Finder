@@ -42,7 +42,7 @@ function FiltersBar({
       setLoadingSuggestions(true);
       try {
         const resp = await fetch(
-          `https://api.openalex.org/autocomplete/institutions?q=${encodeURIComponent(institutionQuery)}`
+          `https://api.openalex.org/autocomplete/institutions?q=${encodeURIComponent(institutionQuery)}`,
         );
         const data = await resp.json();
         setSuggestions(data.results || []);
@@ -116,7 +116,11 @@ function FiltersBar({
         gap: "16px",
       }}
     >
-      <h3 style={{ margin: 0, fontFamily: "Times New Roman", fontSize: "16px" }}>Filtrai</h3>
+      <h3
+        style={{ margin: 0, fontFamily: "Times New Roman", fontSize: "16px" }}
+      >
+        Filtrai
+      </h3>
 
       <div>
         <label style={labelStyle}>Metai nuo</label>
@@ -142,7 +146,11 @@ function FiltersBar({
 
       <div>
         <label style={labelStyle}>Tipas</label>
-        <select value={type} onChange={(e) => setType(e.target.value)} style={selectStyle}>
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          style={selectStyle}
+        >
           <option value="">Visi</option>
           <option value="journal-article">Journal article</option>
           <option value="book-chapter">Book chapter</option>
@@ -154,7 +162,11 @@ function FiltersBar({
 
       <div>
         <label style={labelStyle}>Rikiuoti pagal</label>
-        <select value={sort} onChange={(e) => setSort(e.target.value)} style={selectStyle}>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          style={selectStyle}
+        >
           <option value="">Numatytasis</option>
           <option value="year_desc">Metai: mažėjimo tvarka</option>
           <option value="year_asc">Metai: didėjimo tvarka</option>
@@ -162,7 +174,15 @@ function FiltersBar({
       </div>
 
       <div>
-        <label style={{ ...labelStyle, display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+        <label
+          style={{
+            ...labelStyle,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+          }}
+        >
           <input
             type="checkbox"
             checked={oaOnly}
@@ -174,7 +194,8 @@ function FiltersBar({
 
       <div ref={dropdownRef} style={{ position: "relative" }}>
         <label style={labelStyle}>
-          Institucija {loadingSuggestions && <span style={{ color: "#aaa" }}>...</span>}
+          Institucija{" "}
+          {loadingSuggestions && <span style={{ color: "#aaa" }}>...</span>}
         </label>
         <input
           type="text"
@@ -212,8 +233,10 @@ function FiltersBar({
         {dropdownOpen && suggestions.length > 0 && (
           <div
             style={{
-              position: "absolute",
-              top: "100%",
+              position: "sticky",
+              top: 0,
+              height: "100vh",
+              overflowY: "auto",
               left: 0,
               marginTop: "4px",
               background: "#fff",
@@ -222,7 +245,6 @@ function FiltersBar({
               boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
               width: "260px",
               maxHeight: "220px",
-              overflowY: "auto",
               zIndex: 1000,
             }}
           >
@@ -230,8 +252,12 @@ function FiltersBar({
               <div
                 key={item.id}
                 onClick={() => handleSelect(item)}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#f1ebf5")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#f1ebf5")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#ffffff")
+                }
                 style={{
                   padding: "10px 14px",
                   cursor: "pointer",
@@ -242,7 +268,13 @@ function FiltersBar({
               >
                 <div style={{ fontWeight: "500" }}>{item.display_name}</div>
                 {item.hint && (
-                  <div style={{ fontSize: "12px", color: "#888", marginTop: "2px" }}>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#888",
+                      marginTop: "2px",
+                    }}
+                  >
                     {item.hint}
                   </div>
                 )}

@@ -2,88 +2,157 @@ import { useState } from "react";
 import React from "react";
 import ProjectModal from "./savedPublicationsModal.jsx";
 
-function ProjectsBar({ onCreateProjectClick, isLoggedIn, projects, onProjectDeleted }) {
+function ProjectsBar({
+  onCreateProjectClick,
+  isLoggedIn,
+  projects,
+  onProjectDeleted,
+}) {
   const [selectedProject, setSelectedProject] = useState(null);
+
   return (
     <div
       style={{
-        width: "260px",
-        minWidth: "260px",
-        borderRight: "2px solid #acacac",
-        padding: "20px",
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+        overflowY: "auto",
+        width: "240px",
+        minWidth: "240px",
+        padding: "20px 16px",
         boxSizing: "border-box",
         fontFamily: "Times New Roman",
-        background: "#f1f0f3",
-        minHeight: "calc(100vh - 73px)",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.20)",
-        borderRadius: "10px",
+        background: "#f3f3f307",
+        borderRight: "0.5px solid #ddd9e3",
       }}
     >
-      <h3 style={{ marginTop: 0 }}>Projektai</h3>
+      <p
+        style={{
+          margin: "0 0 16px",
+          fontSize: "11px",
+          fontWeight: "500",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "#000000",
+          fontFamily: "Times New Roman",
+        }}
+      >
+        Projektai
+      </p>
 
       <button
         onClick={onCreateProjectClick}
         disabled={!isLoggedIn}
         style={{
           width: "100%",
-          padding: "10px 14px",
-          background: isLoggedIn ? "#e4e3e3" : "#c0bfbf",
-          border: "2px solid #000000",
-          borderRadius: "12px",
+          padding: "8px 12px",
+          background: isLoggedIn ? "#e2e2e2" : "#dadada",
+          border: "0.5px solid #979797",
+          borderRadius: "8px",
           cursor: isLoggedIn ? "pointer" : "not-allowed",
           fontFamily: "Times New Roman",
-          fontSize: "16px",
+          fontSize: "14px",
+          color: isLoggedIn ? "#000000" : "#aaa",
+          textAlign: "left",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+        onMouseEnter={(e) => {
+          if (isLoggedIn) e.currentTarget.style.background = "#d4d4d4";
+        }}
+        onMouseLeave={(e) => {
+          if (isLoggedIn) e.currentTarget.style.background = "#e6e5e5";
         }}
       >
+        <span style={{ fontSize: "16px", lineHeight: 1 }}>+</span>
         Sukurti projektą
       </button>
 
       {!isLoggedIn && (
-        <p style={{ marginTop: "10px", fontSize: "14px", color: "#727272" }}>
-          Norėdami kurti projektus, prisijunkite
+        <p
+          style={{
+            marginTop: "10px",
+            fontSize: "12px",
+            color: "#aaa",
+            fontFamily: "sans-serif",
+          }}
+        >
+          Prisijunkite, kad galėtumėte kurti projektus
         </p>
       )}
 
-      <div style={{ marginTop: "20px" }}>
+      <div
+        style={{
+          marginTop: "20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "4px",
+        }}
+      >
         {projects.length === 0 ? (
-          <p style={{ margin: 0, color: "#666" }}>Projektų dar nėra</p>
-        ) : (
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+          <p
+            style={{
+              margin: 0,
+              fontSize: "13px",
+              color: "#aaa",
+              fontFamily: "sans-serif",
+            }}
           >
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                onClick={() => setSelectedProject(project)}
+            Projektų dar nėra
+          </p>
+        ) : (
+          projects.map((project) => (
+            <div
+              key={project.id}
+              onClick={() => setSelectedProject(project)}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#ebebeb")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+              style={{
+                padding: "10px 12px",
+                borderRadius: "8px",
+                background: "transparent",
+                cursor: "pointer",
+                transition: "background 0.1s",
+                border: "0.5px solid #979797",
+                marginBottom: "8px"
+              }}
+            >
+              <p
                 style={{
-                  border: "2px solid #4e4e4e",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  background: "#ffffff",
-                  cursor: "pointer",
+                  margin: 0,
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "#2a2535",
+                  fontFamily: "Times New Roman",
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#dfdfdf")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "#ffffff")
-                }
               >
-                <strong>{project.name}</strong>
+                {project.name}
+              </p>
+              {project.description && (
                 <p
                   style={{
-                    margin: "6px 0 0 0",
-                    fontSize: "14px",
-                    color: "#555",
+                    margin: "2px 0 0",
+                    fontSize: "12px",
+                    color: "#9993a8",
+                    fontFamily: "sans-serif",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
-                  {project.description || "Aprašymo nėra"}
+                  {project.description}
                 </p>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          ))
         )}
       </div>
+
       <ProjectModal
         open={selectedProject !== null}
         project={selectedProject}

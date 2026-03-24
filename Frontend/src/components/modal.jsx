@@ -1,17 +1,20 @@
-function Modal({ open, title, children, onClose, maxWidth }) {
+import React from "react";
+import { createPortal } from "react-dom";
+
+function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0, 0, 0, 0.70)",
+        background: "rgba(0, 0, 0, 0.53)",
         display: "flex",
-        justifyContent: "center",
         alignItems: "center",
-        zIndex: 1000,
+        justifyContent: "center",
+        zIndex: 9999,
         padding: "20px",
       }}
     >
@@ -19,38 +22,72 @@ function Modal({ open, title, children, onClose, maxWidth }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",
-          maxWidth: maxWidth ?? "500px",
-          background: "#ffffff",
-          borderRadius: "20px",
-          border: "2px solid #000000",
-          padding: "20px",
-          boxSizing: "border-box",
-          fontFamily: "Times New Roman",
+          maxWidth: maxWidth,
           maxHeight: "90vh",
+          background: "#fff",
+          borderRadius: "18px",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+          padding: "20px",
+          position: "relative",
+          zIndex: 10000,
+          fontFamily: "Times New Roman",
+          boxSizing: "border-box",
           overflowY: "auto",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
-          <h2 style={{ margin: 0 }}>{title}</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
+        {(title || onClose) && (
+          <div
             style={{
-              border: "1px solid #000000",
-              background: "#eb1d1da2",
-              borderRadius: "8px",
-              cursor: "pointer",
-              padding: "4px 10px",
-              height: "32px",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: "16px",
+              marginBottom: title ? "18px" : 0,
             }}
           >
-            ✕
-          </button>
-        </div>
+            {title ? (
+              <h2
+                style={{
+                  margin: 0,
+                  lineHeight: "1.3",
+                  flex: 1,
+                }}
+              >
+                {title}
+              </h2>
+            ) : (
+              <div />
+            )}
 
-        <div style={{ marginTop: "10px" }}>{children}</div>
+            <button
+              onClick={onClose}
+              type="button"
+              style={{
+                width: "34px",
+                height: "34px",
+                minWidth: "34px",
+                borderRadius: "10px",
+                border: "1px solid #000000",
+                background: "#f27d72",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                lineHeight: 1,
+                fontSize: "18px",
+                flexShrink: 0,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

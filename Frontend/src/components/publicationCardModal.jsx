@@ -71,7 +71,7 @@ function PublicationCardModal({ open, onClose, pub, institutionName }) {
   if (!pub) return null;
 
   return (
-    <Modal open={open} onClose={onClose} title={pub.title} maxWidth="700px">
+    <Modal open={open} onClose={onClose} title={pub.title} maxWidth="1600px">
       <div
         style={{
           display: "flex",
