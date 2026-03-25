@@ -27,6 +27,7 @@ function FiltersBar({
         setDropdownOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -37,12 +38,16 @@ function FiltersBar({
       setDropdownOpen(false);
       return;
     }
+
     clearTimeout(debounceRef.current);
+
     debounceRef.current = setTimeout(async () => {
       setLoadingSuggestions(true);
       try {
         const resp = await fetch(
-          `https://api.openalex.org/autocomplete/institutions?q=${encodeURIComponent(institutionQuery)}`,
+          `https://api.openalex.org/autocomplete/institutions?q=${encodeURIComponent(
+            institutionQuery,
+          )}`,
         );
         const data = await resp.json();
         setSuggestions(data.results || []);
@@ -70,59 +75,81 @@ function FiltersBar({
   };
 
   const labelStyle = {
+    margin: "0 0 6px",
+    fontSize: "12px",
+    fontWeight: "500",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "#000000",
     fontFamily: "Times New Roman",
-    fontSize: "13px",
-    color: "#555",
-    marginBottom: "4px",
-    display: "block",
   };
 
   const inputStyle = {
     width: "100%",
-    padding: "6px 10px",
+    padding: "8px 12px",
     borderRadius: "8px",
-    border: "1.2px solid #000000",
+    border: "0.5px solid #979797",
     fontFamily: "Times New Roman",
     fontSize: "14px",
+    color: "#2a2535",
     boxSizing: "border-box",
+    background: "#ffffff",
+    outline: "none",
+  };
+
+  const selectWrapStyle = {
+    position: "relative",
+    width: "100%",
   };
 
   const selectStyle = {
     width: "100%",
-    padding: "6px 10px",
+    padding: "8px 36px 8px 12px",
     borderRadius: "8px",
-    border: "1.2px solid #000000",
+    border: "0.5px solid #979797",
     fontFamily: "Times New Roman",
     fontSize: "14px",
+    color: "#2a2535",
     boxSizing: "border-box",
     background: "#ffffff",
+    outline: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
+    MozAppearance: "none",
+    cursor: "pointer",
   };
 
   return (
     <div
       style={{
-        width: "220px",
-        minWidth: "220px",
-        borderLeft: "2px solid #acacac",
-        padding: "20px",
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+        overflowY: "auto",
+        width: "240px",
+        minWidth: "240px",
+        padding: "20px 16px",
         boxSizing: "border-box",
         fontFamily: "Times New Roman",
-        background: "#f1f0f3",
-        minHeight: "calc(100vh - 73px)",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.20)",
-        borderRadius: "10px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "16px",
+        background: "#f3f3f307",
+        borderLeft: "0.5px solid #ddd9e3",
       }}
     >
-      <h3
-        style={{ margin: 0, fontFamily: "Times New Roman", fontSize: "16px" }}
+      <p
+        style={{
+          margin: "0 0 16px",
+          fontSize: "11px",
+          fontWeight: "500",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "#000000",
+          fontFamily: "Times New Roman",
+        }}
       >
         Filtrai
-      </h3>
+      </p>
 
-      <div>
+      <div style={{ marginBottom: "16px" }}>
         <label style={labelStyle}>Metai nuo</label>
         <input
           type="number"
@@ -133,7 +160,7 @@ function FiltersBar({
         />
       </div>
 
-      <div>
+      <div style={{ marginBottom: "16px" }}>
         <label style={labelStyle}>Metai iki</label>
         <input
           type="number"
@@ -144,43 +171,76 @@ function FiltersBar({
         />
       </div>
 
-      <div>
+      <div style={{ marginBottom: "16px" }}>
         <label style={labelStyle}>Tipas</label>
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          style={selectStyle}
-        >
-          <option value="">Visi</option>
-          <option value="journal-article">Journal article</option>
-          <option value="book-chapter">Book chapter</option>
-          <option value="book">Book</option>
-          <option value="preprint">Preprint</option>
-          <option value="proceedings-article">Proceedings article</option>
-        </select>
+        <div style={selectWrapStyle}>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="">Visi</option>
+            <option value="journal-article">Journal article</option>
+            <option value="book-chapter">Book chapter</option>
+            <option value="book">Book</option>
+            <option value="preprint">Preprint</option>
+            <option value="proceedings-article">Proceedings article</option>
+          </select>
+          <span
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+              fontSize: "12px",
+              color: "#686666",
+            }}
+          >
+            ▼
+          </span>
+        </div>
       </div>
 
-      <div>
+      <div style={{ marginBottom: "16px" }}>
         <label style={labelStyle}>Rikiuoti pagal</label>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          style={selectStyle}
-        >
-          <option value="">Numatytasis</option>
-          <option value="year_desc">Metai: mažėjimo tvarka</option>
-          <option value="year_asc">Metai: didėjimo tvarka</option>
-        </select>
+        <div style={selectWrapStyle}>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="">Numatytasis</option>
+            <option value="year_desc">Metai: mažėjimo tvarka</option>
+            <option value="year_asc">Metai: didėjimo tvarka</option>
+          </select>
+          <span
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+              fontSize: "12px",
+              color: "#666565",
+            }}
+          >
+            ▼
+          </span>
+        </div>
       </div>
 
-      <div>
+      <div style={{ marginBottom: "16px" }}>
         <label
           style={{
-            ...labelStyle,
+            fontSize: "14px",
+            color: "#2a2535",
+            fontFamily: "Times New Roman",
             display: "flex",
             alignItems: "center",
             gap: "8px",
             cursor: "pointer",
+            margin: 0,
           }}
         >
           <input
@@ -195,8 +255,11 @@ function FiltersBar({
       <div ref={dropdownRef} style={{ position: "relative" }}>
         <label style={labelStyle}>
           Institucija{" "}
-          {loadingSuggestions && <span style={{ color: "#aaa" }}>...</span>}
+          {loadingSuggestions && (
+            <span style={{ color: "#9993a8", textTransform: "none" }}>...</span>
+          )}
         </label>
+
         <input
           type="text"
           placeholder="Ieškoti institucijos"
@@ -207,44 +270,27 @@ function FiltersBar({
           }}
           style={{
             ...inputStyle,
-            background: institution ? "#f0eeee" : "#ffffff",
-            border: institution ? "1.2px solid #514f58" : "1.2px solid #000000",
+            background: institution ? "#eeebeb" : "#ffffff",
+            border: institution
+              ? "0.5px solid #58575f"
+              : "0.5px solid #949494",
           }}
         />
-        {institution && (
-          <button
-            onClick={handleClear}
-            style={{
-              marginTop: "6px",
-              width: "100%",
-              padding: "4px",
-              borderRadius: "8px",
-              border: "1px solid #000",
-              background: "#e0e0e0",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontFamily: "Times New Roman",
-            }}
-          >
-            ✕ Išvalyti
-          </button>
-        )}
 
         {dropdownOpen && suggestions.length > 0 && (
           <div
             style={{
-              position: "sticky",
-              top: 0,
-              height: "100vh",
-              overflowY: "auto",
+              position: "absolute",
+              top: "100%",
               left: 0,
-              marginTop: "4px",
-              background: "#fff",
-              border: "1px solid #d6d6d6",
-              borderRadius: "10px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-              width: "260px",
+              right: 0,
+              marginTop: "6px",
+              background: "#ffffff",
+              border: "0.5px solid #979797",
+              borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               maxHeight: "220px",
+              overflowY: "auto",
               zIndex: 1000,
             }}
           >
@@ -253,30 +299,44 @@ function FiltersBar({
                 key={item.id}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#f1ebf5")
+                  (e.currentTarget.style.background = "#ebebeb")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "#ffffff")
+                  (e.currentTarget.style.background = "transparent")
                 }
                 style={{
-                  padding: "10px 14px",
+                  padding: "10px 12px",
                   cursor: "pointer",
-                  fontFamily: "Times New Roman",
-                  fontSize: "14px",
-                  borderBottom: "1px solid #f0f0f0",
+                  transition: "background 0.1s",
+                  borderBottom: "0.5px solid #ececec",
                 }}
               >
-                <div style={{ fontWeight: "500" }}>{item.display_name}</div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "#2a2535",
+                    fontFamily: "Times New Roman",
+                  }}
+                >
+                  {item.display_name}
+                </p>
+
                 {item.hint && (
-                  <div
+                  <p
                     style={{
+                      margin: "2px 0 0",
                       fontSize: "12px",
-                      color: "#888",
-                      marginTop: "2px",
+                      color: "#9993a8",
+                      fontFamily: "sans-serif",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                   >
                     {item.hint}
-                  </div>
+                  </p>
                 )}
               </div>
             ))}

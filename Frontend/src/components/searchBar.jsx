@@ -198,9 +198,7 @@ function SearchBar({
                       minWidth: 0,
                     }}
                   >
-                    <span style={{ color: "#b0aab8", fontSize: "14px" }}>
-                      🕐
-                    </span>
+  
                     <span
                       style={{
                         fontFamily: "Times New Roman",
