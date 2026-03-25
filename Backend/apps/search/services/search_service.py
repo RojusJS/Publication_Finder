@@ -15,6 +15,58 @@ def reconstruct_abstract(inverted_index: dict | None) -> str | None:
     return " ".join(word for _, word in positions)
 
 class SearchService:
+    def _map_publication(self, publication: dict) -> dict | None:
+        primary_location = publication.get("primary_location") or {}
+        open_access = publication.get("open_access") or {}
+        source = primary_location.get("source") or {}
+        authorships = publication.get("authorships") or []
+        keywords = publication.get("keywords") or []
+        pub_year = publication.get("publication_year")
+
+        if pub_year is not None and pub_year > CURRENT_YEAR:
+            return None
+
+        authors = [
+            authorship["author"]["display_name"]
+            for authorship in authorships
+            if authorship.get("author") and authorship["author"].get("display_name")
+        ]
+
+        institutions = list({
+            institution["display_name"]
+            for authorship in authorships
+            for institution in (authorship.get("institutions") or [])
+            if institution.get("display_name")
+        })
+
+        return {
+            "openalex_id": publication.get("id"),
+            "title": publication.get("title"),
+            "year": publication.get("publication_year"),
+            "doi": publication.get("doi"),
+            "is_oa": open_access.get("is_oa"),
+            "type": publication.get("type"),
+            "pdf_url": primary_location.get("pdf_url"),
+            "landing_page_url": primary_location.get("landing_page_url") or open_access.get("oa_url"),
+            "abstract": reconstruct_abstract(publication.get("abstract_inverted_index")),
+            "authors": authors,
+            "institutions": institutions,
+            "source_name": source.get("display_name"),
+            "cited_by_count": publication.get("cited_by_count"),
+            "language": publication.get("language"),
+            "keywords": [kw.get("display_name") for kw in keywords if kw.get("display_name")],
+        }
+
+    def get_publication_detail(self, openalex_id: str) -> dict:
+        client = OpenAlexClient()
+        publication = client.get_publication_by_id(openalex_id)
+        mapped = self._map_publication(publication)
+
+        if mapped is None:
+            raise ValueError("Publication is invalid")
+
+        return mapped
+
     def search(
             self,
             query: str,
@@ -41,45 +93,9 @@ class SearchService:
 
         results = []
         for publication in data.get("results", []):
-            primary_location = publication.get("primary_location") or {}
-            open_access = publication.get("open_access") or {}
-            source = primary_location.get("source") or {}
-            authorships = publication.get("authorships") or []
-            keywords = publication.get("keywords") or []
-            pub_year = publication.get("publication_year")
-            if pub_year is not None and pub_year > CURRENT_YEAR:
-                continue
-
-            authors = [
-                authorship["author"]["display_name"]
-                for authorship in authorships
-                if authorship.get("author") and authorship["author"].get("display_name")
-            ]
-
-            institutions = list({
-                institution["display_name"]
-                for authorship in authorships
-                for institution in (authorship.get("institutions") or [])
-                if institution.get("display_name")
-            })
-
-            results.append({
-                "openalex_id": publication.get("id"),
-                "title": publication.get("title"),
-                "year": publication.get("publication_year"),
-                "doi": publication.get("doi"),
-                "is_oa": open_access.get("is_oa"),
-                "type": publication.get("type"),
-                "pdf_url": primary_location.get("pdf_url"),
-                "landing_page_url": primary_location.get("landing_page_url") or open_access.get("oa_url"),
-                "abstract": reconstruct_abstract(publication.get("abstract_inverted_index")),
-                "authors": authors,
-                "institutions": institutions,
-                "source_name": source.get("display_name"),
-                "cited_by_count": publication.get("cited_by_count"),
-                "language": publication.get("language"),
-                "keywords": [kw.get("display_name") for kw in keywords if kw.get("display_name")],
-            })
+            mapped = self._map_publication(publication)
+            if mapped is not None:
+                results.append(mapped)
 
         return {
             "query": query,

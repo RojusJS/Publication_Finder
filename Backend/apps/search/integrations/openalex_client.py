@@ -21,6 +21,19 @@ SELECTED_FIELDS_WITH_ABSTRACT = SELECTED_FIELDS + ",abstract_inverted_index"
 
 
 class OpenAlexClient:
+
+    def get_publication_by_id(self, openalex_id: str) -> dict:
+        short_id = openalex_id.replace("https://openalex.org/", "")
+        url = f"https://api.openalex.org/works/{short_id}"
+
+        params = {
+            "select": SELECTED_FIELDS_WITH_ABSTRACT,
+        }
+
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        return resp.json()
+
     def search_publications(
             self,
             query: str,

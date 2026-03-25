@@ -3,6 +3,26 @@ import requests
 
 from apps.search.services.search_service import SearchService
 
+def publication_detail(request):
+    openalex_id = request.GET.get("id", "").strip()
+    if not openalex_id:
+        return JsonResponse({"error": "Missing query parameter: id"}, status=400)
+
+    service = SearchService()
+    try:
+        data = service.get_publication_detail(openalex_id)
+        return JsonResponse(data)
+    except requests.RequestException as e:
+        return JsonResponse(
+            {"error": "OpenAlex request failed", "details": str(e)},
+            status=502,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Internal error", "details": str(e)},
+            status=500,
+        )
+
 def _parse_bool(value: str | None) -> bool | None:
     if value is None:
         return None

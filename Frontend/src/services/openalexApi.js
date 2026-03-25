@@ -27,3 +27,22 @@ export async function searchPublications(query, filters = {}) {
 
   return await response.json();
 }
+
+export async function getPublicationDetail(openalexId) {
+  const params = new URLSearchParams();
+  params.set("id", openalexId);
+
+  const url = `${API_BASE}/api/search/publications/detail/?${params.toString()}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    let details = "";
+    try {
+      details = await response.text();
+    } catch (e) {}
+    throw new Error(`Request failed (${response.status}). ${details}`);
+  }
+
+  return await response.json();
+}
