@@ -12,8 +12,22 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+
+class Folder(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="folders")
+    name = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("project", "name")
+
+    def __str__(self):
+        return f"{self.project.name} / {self.name}"
+
+
 class SavedPublication(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="publications")
+    folder = models.ForeignKey(Folder, on_delete=models.SET_NULL, null=True, blank=True, related_name="publications")
     openalex_id = models.CharField(max_length=255)
     title = models.TextField()
     year = models.IntegerField(null=True, blank=True)
@@ -22,4 +36,7 @@ class SavedPublication(models.Model):
     saved_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("project", "openalex_id")
+        unique_together = ("folder", "openalex_id")
+
+    def __str__(self):
+        return self.title
