@@ -1,5 +1,8 @@
 import Modal from "./modal";
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import PublicationCardModal from "./publicationCardModal";
+import { getPublicationDetail } from "../services/openalexApi";
 import {
   getPublications,
   deletePublication,
@@ -7,11 +10,20 @@ import {
   getRecommendations,
 } from "../services/projectApi";
 
-function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
+function SavedPublicationsModal({
+  open,
+  project,
+  onClose,
+  onProjectDeleted,
+  projects,
+  institutionName,
+}) {
   const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPub, setSelectedPub] = useState(null);
 
   const handleDelete = async (pubId) => {
     try {
@@ -35,14 +47,29 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
   };
 
   const handleGetRecommendations = async () => {
-  setRecLoading(true);
+    setRecLoading(true);
+    try {
+      const data = await getRecommendations(project.id);
+      setRecommendations(data.recommendations);
+    } catch (err) {
+      alert("Nepavyko gauti rekomendacijų");
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
+  const handleOpenSavedPublication = async (pub) => {
   try {
-    const data = await getRecommendations(project.id);
-    setRecommendations(data.recommendations);
+    if (pub.openalex_id) {
+      const fullPub = await getPublicationDetail(pub.openalex_id);
+      setSelectedPub(fullPub);
+    } else {
+      setSelectedPub(pub);
+    }
+
+    setModalOpen(true);
   } catch (err) {
-    alert("Nepavyko gauti rekomendacijų");
-  } finally {
-    setRecLoading(false);
+    alert("Nepavyko gauti publikacijos informacijos");
   }
 };
 
@@ -104,7 +131,7 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
               fontSize: "17px",
             }}
           >
-            Išsaugotos publikacijos ({publications.length})
+            Išsaugotos publikacijos: {publications.length}
           </h3>
 
           {loading && <p style={{ color: "#979696" }}>Kraunama...</p>}
@@ -122,12 +149,24 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
               {publications.map((pub) => (
                 <div
                   key={pub.id}
+                  onClick={() => handleOpenSavedPublication(pub)}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#e6e6e6")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#ffffff")
+                  }
                   style={{
-                    border: "2px solid #55535c",
-                    borderRadius: "8px",
-                    padding: "12px",
-                    background: "#f0eeee",
+                    background: "#ffffff",
+                    padding: "16px 20px",
+                    marginBottom: "2px",
+                    borderRadius: "12px",
+                    width: "100%",
+                    border: "0.5px solid #86848a",
                     fontFamily: "Times New Roman",
+                    cursor: "pointer",
+                    boxSizing: "border-box",
+                    transition: "background 0.12s",
                   }}
                 >
                   <div
@@ -142,7 +181,10 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
                       {pub.title}
                     </strong>
                     <button
-                      onClick={() => handleDelete(pub.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(pub.id);
+                      }}
                       style={{
                         padding: "3px 8px",
                         background: "#a1a1a1a2",
@@ -272,12 +314,24 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
               {recommendations.map((rec, i) => (
                 <div
                   key={rec.openalex_id ?? i}
+                  onClick={() => handleOpenSavedPublication(rec)}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#e6e6e6")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "#f3f4ff")
+                  }
                   style={{
-                    border: "2px solid #514f58",
-                    borderRadius: "8px",
-                    padding: "12px",
-                    background: "#ffffff",
+                    background: "#f3f4ff",
+                    padding: "16px 20px",
+                    marginBottom: "2px",
+                    borderRadius: "12px",
+                    width: "100%",
+                    border: "0.5px solid #86848a",
                     fontFamily: "Times New Roman",
+                    cursor: "pointer",
+                    boxSizing: "border-box",
+                    transition: "background 0.12s",
                   }}
                 >
                   <div
@@ -344,6 +398,17 @@ function SavedPublicationsModal({ open, project, onClose, onProjectDeleted }) {
           )}
         </div>
       </div>
+
+      {createPortal(
+        <PublicationCardModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          pub={selectedPub}
+          institutionName={institutionName}
+          projects={projects}
+        />,
+        document.body,
+      )}
     </Modal>
   );
 }

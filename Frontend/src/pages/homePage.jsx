@@ -49,7 +49,7 @@ function HomePage() {
       const data = await getProjects();
       setProjects(data);
     } catch (err) {
-      console.error("Nepavyko pasiekti projektus.", err);
+      console.error("Nepavyko pasiekti projektų", err);
     }
   };
 
