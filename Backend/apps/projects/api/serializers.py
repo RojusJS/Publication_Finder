@@ -17,11 +17,10 @@ class FolderSerializer(serializers.ModelSerializer):
 
 
 class SavedPublicationSerializer(serializers.ModelSerializer):
-    folder_id = serializers.PrimaryKeyRelatedField(
-        queryset=Folder.objects.all(),
-        source="folder",
-        write_only=True
-    )
+    class Meta:
+        model = SavedPublication
+        fields = ["id", "openalex_id", "title", "year", "doi", "pdf_url", "saved_at"]
+        read_only_fields = ["id", "saved_at"]
 
     class Meta:
         model = SavedPublication

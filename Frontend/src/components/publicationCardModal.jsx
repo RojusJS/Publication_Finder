@@ -1,7 +1,7 @@
 import React from "react";
 import Modal from "./modal";
 import CitationGraphModal from "./citationGraphModal";
-import { savePublication } from "../services/projectApi";
+import { savePublication, getFolders } from "../services/projectApi";
 
 function InstitutionsList({ institutions, highlightName }) {
   const [expanded, setExpanded] = React.useState(false);
@@ -80,20 +80,37 @@ function PublicationCardModal({
   const [graphOpen, setGraphOpen] = React.useState(false);
   const [saveOpen, setSaveOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [selectedProject, setSelectedProject] = React.useState(null);
+  const [folders, setFolders] = React.useState([]);
+  const [foldersLoading, setFoldersLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) {
       setGraphOpen(false);
       setSaveOpen(false);
+      setSelectedProject(null);
+      setFolders([]);
     }
   }, [open]);
 
-  if (!pub) return null;
+  const handleSelectProject = async (project) => {
+    setSelectedProject(project);
+    setFolders([]);
+    setFoldersLoading(true);
+    try {
+      const data = await getFolders(project.id);
+      setFolders(data);
+    } catch {
+      alert("Nepavyko gauti aplankų");
+    } finally {
+      setFoldersLoading(false);
+    }
+  };
 
-  const handleSaveToProject = async (projectId) => {
+  const handleSaveToFolder = async (folderId) => {
     try {
       setSaving(true);
-      await savePublication(projectId, {
+      await savePublication(selectedProject.id, folderId, {
         openalex_id: pub.openalex_id,
         title: pub.title,
         year: pub.year,
@@ -102,12 +119,16 @@ function PublicationCardModal({
       });
       alert("Išsaugota");
       setSaveOpen(false);
-    } catch (err) {
+      setSelectedProject(null);
+      setFolders([]);
+    } catch {
       alert("Nepavyko išsaugoti");
     } finally {
       setSaving(false);
     }
   };
+
+  if (!pub) return null;
 
   return (
     <>
@@ -139,7 +160,6 @@ function PublicationCardModal({
                 cursor: "pointer",
                 fontFamily: "Times New Roman",
                 fontSize: "15px",
-                width: "fit-content",
               }}
             >
               Rodyti citavimo grafą
@@ -147,7 +167,11 @@ function PublicationCardModal({
 
             <div style={{ position: "relative" }}>
               <button
-                onClick={() => setSaveOpen((prev) => !prev)}
+                onClick={() => {
+                  setSaveOpen((p) => !p);
+                  setSelectedProject(null);
+                  setFolders([]);
+                }}
                 disabled={saving}
                 style={{
                   padding: "8px 14px",
@@ -157,7 +181,6 @@ function PublicationCardModal({
                   cursor: saving ? "not-allowed" : "pointer",
                   fontFamily: "Times New Roman",
                   fontSize: "15px",
-                  width: "fit-content",
                   opacity: saving ? 0.7 : 1,
                 }}
               >
@@ -174,8 +197,7 @@ function PublicationCardModal({
                     border: "1px solid #d6d6d6",
                     borderRadius: "10px",
                     boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                    minWidth: "180px",
-                    overflow: "hidden",
+                    minWidth: "220px",
                     zIndex: 20,
                   }}
                 >
@@ -191,55 +213,122 @@ function PublicationCardModal({
                     </div>
                   ) : (
                     projects.map((project) => (
-                      <button
+                      <div
                         key={project.id}
-                        onClick={() => handleSaveToProject(project.id)}
-                        style={{
-                          width: "100%",
-                          padding: "10px 16px",
-                          background: "none",
-                          border: "none",
-                          textAlign: "left",
-                          cursor: "pointer",
-                          fontFamily: "Times New Roman",
-                          fontSize: "15px",
-                          color: "#000000",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#f0eef4")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "none")
-                        }
+                        onMouseEnter={() => handleSelectProject(project)}
+                        style={{ position: "relative" }}
                       >
-                        {project.name}
-                      </button>
+                        <div
+                          style={{
+                            padding: "10px 16px",
+                            cursor: "pointer",
+                            fontFamily: "Times New Roman",
+                            fontSize: "15px",
+                            color: "#000",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            background:
+                              selectedProject?.id === project.id
+                                ? "#f0eef4"
+                                : "none",
+                          }}
+                        >
+                          {project.name}
+                          <span style={{ color: "#aaa", fontSize: "12px" }}>
+                            ▸
+                          </span>
+                        </div>
+
+                        {selectedProject?.id === project.id && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: "calc(100% + 4px)",
+                              background: "#fff",
+                              border: "1px solid #d6d6d6",
+                              borderRadius: "10px",
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                              minWidth: "200px",
+                              zIndex: 21,
+                              overflow: "hidden",
+                            }}
+                          >
+                            {foldersLoading ? (
+                              <div
+                                style={{
+                                  padding: "10px 16px",
+                                  fontFamily: "Times New Roman",
+                                  color: "#888",
+                                  fontSize: "14px",
+                                }}
+                              ></div>
+                            ) : folders.length === 0 ? (
+                              <div
+                                style={{
+                                  padding: "10px 16px",
+                                  fontFamily: "Times New Roman",
+                                  color: "#888",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                Aplankų nėra
+                              </div>
+                            ) : (
+                              folders.map((folder) => (
+                                <button
+                                  key={folder.id}
+                                  onClick={() => handleSaveToFolder(folder.id)}
+                                  onMouseEnter={(e) =>
+                                    (e.currentTarget.style.background =
+                                      "#f0eef4")
+                                  }
+                                  onMouseLeave={(e) =>
+                                    (e.currentTarget.style.background = "none")
+                                  }
+                                  style={{
+                                    width: "100%",
+                                    padding: "10px 16px",
+                                    background: "none",
+                                    border: "none",
+                                    textAlign: "left",
+                                    cursor: "pointer",
+                                    fontFamily: "Times New Roman",
+                                    fontSize: "14px",
+                                    color: "#000",
+                                    boxSizing: "border-box",
+                                  }}
+                                >
+                                  {folder.name}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))
                   )}
                 </div>
               )}
             </div>
           </div>
-
           {pub.authors?.length > 0 && (
             <div>
               <strong>Autoriai:</strong> {pub.authors.join(", ")}
             </div>
           )}
-
           {pub.institutions?.length > 0 && (
             <InstitutionsList
               institutions={pub.institutions}
               highlightName={institutionName}
             />
           )}
-
           {pub.source_name && (
             <div>
               <strong>Šaltinis:</strong> {pub.source_name}
             </div>
           )}
-
           <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
             {pub.year && (
               <div>
@@ -267,10 +356,9 @@ function PublicationCardModal({
               </div>
             )}
           </div>
-
           {pub.keywords?.length > 0 && (
             <div>
-              <strong>Raktažodžiai:</strong>{" "}
+              <strong>Raktažodžiai:</strong>
               <div
                 style={{
                   display: "flex",
@@ -296,7 +384,6 @@ function PublicationCardModal({
               </div>
             </div>
           )}
-
           {pub.abstract && (
             <div>
               <strong>Santrauka:</strong>
@@ -312,10 +399,7 @@ function PublicationCardModal({
               </p>
             </div>
           )}
-
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {pub.doi && (
               <span>
                 <strong>DOI:</strong>{" "}

@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
 
-from apps.projects.models import Project
+from apps.projects.models import Project, SavedPublication
 from apps.search.integrations.openalex_client import OpenAlexClient
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -15,10 +15,11 @@ class ProjectRecommendationsView(generics.GenericAPIView):
 
     def post(self, request, project_id):
         project = get_object_or_404(Project, id=project_id, user=request.user)
-        saved_publications = project.publications.all()
+        saved_publications = SavedPublication.objects.filter(folder__project=project)
         if not saved_publications:
             return Response({"recommendations": []})
 
+        # rest is unchanged
         saved_ids = set(pub.openalex_id for pub in saved_publications)
         titles = [pub.title for pub in saved_publications if pub.title]
         profile_text = " ".join(titles)

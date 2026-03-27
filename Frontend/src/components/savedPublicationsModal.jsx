@@ -4,6 +4,9 @@ import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
 import { getPublicationDetail } from "../services/openalexApi";
 import {
+  getFolders,
+  createFolder,
+  deleteFolder,
   getPublications,
   deletePublication,
   deleteProject,
@@ -18,19 +21,95 @@ function SavedPublicationsModal({
   projects,
   institutionName,
 }) {
-  const [publications, setPublications] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [folders, setFolders] = useState([]);
+  const [folderPubs, setFolderPubs] = useState({});
+  const [expandedFolders, setExpandedFolders] = useState({});
+  const [loadingFolders, setLoadingFolders] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPub, setSelectedPub] = useState(null);
 
-  const handleDelete = async (pubId) => {
+  useEffect(() => {
+    if (open && project) {
+      setLoadingFolders(true);
+      setRecommendations([]);
+      setExpandedFolders({});
+      setFolderPubs({});
+      getFolders(project.id)
+        .then(setFolders)
+        .catch(() => setFolders([]))
+        .finally(() => setLoadingFolders(false));
+    }
+  }, [open, project]);
+
+  const handleToggleFolder = async (folderId) => {
+    const isOpen = expandedFolders[folderId];
+    setExpandedFolders((prev) => ({ ...prev, [folderId]: !isOpen }));
+    if (!isOpen && !folderPubs[folderId]) {
+      try {
+        const pubs = await getPublications(project.id, folderId);
+        setFolderPubs((prev) => ({ ...prev, [folderId]: pubs }));
+      } catch {
+        setFolderPubs((prev) => ({ ...prev, [folderId]: [] }));
+      }
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    setCreatingFolder(true);
     try {
-      await deletePublication(project.id, pubId);
-      setPublications((prev) => prev.filter((p) => p.id !== pubId));
-    } catch (err) {
-      alert("Nepavyko ištrinti");
+      const folder = await createFolder(project.id, {
+        name: newFolderName.trim(),
+      });
+      setFolders((prev) => [...prev, folder]);
+      setNewFolderName("");
+      setShowNewFolderInput(false);
+    } catch {
+      alert("Nepavyko sukurti aplanko");
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId, folderName) => {
+    if (
+      !confirm(
+        `Ištrinti aplanką "${folderName}"? Publikacijos nebus ištrintos.`,
+      )
+    )
+      return;
+    try {
+      await deleteFolder(project.id, folderId);
+      setFolders((prev) => prev.filter((f) => f.id !== folderId));
+      setFolderPubs((prev) => {
+        const next = { ...prev };
+        delete next[folderId];
+        return next;
+      });
+      setExpandedFolders((prev) => {
+        const next = { ...prev };
+        delete next[folderId];
+        return next;
+      });
+    } catch {
+      alert("Nepavyko ištrinti aplanko");
+    }
+  };
+
+  const handleDeletePublication = async (folderId, pubId) => {
+    try {
+      await deletePublication(project.id, folderId, pubId);
+      setFolderPubs((prev) => ({
+        ...prev,
+        [folderId]: prev[folderId].filter((p) => p.id !== pubId),
+      }));
+    } catch {
+      alert("Nepavyko ištrinti publikacijos");
     }
   };
 
@@ -41,7 +120,7 @@ function SavedPublicationsModal({
       await deleteProject(project.id);
       onProjectDeleted(project.id);
       onClose();
-    } catch (err) {
+    } catch {
       alert("Nepavyko ištrinti projekto");
     }
   };
@@ -51,38 +130,31 @@ function SavedPublicationsModal({
     try {
       const data = await getRecommendations(project.id);
       setRecommendations(data.recommendations);
-    } catch (err) {
+    } catch {
       alert("Nepavyko gauti rekomendacijų");
     } finally {
       setRecLoading(false);
     }
   };
 
-  const handleOpenSavedPublication = async (pub) => {
-  try {
-    if (pub.openalex_id) {
-      const fullPub = await getPublicationDetail(pub.openalex_id);
-      setSelectedPub(fullPub);
-    } else {
-      setSelectedPub(pub);
+  const handleOpenPublication = async (pub) => {
+    try {
+      if (pub.openalex_id) {
+        const fullPub = await getPublicationDetail(pub.openalex_id);
+        setSelectedPub(fullPub);
+      } else {
+        setSelectedPub(pub);
+      }
+      setModalOpen(true);
+    } catch {
+      alert("Nepavyko gauti publikacijos informacijos");
     }
+  };
 
-    setModalOpen(true);
-  } catch (err) {
-    alert("Nepavyko gauti publikacijos informacijos");
-  }
-};
-
-  useEffect(() => {
-    if (open && project) {
-      setLoading(true);
-      setRecommendations([]);
-      getPublications(project.id)
-        .then(setPublications)
-        .catch(() => setPublications([]))
-        .finally(() => setLoading(false));
-    }
-  }, [open, project]);
+  const totalPubs = Object.values(folderPubs).reduce(
+    (sum, arr) => sum + arr.length,
+    0,
+  );
 
   if (!project) return null;
 
@@ -116,120 +188,268 @@ function SavedPublicationsModal({
         </button>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          alignItems: "flex-start",
-        }}
-      >
+      <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3
+          <div
             style={{
-              margin: "0 0 12px 0",
-              fontFamily: "Times New Roman",
-              fontSize: "17px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "12px",
             }}
           >
-            Išsaugotos publikacijos: {publications.length}
-          </h3>
+            <h3
+              style={{
+                margin: 0,
+                fontFamily: "Times New Roman",
+                fontSize: "17px",
+              }}
+            >
+              Aplankai
+            </h3>
+            <button
+              onClick={() => setShowNewFolderInput((p) => !p)}
+              style={{
+                padding: "3px 10px",
+                background: "#e2e2e2",
+                border: "0.5px solid #979797",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontFamily: "Times New Roman",
+                fontSize: "14px",
+              }}
+            >
+              + Naujas aplankas
+            </button>
+          </div>
 
-          {loading && <p style={{ color: "#979696" }}>Kraunama...</p>}
+          {showNewFolderInput && (
+            <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+              <input
+                autoFocus
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
+                placeholder="Aplanko pavadinimas"
+                style={{
+                  flex: 1,
+                  padding: "6px 10px",
+                  borderRadius: "8px",
+                  border: "0.5px solid #979797",
+                  fontFamily: "Times New Roman",
+                  fontSize: "14px",
+                  outline: "none",
+                }}
+              />
+              <button
+                onClick={handleCreateFolder}
+                disabled={creatingFolder || !newFolderName.trim()}
+                style={{
+                  padding: "6px 12px",
+                  background: "#1a1a1a",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontFamily: "Times New Roman",
+                  fontSize: "14px",
+                  opacity: creatingFolder || !newFolderName.trim() ? 0.5 : 1,
+                }}
+              >
+                Sukurti
+              </button>
+            </div>
+          )}
 
-          {!loading && publications.length === 0 && (
+          {loadingFolders && <p style={{ color: "#979696" }}>Kraunama...</p>}
+
+          {!loadingFolders && folders.length === 0 && (
             <p style={{ color: "#888787", fontSize: "14px" }}>
-              Išsaugotų publikacijų dar nėra
+              Aplankų dar nėra
             </p>
           )}
 
-          {!loading && publications.length > 0 && (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-            >
-              {publications.map((pub) => (
-                <div
-                  key={pub.id}
-                  onClick={() => handleOpenSavedPublication(pub)}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#e6e6e6")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "#ffffff")
-                  }
-                  style={{
-                    background: "#ffffff",
-                    padding: "16px 20px",
-                    marginBottom: "2px",
-                    borderRadius: "12px",
-                    width: "100%",
-                    border: "0.5px solid #86848a",
-                    fontFamily: "Times New Roman",
-                    cursor: "pointer",
-                    boxSizing: "border-box",
-                    transition: "background 0.12s",
-                  }}
-                >
+          {!loadingFolders &&
+            folders.map((folder) => {
+              const isOpen = expandedFolders[folder.id];
+              const pubs = folderPubs[folder.id];
+
+              return (
+                <div key={folder.id} style={{ marginBottom: "8px" }}>
                   <div
+                    onClick={() => handleToggleFolder(folder.id)}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#ebebeb")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "transparent")
+                    }
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: "10px",
+                      alignItems: "center",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      border: "0.5px solid #979797",
+                      cursor: "pointer",
+                      transition: "background 0.1s",
+                      background: "transparent",
+                      fontFamily: "Times New Roman",
                     }}
                   >
-                    <strong style={{ fontSize: "15px", lineHeight: "1.4" }}>
-                      {pub.title}
-                    </strong>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <span style={{ fontSize: "13px", color: "#666" }}>
+                        {isOpen ? "▾" : "▸"}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: "500",
+                          color: "#2a2535",
+                        }}
+                      >
+                        {folder.name}
+                      </span>
+                      {pubs && (
+                        <span style={{ fontSize: "12px", color: "#9993a8" }}>
+                          {pubs.length} pub.
+                        </span>
+                      )}
+                    </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete(pub.id);
+                        handleDeleteFolder(folder.id, folder.name);
                       }}
                       style={{
-                        padding: "3px 8px",
-                        background: "#a1a1a1a2",
-                        border: "1px solid #000000",
+                        padding: "2px 8px",
+                        background: "none",
+                        border: "0.5px solid #ccc",
                         borderRadius: "6px",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
-                        fontSize: "13px",
-                        flexShrink: 0,
+                        fontSize: "12px",
+                        color: "#888",
                       }}
                     >
                       Ištrinti
                     </button>
                   </div>
-                  <div
-                    style={{
-                      marginTop: "6px",
-                      fontSize: "13px",
-                      color: "#5e5b5b",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "3px",
-                    }}
-                  >
-                    <span>Išleidimo metai: {pub.year ?? "—"}</span>
-                    {pub.doi && (
-                      <span>
-                        DOI:{" "}
-                        <a href={pub.doi} target="_blank" rel="noreferrer">
-                          {pub.doi}
-                        </a>
-                      </span>
-                    )}
-                    {pub.pdf_url && (
-                      <a href={pub.pdf_url} target="_blank" rel="noreferrer">
-                        Atidaryti PDF
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
 
-          {!loading && publications.length > 0 && (
+                  {isOpen && (
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        marginLeft: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                      }}
+                    >
+                      {!pubs && (
+                        <p style={{ color: "#979696", fontSize: "13px" }}>
+                          Kraunama...
+                        </p>
+                      )}
+                      {pubs && pubs.length === 0 && (
+                        <p style={{ color: "#888787", fontSize: "13px" }}>
+                          Aplankas tuščias
+                        </p>
+                      )}
+                      {pubs &&
+                        pubs.map((pub) => (
+                          <div
+                            key={pub.id}
+                            onClick={() => handleOpenPublication(pub)}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.background = "#e6e6e6")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.background = "#ffffff")
+                            }
+                            style={{
+                              background: "#ffffff",
+                              padding: "12px 16px",
+                              borderRadius: "10px",
+                              border: "0.5px solid #86848a",
+                              cursor: "pointer",
+                              fontFamily: "Times New Roman",
+                              transition: "background 0.12s",
+                              boxSizing: "border-box",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                                gap: "10px",
+                              }}
+                            >
+                              <strong
+                                style={{ fontSize: "14px", lineHeight: "1.4" }}
+                              >
+                                {pub.title}
+                              </strong>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePublication(folder.id, pub.id);
+                                }}
+                                style={{
+                                  padding: "2px 8px",
+                                  background: "#a1a1a1a2",
+                                  border: "1px solid #000",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                  fontFamily: "Times New Roman",
+                                  fontSize: "12px",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                Ištrinti
+                              </button>
+                            </div>
+                            <div
+                              style={{
+                                marginTop: "4px",
+                                fontSize: "12px",
+                                color: "#5e5b5b",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "2px",
+                              }}
+                            >
+                              <span>Išleidimo metai: {pub.year ?? "—"}</span>
+                              {pub.doi && (
+                                <span>
+                                  DOI:{" "}
+                                  <a
+                                    href={pub.doi}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {pub.doi}
+                                  </a>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+          {!loadingFolders && folders.length > 0 && (
             <button
               onClick={handleGetRecommendations}
               disabled={recLoading}
@@ -238,7 +458,7 @@ function SavedPublicationsModal({
                 width: "100%",
                 padding: "10px",
                 background: recLoading ? "#c0bfbf" : "#1a1a1a",
-                color: "#ffffff",
+                color: "#fff",
                 border: "none",
                 borderRadius: "10px",
                 cursor: recLoading ? "not-allowed" : "pointer",
@@ -259,7 +479,7 @@ function SavedPublicationsModal({
             borderRadius: "2px",
           }}
         />
-
+        
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3
             style={{
@@ -314,7 +534,7 @@ function SavedPublicationsModal({
               {recommendations.map((rec, i) => (
                 <div
                   key={rec.openalex_id ?? i}
-                  onClick={() => handleOpenSavedPublication(rec)}
+                  onClick={() => handleOpenPublication(rec)}
                   onMouseEnter={(e) =>
                     (e.currentTarget.style.background = "#e6e6e6")
                   }
@@ -324,14 +544,12 @@ function SavedPublicationsModal({
                   style={{
                     background: "#f3f4ff",
                     padding: "16px 20px",
-                    marginBottom: "2px",
                     borderRadius: "12px",
-                    width: "100%",
                     border: "0.5px solid #86848a",
-                    fontFamily: "Times New Roman",
                     cursor: "pointer",
-                    boxSizing: "border-box",
+                    fontFamily: "Times New Roman",
                     transition: "background 0.12s",
+                    boxSizing: "border-box",
                   }}
                 >
                   <div
@@ -346,10 +564,11 @@ function SavedPublicationsModal({
                       {rec.title}
                     </strong>
                     <button
+                      onClick={(e) => e.stopPropagation()}
                       style={{
                         padding: "3px 8px",
                         background: "#d4d4d4",
-                        border: "1px solid #000000",
+                        border: "1px solid #000",
                         borderRadius: "6px",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
@@ -381,15 +600,15 @@ function SavedPublicationsModal({
                     {rec.doi && (
                       <span>
                         DOI:{" "}
-                        <a href={rec.doi} target="_blank" rel="noreferrer">
+                        <a
+                          href={rec.doi}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {rec.doi}
                         </a>
                       </span>
-                    )}
-                    {rec.pdf_url && (
-                      <a href={rec.pdf_url} target="_blank" rel="noreferrer">
-                        Atidaryti PDF
-                      </a>
                     )}
                   </div>
                 </div>
