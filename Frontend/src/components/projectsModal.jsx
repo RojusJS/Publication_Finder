@@ -88,7 +88,7 @@ function CreateProjectModal({ open, onClose, onCreate }) {
               padding: "8px 14px",
               borderRadius: "10px",
               border: "1px solid #000000",
-              background: "#cecdcd",
+              background: "#ffffff",
               cursor: "pointer",
               fontFamily: "Times New Roman",
             }}
@@ -102,9 +102,10 @@ function CreateProjectModal({ open, onClose, onCreate }) {
               padding: "8px 14px",
               borderRadius: "10px",
               border: "1px solid #000000",
-              background: "#d0e6cb",
+              background: "#000000",
               cursor: "pointer",
               fontFamily: "Times New Roman",
+              color: "#fff"
             }}
           >
             Sukurti
