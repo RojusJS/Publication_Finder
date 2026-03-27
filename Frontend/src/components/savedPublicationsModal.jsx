@@ -175,11 +175,11 @@ function SavedPublicationsModal({
           onClick={handleDeleteProject}
           style={{
             padding: "4px 10px",
-            background: "#e92323a2",
+            background: "#000000be",
             border: "1px solid #000000",
             borderRadius: "8px",
             cursor: "pointer",
-            color: "#000000",
+            color: "#ffffff",
             fontFamily: "Times New Roman",
             fontSize: "15px",
           }}

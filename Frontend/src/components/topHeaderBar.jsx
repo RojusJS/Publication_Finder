@@ -27,10 +27,9 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
         justifyContent: "space-between",
         alignItems: "center",
         padding: "16px 20px",
-        borderBottom: "2px solid #919191",
+        borderBottom: "2px solid #1b1b1b",
         boxSizing: "border-box",
         background: "#ffffff",
-        borderRadius: "20px",
         boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
       }}
     >

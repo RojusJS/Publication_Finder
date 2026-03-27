@@ -56,18 +56,18 @@ function buildStaticNodes(centerPub, works) {
 function getNodeStyle(isCenter) {
   if (isCenter) {
     return {
-      background: "#534AB7",
+      background: "#000000",
       color: "#ffffff",
-      border: "1px solid #3C3489",
+      border: "1px solid #000000",
       fontWeight: "bold",
       zIndex: 3,
     };
   }
 
   return {
-    background: "#f0eef4",
-    color: "#1a1a1a",
-    border: "1px solid #c4c2cc",
+    background: "#ffffff",
+    color: "#000000",
+    border: "1px solid #000000",
     zIndex: 2,
   };
 }
@@ -79,7 +79,7 @@ export default function CitationGraph({ pub, projects = [] }) {
 
   const [selectedPub, setSelectedPub] = useState(null);
   const [selectedPubOpen, setSelectedPubOpen] = useState(false);
-  const [nodeLoadingId, setNodeLoadingId] = useState(null);
+  const [hoveredId, setHoveredId] = useState(null);
 
   useEffect(() => {
     if (!pub?.openalex_id) return;
@@ -107,14 +107,11 @@ export default function CitationGraph({ pub, projects = [] }) {
     if (node.isCenter) return;
 
     try {
-      setNodeLoadingId(node.id);
       const fullPub = await getPublicationDetail(node.id);
       setSelectedPub(fullPub);
       setSelectedPubOpen(true);
     } catch (err) {
       alert("Nepavyko gauti publikacijos informacijos");
-    } finally {
-      setNodeLoadingId(null);
     }
   };
 
@@ -125,8 +122,8 @@ export default function CitationGraph({ pub, projects = [] }) {
           width: "100%",
           height: "700px",
           borderRadius: "12px",
-          border: "1px solid #d6d3dc",
-          background: "#fafaf9",
+          border: "1px solid #cecece",
+          background: "#f5f5f5",
           position: "relative",
           overflow: "hidden",
           fontFamily: "Times New Roman",
@@ -140,7 +137,7 @@ export default function CitationGraph({ pub, projects = [] }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#777",
+              color: "#636363",
               fontSize: "15px",
             }}
           >
@@ -173,6 +170,7 @@ export default function CitationGraph({ pub, projects = [] }) {
                 position: "absolute",
                 inset: 0,
                 zIndex: 1,
+                pointerEvents: "none",
               }}
             >
               {outerNodes.map((node) => (
@@ -182,7 +180,7 @@ export default function CitationGraph({ pub, projects = [] }) {
                   y1={`${centerNode.y}%`}
                   x2={`${node.x}%`}
                   y2={`${node.y}%`}
-                  stroke="rgba(80, 80, 80, 0.22)"
+                  stroke="rgba(0, 0, 0, 0.22)"
                   strokeWidth="1.2"
                 />
               ))}
@@ -193,11 +191,14 @@ export default function CitationGraph({ pub, projects = [] }) {
                 key={node.id}
                 title={`${node.title}${node.year ? ` (${node.year})` : ""}`}
                 onClick={() => handleNodeClick(node)}
+                onMouseEnter={() => !node.isCenter && setHoveredId(node.id)}
+                onMouseLeave={() => setHoveredId(null)}
                 style={{
                   position: "absolute",
                   left: `${node.x}%`,
                   top: `${node.y}%`,
                   transform: "translate(-50%, -50%)",
+                  zIndex: node.isCenter ? 3 : 2,
                   minWidth: node.isCenter ? "220px" : "130px",
                   maxWidth: node.isCenter ? "300px" : "160px",
                   padding: node.isCenter ? "12px 16px" : "8px 10px",
@@ -208,8 +209,16 @@ export default function CitationGraph({ pub, projects = [] }) {
                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                   boxSizing: "border-box",
                   cursor: node.isCenter ? "default" : "pointer",
-                  opacity: nodeLoadingId === node.id ? 0.7 : 1,
-                  ...getNodeStyle(node.isCenter),
+                  background: node.isCenter
+                    ? "#000000"
+                    : hoveredId === node.id
+                      ? "#e6e6e6"
+                      : "#ffffff",
+                  color: node.isCenter
+                    ? "#ffffff"
+                    : hoveredId === node.id
+                      ? "#000000"
+                      : "#1a1a1a",
                 }}
               >
                 <div>{trimTitle(node.title, node.isCenter ? 55 : 28)}</div>
@@ -219,12 +228,10 @@ export default function CitationGraph({ pub, projects = [] }) {
                     style={{
                       marginTop: "4px",
                       fontSize: "11px",
-                      color: "#777",
+                      color: "#000000",
                     }}
                   >
-                    {nodeLoadingId === node.id
-                      ? "Kraunama..."
-                      : `${node.year || "—"} · ${node.citations} cit.`}
+                    {`${node.year || "—"} · ${node.citations} cit.`}
                   </div>
                 )}
               </div>

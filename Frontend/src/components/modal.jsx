@@ -10,7 +10,7 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0, 0, 0, 0.53)",
+        background: "rgba(0, 0, 0, 0.61)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -24,8 +24,7 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
           width: "100%",
           maxWidth: maxWidth,
           maxHeight: "90vh",
-          background: "#fff",
-          borderRadius: "18px",
+          background: "#ffffff",
           boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
           padding: "20px",
           position: "relative",
@@ -33,6 +32,7 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
           fontFamily: "Times New Roman",
           boxSizing: "border-box",
           overflowY: "auto",
+          border: "2px solid #000000",
         }}
       >
         {(title || onClose) && (
@@ -68,7 +68,7 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
                 minWidth: "34px",
                 borderRadius: "10px",
                 border: "1px solid #000000",
-                background: "#f27d72",
+                background: "#000000f1",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -77,6 +77,7 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
                 lineHeight: 1,
                 fontSize: "18px",
                 flexShrink: 0,
+                color: "#fff"
               }}
             >
               ✕

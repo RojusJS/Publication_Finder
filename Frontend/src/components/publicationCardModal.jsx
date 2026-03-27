@@ -156,10 +156,11 @@ function PublicationCardModal({
                 padding: "8px 14px",
                 borderRadius: "10px",
                 border: "1px solid #7f7a88",
-                background: "#f0eef4",
+                background: "#000000",
                 cursor: "pointer",
                 fontFamily: "Times New Roman",
                 fontSize: "15px",
+                color: "#ffffff"
               }}
             >
               Rodyti citavimo grafą
@@ -177,11 +178,12 @@ function PublicationCardModal({
                   padding: "8px 14px",
                   borderRadius: "10px",
                   border: "1px solid #7f7a88",
-                  background: "#f0eef4",
+                  background: "#000000",
                   cursor: saving ? "not-allowed" : "pointer",
                   fontFamily: "Times New Roman",
                   fontSize: "15px",
                   opacity: saving ? 0.7 : 1,
+                  color: "#fff"
                 }}
               >
                 {saving ? "Saugoma..." : "Išsaugoti į projektą"}
@@ -373,9 +375,10 @@ function PublicationCardModal({
                     style={{
                       padding: "2px 10px",
                       borderRadius: "20px",
-                      background: "#f0f0f0",
-                      border: "1px solid #ccc",
+                      background: "#ffffff",
+                      border: "2px solid #000000",
                       fontSize: "13px",
+                      color: "#000000"
                     }}
                   >
                     {kw}
