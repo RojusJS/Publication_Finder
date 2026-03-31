@@ -1,11 +1,12 @@
 import Modal from "./modal";
 import { useState, useEffect } from "react";
 import { getUsers, deleteUser } from "../services/authenticationApi";
+import { useLanguage } from "./language";
 
 function AdminModal({ open, onClose }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const { t } = useLanguage();
   useEffect(() => {
     if (open) handleOpen();
   }, [open]);
@@ -23,7 +24,7 @@ function AdminModal({ open, onClose }) {
   };
 
   const handleDeleteUser = async (userId, username) => {
-    if (!confirm(`Ištrinti vartotoją "${username}"?`)) return;
+    if (!confirm(`${t.delete_confirm_user} "${username}"?`)) return;
     try {
       await deleteUser(userId);
       setUsers((prev) => prev.filter((u) => u.id !== userId));
@@ -33,10 +34,10 @@ function AdminModal({ open, onClose }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Vartotojai" maxWidth="600px">
-      {loading && <p style={{ color: "#979696" }}>Kraunama...</p>}
+    <Modal open={open} onClose={onClose} title={t.users} maxWidth="600px">
+      {loading && <p style={{ color: "#979696" }}>{t.loading}</p>}
       {!loading && users.length === 0 && (
-        <p style={{ color: "#888", fontSize: "14px" }}>Vartotojų nėra</p>
+        <p style={{ color: "#888", fontSize: "14px" }}>{t.no_users}</p>
       )}
       {!loading && users.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -63,7 +64,7 @@ function AdminModal({ open, onClose }) {
                   {user.email}
                 </span>
                 <span style={{ fontSize: "11px", color: "#afaeae" }}>
-                  Užsiregistravo:{" "}
+                  {t.registered}:{" "}
                   {new Date(user.date_joined).toLocaleDateString("lt-LT")}
                 </span>
               </div>
@@ -79,7 +80,7 @@ function AdminModal({ open, onClose }) {
                   fontSize: "13px",
                 }}
               >
-                Ištrinti
+                {t.delete}
               </button>
             </div>
           ))}

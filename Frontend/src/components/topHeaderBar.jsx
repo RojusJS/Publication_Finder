@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import AdminModal from "./adminModal";
+import { useLanguage } from "./language";
 
 function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { lang, setLang, t } = useLanguage();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -42,8 +44,22 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
           boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
         }}
       >
+        <button
+          onClick={() => setLang(lang === "LT" ? "EN" : "LT")}
+          style={{
+            padding: "6px 12px",
+            background: "#f0efef",
+            border: "1px solid #bbb",
+            borderRadius: "10px",
+            cursor: "pointer",
+            fontFamily: "Times New Roman",
+            fontSize: "14px",
+          }}
+        >
+          {lang === "LT" ? "LT" : "EN"}
+        </button>
         <div style={{ fontFamily: "Times New Roman" }}>
-          <h2 style={{ margin: 0 }}>Publikacijų paieška</h2>
+          <h2 style={{ margin: 0 }}>{t.search_title}</h2>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {!isLoggedIn ? (
@@ -58,7 +74,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                   cursor: "pointer",
                 }}
               >
-                Prisijungti
+                {t.login}
               </button>
               <button
                 onClick={onRegister}
@@ -70,13 +86,13 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                   cursor: "pointer",
                 }}
               >
-                Prisiregistruoti
+                {t.register}
               </button>
             </>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
-                Sveiki, {localStorage.getItem("username")}!
+                {t.welcome} {localStorage.getItem("username")}!
               </span>
 
               {isAdmin && (
@@ -98,7 +114,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                     (e.currentTarget.style.background = "#eceaea")
                   }
                 >
-                  Vartotojai
+                  {t.users}
                 </button>
               )}
 
@@ -154,7 +170,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                       }
                       onMouseLeave={(e) => (e.target.style.background = "none")}
                     >
-                      Atsijungti
+                      {t.logout}
                     </button>
                   </div>
                 )}

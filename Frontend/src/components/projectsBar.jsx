@@ -1,6 +1,7 @@
 import { useState } from "react";
 import React from "react";
 import ProjectModal from "./savedPublicationsModal.jsx";
+import { useLanguage } from "./language";
 
 function ProjectsBar({
   onCreateProjectClick,
@@ -9,7 +10,7 @@ function ProjectsBar({
   onProjectDeleted,
 }) {
   const [selectedProject, setSelectedProject] = useState(null);
-
+  const { t } = useLanguage();
   return (
     <div
       style={{
@@ -37,7 +38,7 @@ function ProjectsBar({
           fontFamily: "Times New Roman",
         }}
       >
-        Projektai
+        {t.projects}
       </p>
 
       <button
@@ -66,7 +67,7 @@ function ProjectsBar({
         }}
       >
         <span style={{ fontSize: "16px", lineHeight: 1 }}>+</span>
-        Sukurti projektą
+        {t.create_project}
       </button>
 
       {!isLoggedIn && (
@@ -78,7 +79,7 @@ function ProjectsBar({
             fontFamily: "sans-serif",
           }}
         >
-          Prisijunkite, kad galėtumėte kurti projektus
+          {t.login_to_create}
         </p>
       )}
 
@@ -99,7 +100,7 @@ function ProjectsBar({
               fontFamily: "sans-serif",
             }}
           >
-            Projektų dar nėra
+            {t.no_projects}
           </p>
         ) : (
           projects.map((project) => (

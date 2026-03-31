@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getPublicationDetail } from "../services/openalexApi";
 import PublicationCardModal from "./publicationCardModal";
+import { useLanguage } from "./language";
 
 const OPENALEX_BASE = "https://api.openalex.org";
 
@@ -76,7 +77,7 @@ export default function CitationGraph({ pub, projects = [] }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [works, setWorks] = useState([]);
-
+  const { t } = useLanguage();
   const [selectedPub, setSelectedPub] = useState(null);
   const [selectedPubOpen, setSelectedPubOpen] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
@@ -141,7 +142,7 @@ export default function CitationGraph({ pub, projects = [] }) {
               fontSize: "15px",
             }}
           >
-            Kraunami citavimai...
+            {t.loading_citations}
           </div>
         )}
 

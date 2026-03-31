@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLanguage } from "./language";
 
 function SearchBar({
   query,
@@ -12,6 +13,7 @@ function SearchBar({
   const [history, setHistory] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const containerRef = useRef(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const saved = localStorage.getItem("searchHistory");
@@ -99,10 +101,10 @@ function SearchBar({
             type="text"
             placeholder={
               searchBy === "author"
-                ? "Įveskite autoriaus vardą"
+                ? t.search_placeholder_author
                 : searchBy === "institution"
-                  ? "Įveskite institucijos pavadinimą"
-                  : "Įveskite užklausą"
+                  ? t.search_placeholder_institution
+                  : t.search_placeholder_title
             }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -153,7 +155,7 @@ function SearchBar({
                     fontFamily: "Times New Roman",
                   }}
                 >
-                  Paieškos istorija
+                  {t.search_history}
                 </span>
                 <button
                   onClick={handleClearHistory}
@@ -167,7 +169,7 @@ function SearchBar({
                     padding: "0",
                   }}
                 >
-                  Išvalyti viską
+                  {t.clear_all}
                 </button>
               </div>
 
@@ -198,7 +200,6 @@ function SearchBar({
                       minWidth: 0,
                     }}
                   >
-  
                     <span
                       style={{
                         fontFamily: "Times New Roman",
@@ -244,7 +245,7 @@ function SearchBar({
             opacity: disabled ? 0.7 : 1,
           }}
         >
-          Ieškoti
+          {t.search}
         </button>
       </div>
 
@@ -262,7 +263,7 @@ function SearchBar({
             fontSize: "14px",
           }}
         >
-          Pavadinimas
+          {t.by_title}
         </button>
         <button
           onClick={() => setSearchBy("author")}
@@ -277,7 +278,7 @@ function SearchBar({
             fontSize: "14px",
           }}
         >
-          Autorius
+          {t.by_author}
         </button>
       </div>
     </div>

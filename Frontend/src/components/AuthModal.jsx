@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Modal from "./modal";
 import { loginUser, registerUser } from "../services/authenticationApi";
+import { useLanguage } from "./language";
 
 const inputStyle = {
   width: "100%",
@@ -13,6 +14,7 @@ const inputStyle = {
 
 function AuthModal({ mode, open, onCancel, onSubmit }) {
   const isLogin = mode === "login";
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -32,12 +34,11 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
 
   const handlePrimary = async () => {
     setError(null);
-    if (!username.trim()) return setError("Įveskite prisijungimo vardą");
-    if (!password) return setError("Įveskite slaptažodį");
+    if (!username.trim()) return setError(t.err_username);
+    if (!password) return setError(t.err_password);
     if (!isLogin) {
-      if (!username.trim()) return setError("Įveskite prisijungimo vardą");
-      if (!password2) return setError("Pakartokite slaptažodį");
-      if (password !== password2) return setError("Slaptažodžiai nesutampa");
+      if (!password2) return setError(t.err_password2);
+      if (password !== password2) return setError(t.err_passwords_match);
     }
 
     try {
@@ -46,7 +47,6 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
         localStorage.setItem("access", tokens.access);
         localStorage.setItem("refresh", tokens.refresh);
         localStorage.setItem("username", username.trim());
-
         onSubmit?.({ ok: true, mode: "login" });
       } else {
         await registerUser({
@@ -59,7 +59,6 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
         localStorage.setItem("access", tokens.access);
         localStorage.setItem("refresh", tokens.refresh);
         localStorage.setItem("username", username.trim());
-
         onSubmit?.({ ok: true, mode: "register" });
       }
     } catch (e) {
@@ -70,13 +69,13 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
   return (
     <Modal
       open={open}
-      title={isLogin ? "Prisijungti" : "Prisiregistruoti"}
+      title={isLogin ? t.login : t.register}
       onClose={onCancel}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {!isLogin && (
           <div>
-            <div style={{ marginBottom: "6px" }}>El. pašto adresas</div>
+            <div style={{ marginBottom: "6px" }}>{t.email}</div>
             <input
               type="email"
               value={email}
@@ -86,8 +85,9 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
             />
           </div>
         )}
+
         <div>
-          <div style={{ marginBottom: "6px" }}>Prisijungimo vardas</div>
+          <div style={{ marginBottom: "6px" }}>{t.username_label}</div>
           <input
             type="text"
             value={username}
@@ -98,7 +98,7 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
         </div>
 
         <div>
-          <div style={{ marginBottom: "6px" }}>Slaptažodis</div>
+          <div style={{ marginBottom: "6px" }}>{t.password_label}</div>
           <input
             type="password"
             value={password}
@@ -110,9 +110,7 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
 
         {!isLogin && (
           <div>
-            <div style={{ marginBottom: "6px" }}>
-              Pakartotinas slaptažodžio įvedimas
-            </div>
+            <div style={{ marginBottom: "6px" }}>{t.password2_label}</div>
             <input
               type="password"
               value={password2}
@@ -143,9 +141,8 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
               cursor: "pointer",
             }}
           >
-            Atšaukti
+            {t.cancel}
           </button>
-
           <button
             onClick={handlePrimary}
             style={{
@@ -157,7 +154,7 @@ function AuthModal({ mode, open, onCancel, onSubmit }) {
               color: "#000",
             }}
           >
-            {isLogin ? "Prisijungti" : "Prisiregistruoti"}
+            {isLogin ? t.login : t.register}
           </button>
         </div>
       </div>

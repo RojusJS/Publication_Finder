@@ -1,15 +1,17 @@
 import React from "react";
 import Modal from "./modal";
 import CitationGraph from "./citationGraph";
+import { useLanguage } from "./language";
 
 function CitationGraphModal({ open, onClose, pub, projects = [] }) {
+  const { t } = useLanguage();
   if (!pub) return null;
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={`Citavimo grafas: ${pub.title}`}
+      title={`${t.citation_graph_title}: ${pub.title}`}
       maxWidth="1200px"
     >
       <div
@@ -27,7 +29,7 @@ function CitationGraphModal({ open, onClose, pub, projects = [] }) {
             color: "#666",
           }}
         >
-          Rodomos publikacijos, kurios cituoja pasirinktą publikacija
+          {t.citation_graph_desc}
         </p>
 
         {pub.openalex_id ? (
@@ -40,7 +42,7 @@ function CitationGraphModal({ open, onClose, pub, projects = [] }) {
               margin: 0,
             }}
           >
-            Citavimo grafikas nepasiekiamas
+            {t.citation_graph_unavailable}
           </p>
         )}
       </div>

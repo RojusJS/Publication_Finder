@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "./language";
 
 function FiltersBar({
   yearFrom,
@@ -20,6 +21,7 @@ function FiltersBar({
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const dropdownRef = useRef(null);
   const debounceRef = useRef(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -146,14 +148,14 @@ function FiltersBar({
           fontFamily: "Times New Roman",
         }}
       >
-        Filtrai
+        {t.filters}
       </p>
 
       <div style={{ marginBottom: "16px" }}>
-        <label style={labelStyle}>Metai nuo</label>
+        <label style={labelStyle}>{t.year_from}</label>
         <input
           type="number"
-          placeholder="pvz. 2010"
+          //placeholder="pvz. 2010"
           value={yearFrom}
           onChange={(e) => setYearFrom(e.target.value)}
           style={inputStyle}
@@ -161,10 +163,10 @@ function FiltersBar({
       </div>
 
       <div style={{ marginBottom: "16px" }}>
-        <label style={labelStyle}>Metai iki</label>
+        <label style={labelStyle}>{t.type}</label>
         <input
           type="number"
-          placeholder="pvz. 2024"
+          //placeholder="pvz. 2024"
           value={yearTo}
           onChange={(e) => setYearTo(e.target.value)}
           style={inputStyle}
@@ -172,14 +174,14 @@ function FiltersBar({
       </div>
 
       <div style={{ marginBottom: "16px" }}>
-        <label style={labelStyle}>Tipas</label>
+        <label style={labelStyle}>{t.type}</label>
         <div style={selectWrapStyle}>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
             style={selectStyle}
           >
-            <option value="">Visi</option>
+            <option value="">{t.type_all}</option>
             <option value="journal-article">Journal article</option>
             <option value="book-chapter">Book chapter</option>
             <option value="book">Book</option>
@@ -203,16 +205,16 @@ function FiltersBar({
       </div>
 
       <div style={{ marginBottom: "16px" }}>
-        <label style={labelStyle}>Rikiuoti pagal</label>
+        <label style={labelStyle}>{t.sort}</label>
         <div style={selectWrapStyle}>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
             style={selectStyle}
           >
-            <option value="">Numatytasis</option>
-            <option value="year_desc">Metai: mažėjimo tvarka</option>
-            <option value="year_asc">Metai: didėjimo tvarka</option>
+            <option value="">{t.sort_default}</option>
+            <option value="year_desc">{t.sort_year_desc}</option>
+            <option value="year_asc">{t.sort_year_asc}</option>
           </select>
           <span
             style={{
@@ -248,13 +250,13 @@ function FiltersBar({
             checked={oaOnly}
             onChange={(e) => setOaOnly(e.target.checked)}
           />
-          Atviroji prieiga
+          {t.open_access}
         </label>
       </div>
 
       <div ref={dropdownRef} style={{ position: "relative" }}>
         <label style={labelStyle}>
-          Institucija{" "}
+          {t.institution}{" "}
           {loadingSuggestions && (
             <span style={{ color: "#9993a8", textTransform: "none" }}>...</span>
           )}
@@ -262,7 +264,7 @@ function FiltersBar({
 
         <input
           type="text"
-          placeholder="Ieškoti institucijos"
+          placeholder={t.institution_placeholder}
           value={institutionQuery}
           onChange={(e) => {
             setInstitutionQuery(e.target.value);

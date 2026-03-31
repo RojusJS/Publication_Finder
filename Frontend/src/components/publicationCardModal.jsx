@@ -2,10 +2,12 @@ import React from "react";
 import Modal from "./modal";
 import CitationGraphModal from "./citationGraphModal";
 import { savePublication, getFolders } from "../services/projectApi";
+import { useLanguage } from "./language";
 
 function InstitutionsList({ institutions, highlightName }) {
   const [expanded, setExpanded] = React.useState(false);
   const PREVIEW_COUNT = 3;
+  const { t } = useLanguage();
 
   const sorted = highlightName
     ? [
@@ -22,7 +24,7 @@ function InstitutionsList({ institutions, highlightName }) {
 
   return (
     <div>
-      <strong>Institucijos:</strong>{" "}
+      <strong>{t.institutions}:</strong>{" "}
       <span>
         {visible.join(", ")}
         {!expanded && sorted.length > PREVIEW_COUNT && (
@@ -41,7 +43,7 @@ function InstitutionsList({ institutions, highlightName }) {
                 textDecoration: "underline",
               }}
             >
-              rodyti dar {sorted.length - PREVIEW_COUNT} ...
+              {t.show_more} {sorted.length - PREVIEW_COUNT} ...
             </button>
           </>
         )}
@@ -61,7 +63,7 @@ function InstitutionsList({ institutions, highlightName }) {
                 textDecoration: "underline",
               }}
             >
-              rodyti mažiau
+              {t.show_less}
             </button>
           </>
         )}
@@ -77,6 +79,7 @@ function PublicationCardModal({
   institutionName,
   projects = [],
 }) {
+  const { t } = useLanguage();
   const [graphOpen, setGraphOpen] = React.useState(false);
   const [saveOpen, setSaveOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -117,7 +120,7 @@ function PublicationCardModal({
         doi: pub.doi,
         pdf_url: pub.pdf_url,
       });
-      alert("Išsaugota");
+      alert(t.saved);
       setSaveOpen(false);
       setSelectedProject(null);
       setFolders([]);
@@ -160,10 +163,10 @@ function PublicationCardModal({
                 cursor: "pointer",
                 fontFamily: "Times New Roman",
                 fontSize: "15px",
-                color: "#ffffff"
+                color: "#ffffff",
               }}
             >
-              Rodyti citavimo grafą
+              {t.show_citation_graph}
             </button>
 
             <div style={{ position: "relative" }}>
@@ -183,10 +186,10 @@ function PublicationCardModal({
                   fontFamily: "Times New Roman",
                   fontSize: "15px",
                   opacity: saving ? 0.7 : 1,
-                  color: "#fff"
+                  color: "#fff",
                 }}
               >
-                {saving ? "Saugoma..." : "Išsaugoti į projektą"}
+                {saving ? t.saving : t.save_to_project}
               </button>
 
               {saveOpen && (
@@ -211,7 +214,7 @@ function PublicationCardModal({
                         color: "#888",
                       }}
                     >
-                      Nėra projektų
+                      {t.no_projects_dropdown}
                     </div>
                   ) : (
                     projects.map((project) => (
@@ -275,7 +278,7 @@ function PublicationCardModal({
                                   fontSize: "14px",
                                 }}
                               >
-                                Aplankų nėra
+                                {t.no_folders_dropdown}
                               </div>
                             ) : (
                               folders.map((folder) => (
@@ -315,9 +318,10 @@ function PublicationCardModal({
               )}
             </div>
           </div>
+
           {pub.authors?.length > 0 && (
             <div>
-              <strong>Autoriai:</strong> {pub.authors.join(", ")}
+              <strong>{t.authors}:</strong> {pub.authors.join(", ")}
             </div>
           )}
           {pub.institutions?.length > 0 && (
@@ -328,39 +332,42 @@ function PublicationCardModal({
           )}
           {pub.source_name && (
             <div>
-              <strong>Šaltinis:</strong> {pub.source_name}
+              <strong>{t.source}:</strong> {pub.source_name}
             </div>
           )}
+
           <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
             {pub.year && (
               <div>
-                <strong>Išleidimo metai:</strong> {pub.year}
+                <strong>{t.year}:</strong> {pub.year}
               </div>
             )}
             {pub.type && (
               <div>
-                <strong>Tipas:</strong> {pub.type}
+                <strong>{t.type_label}:</strong> {pub.type}
               </div>
             )}
             {pub.language && (
               <div>
-                <strong>Kalba:</strong> {pub.language.toUpperCase()}
+                <strong>{t.language}:</strong> {pub.language.toUpperCase()}
               </div>
             )}
             {pub.cited_by_count != null && (
               <div>
-                <strong>Citavimai:</strong> {pub.cited_by_count}
+                <strong>{t.citations}:</strong> {pub.cited_by_count}
               </div>
             )}
             {pub.is_oa != null && (
               <div>
-                <strong>Atvira prieiga:</strong> {pub.is_oa ? "Taip" : "Ne"}
+                <strong>{t.open_access_label}:</strong>{" "}
+                {pub.is_oa ? t.yes : t.no}
               </div>
             )}
           </div>
+
           {pub.keywords?.length > 0 && (
             <div>
-              <strong>Raktažodžiai:</strong>
+              <strong>{t.keywords}:</strong>
               <div
                 style={{
                   display: "flex",
@@ -378,7 +385,7 @@ function PublicationCardModal({
                       background: "#ffffff",
                       border: "2px solid #000000",
                       fontSize: "13px",
-                      color: "#000000"
+                      color: "#000000",
                     }}
                   >
                     {kw}
@@ -387,9 +394,10 @@ function PublicationCardModal({
               </div>
             </div>
           )}
+
           {pub.abstract && (
             <div>
-              <strong>Santrauka:</strong>
+              <strong>{t.abstract}:</strong>
               <p
                 style={{
                   marginTop: "6px",
@@ -402,6 +410,7 @@ function PublicationCardModal({
               </p>
             </div>
           )}
+
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {pub.doi && (
               <span>
@@ -413,12 +422,12 @@ function PublicationCardModal({
             )}
             {pub.landing_page_url && (
               <a href={pub.landing_page_url} target="_blank" rel="noreferrer">
-                Atidaryti publikacijos puslapį
+                {t.open_page}
               </a>
             )}
             {pub.pdf_url && (
               <a href={pub.pdf_url} target="_blank" rel="noreferrer">
-                Atidaryti PDF
+                {t.open_pdf}
               </a>
             )}
           </div>

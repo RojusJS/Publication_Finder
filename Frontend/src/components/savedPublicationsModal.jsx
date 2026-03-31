@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
 import { getPublicationDetail } from "../services/openalexApi";
+import { useLanguage } from "./language";
 import {
   getFolders,
   createFolder,
@@ -32,6 +33,7 @@ function SavedPublicationsModal({
   const [recLoading, setRecLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPub, setSelectedPub] = useState(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (open && project) {
@@ -79,7 +81,7 @@ function SavedPublicationsModal({
   const handleDeleteFolder = async (folderId, folderName) => {
     if (
       !confirm(
-        `Ištrinti aplanką "${folderName}"? Publikacijos nebus ištrintos.`,
+        `${t.delete_confirm_folder} "${folderName}"? ${t.delete_confirm_folder_note}`,
       )
     )
       return;
@@ -114,7 +116,7 @@ function SavedPublicationsModal({
   };
 
   const handleDeleteProject = async () => {
-    if (!confirm(`Ar tikrai norite ištrinti projektą "${project.name}"?`))
+    if (!confirm(`${t.delete_confirm_project} "${project.name}"?`))
       return;
     try {
       await deleteProject(project.id);
@@ -169,7 +171,7 @@ function SavedPublicationsModal({
         }}
       >
         <p style={{ color: "#636262", margin: 0 }}>
-          {project.description || "Aprašymo nėra"}
+          {project.description || t.no_description}
         </p>
         <button
           onClick={handleDeleteProject}
@@ -184,7 +186,7 @@ function SavedPublicationsModal({
             fontSize: "15px",
           }}
         >
-          Ištrinti projektą
+          {t.delete_project}
         </button>
       </div>
 
@@ -205,7 +207,7 @@ function SavedPublicationsModal({
                 fontSize: "17px",
               }}
             >
-              Aplankai
+              {t.folders}
             </h3>
             <button
               onClick={() => setShowNewFolderInput((p) => !p)}
@@ -219,7 +221,7 @@ function SavedPublicationsModal({
                 fontSize: "14px",
               }}
             >
-              + Naujas aplankas
+              + {t.new_folder}
             </button>
           </div>
 
@@ -230,7 +232,7 @@ function SavedPublicationsModal({
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
-                placeholder="Aplanko pavadinimas"
+                placeholder={t.folder_name_placeholder}
                 style={{
                   flex: 1,
                   padding: "6px 10px",
@@ -256,17 +258,15 @@ function SavedPublicationsModal({
                   opacity: creatingFolder || !newFolderName.trim() ? 0.5 : 1,
                 }}
               >
-                Sukurti
+                {t.create}
               </button>
             </div>
           )}
 
-          {loadingFolders && <p style={{ color: "#979696" }}>Kraunama...</p>}
+          {loadingFolders && <p style={{ color: "#979696" }}>{t.loading}</p>}
 
           {!loadingFolders && folders.length === 0 && (
-            <p style={{ color: "#888787", fontSize: "14px" }}>
-              Aplankų dar nėra
-            </p>
+            <p style={{ color: "#888787", fontSize: "14px" }}>{t.no_folders}</p>
           )}
 
           {!loadingFolders &&
@@ -338,7 +338,7 @@ function SavedPublicationsModal({
                         color: "#888",
                       }}
                     >
-                      Ištrinti
+                      {t.delete}
                     </button>
                   </div>
 
@@ -354,12 +354,12 @@ function SavedPublicationsModal({
                     >
                       {!pubs && (
                         <p style={{ color: "#979696", fontSize: "13px" }}>
-                          Kraunama...
+                          {t.loading}
                         </p>
                       )}
                       {pubs && pubs.length === 0 && (
                         <p style={{ color: "#888787", fontSize: "13px" }}>
-                          Aplankas tuščias
+                          {t.folder_empty}
                         </p>
                       )}
                       {pubs &&
@@ -413,7 +413,7 @@ function SavedPublicationsModal({
                                   flexShrink: 0,
                                 }}
                               >
-                                Ištrinti
+                                {t.delete}
                               </button>
                             </div>
                             <div
@@ -426,7 +426,9 @@ function SavedPublicationsModal({
                                 gap: "2px",
                               }}
                             >
-                              <span>Išleidimo metai: {pub.year ?? "—"}</span>
+                              <span>
+                                {t.year} {pub.year ?? "—"}
+                              </span>
                               {pub.doi && (
                                 <span>
                                   DOI:{" "}
@@ -466,7 +468,7 @@ function SavedPublicationsModal({
                 fontSize: "16px",
               }}
             >
-              {recLoading ? "Ieškoma..." : "Gauti rekomendacijas"}
+              {recLoading ? t.searching : t.get_recommendations}
             </button>
           )}
         </div>
@@ -479,7 +481,7 @@ function SavedPublicationsModal({
             borderRadius: "2px",
           }}
         />
-        
+
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3
             style={{
@@ -488,7 +490,7 @@ function SavedPublicationsModal({
               fontSize: "17px",
             }}
           >
-            Rekomenduojamos publikacijos
+            {t.recommended}
           </h3>
 
           {!recLoading && recommendations.length === 0 && (
@@ -523,7 +525,7 @@ function SavedPublicationsModal({
                 fontSize: "15px",
               }}
             >
-              Loading...
+              {t.loading}
             </div>
           )}
 
@@ -576,7 +578,7 @@ function SavedPublicationsModal({
                         flexShrink: 0,
                       }}
                     >
-                      Išsaugoti
+                      {t.save}
                     </button>
                   </div>
                   <div

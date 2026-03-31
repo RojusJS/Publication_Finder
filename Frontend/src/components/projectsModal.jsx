@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./modal";
+import { useLanguage } from "./language";
 
 function CreateProjectModal({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (open) {
@@ -27,18 +29,18 @@ function CreateProjectModal({ open, onClose, onCreate }) {
   };
 
   return (
-    <Modal open={open} title="Sukurti projektą" onClose={onClose}>
+    <Modal open={open} title={t.create_project} onClose={onClose}>
       <form
         onSubmit={handleSubmit}
         style={{ display: "flex", flexDirection: "column", gap: "12px" }}
       >
         <div>
           <label style={{ display: "block", marginBottom: "6px" }}>
-            Projekto pavadinimas
+            {t.project_name_label}
           </label>
           <input
             type="text"
-            placeholder="Pvz. formules irodymas"
+            placeholder={t.project_name_placeholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={{
@@ -54,10 +56,10 @@ function CreateProjectModal({ open, onClose, onCreate }) {
 
         <div>
           <label style={{ display: "block", marginBottom: "6px" }}>
-            Projekto aprasymas
+            {t.project_desc_label}
           </label>
           <textarea
-            placeholder="Trumpai apradykite projekta"
+            placeholder={t.project_desc_placeholder}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={5}
@@ -93,7 +95,7 @@ function CreateProjectModal({ open, onClose, onCreate }) {
               fontFamily: "Times New Roman",
             }}
           >
-            Atšaukti
+            {t.cancel}
           </button>
 
           <button
@@ -108,7 +110,7 @@ function CreateProjectModal({ open, onClose, onCreate }) {
               color: "#fff"
             }}
           >
-            Sukurti
+            {t.create}
           </button>
         </div>
       </form>

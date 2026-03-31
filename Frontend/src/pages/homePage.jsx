@@ -9,8 +9,10 @@ import ProjectsBar from "../components/projectsBar";
 import CreateProjectModal from "../components/projectsModal";
 import { getProjects, createProject } from "../services/projectApi";
 import apiClient from "../services/apiClient";
+import { useLanguage } from "../components/language";
 
 function HomePage() {
+  const { t } = useLanguage();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,6 @@ function HomePage() {
   const [projects, setProjects] = useState([]);
   const [institution, setInstitution] = useState(null);
   const [searchBy, setSearchBy] = useState("title");
-
   const handleLoginClick = () => setAuthMode("login");
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
@@ -176,7 +177,7 @@ function HomePage() {
           }}
         >
           <div style={{ fontFamily: "Times New Roman", fontSize: "16px" }}>
-            <h1>Publikacijų paieška</h1>
+            <h1>{t.pub_search_title}</h1>
           </div>
 
           <SearchBar
@@ -189,7 +190,7 @@ function HomePage() {
             setSearchBy={setSearchBy}
           />
 
-          {loading && <p>Kraunama...</p>}
+          {loading && <p>{t.loading}</p>}
           {error && <p style={{ color: "red" }}>{error}</p>}
 
           <div
