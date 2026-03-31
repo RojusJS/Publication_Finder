@@ -8,6 +8,7 @@ import AuthModal from "../components/AuthModal";
 import ProjectsBar from "../components/projectsBar";
 import CreateProjectModal from "../components/projectsModal";
 import { getProjects, createProject } from "../services/projectApi";
+import apiClient from "../services/apiClient";
 
 function HomePage() {
   const [query, setQuery] = useState("");
@@ -33,6 +34,10 @@ function HomePage() {
   const handleAuthSubmit = async () => {
     setIsLoggedIn(true);
     closeAuthModal();
+    try {
+      const { data } = await apiClient.get("/auth/me/");
+      localStorage.setItem("is_staff", data.is_staff);
+    } catch {}
     await fetchProjects();
   };
 
@@ -40,6 +45,12 @@ function HomePage() {
     const access = localStorage.getItem("access");
     if (access) {
       setIsLoggedIn(true);
+      apiClient
+        .get("/auth/me/")
+        .then(({ data }) => {
+          localStorage.setItem("is_staff", data.is_staff);
+        })
+        .catch(() => {});
       fetchProjects();
     }
   }, []);

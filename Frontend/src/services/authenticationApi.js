@@ -1,3 +1,5 @@
+import apiClient from "./apiClient";
+
 const API_BASE = "http://127.0.0.1:8000";
 
 export async function registerUser({ email, username, password, password2 }) {
@@ -26,3 +28,12 @@ export async function loginUser({ username, password }) {
   }
   return data;
 }
+
+export const getUsers = async () => {
+  const response = await apiClient.get("/auth/users/");
+  return response.data;
+};
+
+export const deleteUser = async (userId) => {
+  await apiClient.delete(`/auth/users/${userId}/`);
+};
