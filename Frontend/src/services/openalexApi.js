@@ -11,10 +11,11 @@ export async function searchPublications(query, filters = {}) {
   if (filters.type) params.set("type", filters.type);
   if (filters.sort) params.set("sort", filters.sort);
   if (filters.searchBy) params.set("search_by", filters.searchBy);
-  if (filters.institutionId) params.set("institution_id", filters.institutionId);
+  if (filters.institutionId)
+    params.set("institution_id", filters.institutionId);
+  params.set("page", filters.page ?? 1);
 
   const url = `${API_BASE}/api/search/publications/?${params.toString()}`;
-
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -33,7 +34,6 @@ export async function getPublicationDetail(openalexId) {
   params.set("id", openalexId);
 
   const url = `${API_BASE}/api/search/publications/detail/?${params.toString()}`;
-
   const response = await fetch(url);
 
   if (!response.ok) {

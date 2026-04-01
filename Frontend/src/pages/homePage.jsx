@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import SearchBar from "../components/searchBar";
 import PublicationCard from "../components/publicationCard";
 import { searchPublications } from "../services/openalexApi";
@@ -31,7 +31,14 @@ function HomePage() {
   const handleLoginClick = () => setAuthMode("login");
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const TOTAL_PAGES = 10;
+  const resultsRef = useRef(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [yearFrom, yearTo, oaOnly, type, sort]);
   const handleAuthSubmit = async () => {
     setIsLoggedIn(true);
     closeAuthModal();
@@ -65,9 +72,14 @@ function HomePage() {
     }
   };
 
-  const handleSearch = async (overrideQuery, overrideSearchBy) => {
+  const handleSearch = async (
+    overrideQuery,
+    overrideSearchBy,
+    overridePage,
+  ) => {
     const q = overrideQuery ?? query;
     const by = overrideSearchBy ?? searchBy;
+    const p = overridePage ?? page;
     if (!q.trim() && !institution) return;
     setLoading(true);
     setError(null);
@@ -79,9 +91,14 @@ function HomePage() {
         type: type || undefined,
         sort: sort || undefined,
         searchBy: institution ? "institution" : by,
-        institutionId: institution?.id,
+        page: p,
       });
       setResults(data.results || []);
+      const total = Math.min(
+        Math.ceil((data.total_count || 0) / 10),
+        TOTAL_PAGES,
+      );
+      setTotalPages(total);
     } catch (err) {
       setError(err.message || "Nepavyko gauti publikacijų");
     } finally {
@@ -89,10 +106,18 @@ function HomePage() {
     }
   };
 
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    handleSearch(query, searchBy, newPage);
+    if (resultsRef.current)
+      resultsRef.current.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleSearchWithQuery = (q, by) => {
     setQuery(q);
     setSearchBy(by);
-    handleSearch(q, by);
+    setPage(1);
+    handleSearch(q, by, 1);
   };
 
   const handleOpenCreateProject = () => {
@@ -177,7 +202,7 @@ function HomePage() {
           }}
         >
           <div style={{ fontFamily: "Times New Roman", fontSize: "16px" }}>
-            <h1>{t.pub_search_title}</h1>
+
           </div>
 
           <SearchBar
@@ -194,6 +219,7 @@ function HomePage() {
           {error && <p style={{ color: "red" }}>{error}</p>}
 
           <div
+            ref={resultsRef}
             style={{
               marginTop: "18px",
               width: "100%",
@@ -209,6 +235,45 @@ function HomePage() {
                 institutionName={institution?.display_name}
               />
             ))}
+            {totalPages > 1 && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "6px",
+                  justifyContent: "center",
+                  padding: "16px 0",
+                  flexWrap: "wrap",
+                }}
+              >
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (p) => (
+                    <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      style={{
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "8px",
+                        border:
+                          p === page ? "2px solid #000" : "1px solid #ccc",
+                        background: p === page ? "#000" : "#fff",
+                        color: p === page ? "#fff" : "#000",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "14px",
+                        padding: 0,
+                        lineHeight: "1",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ),
+                )}
+              </div>
+            )}
           </div>
         </div>
 

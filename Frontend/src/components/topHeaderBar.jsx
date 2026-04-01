@@ -92,7 +92,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
-                {t.welcome} {localStorage.getItem("username")}!
+                {t.greeting} {localStorage.getItem("username")}!
               </span>
 
               {isAdmin && (

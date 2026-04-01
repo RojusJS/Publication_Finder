@@ -221,7 +221,7 @@ function SavedPublicationsModal({
                 fontSize: "14px",
               }}
             >
-              + {t.new_folder}
+              {t.new_folder}
             </button>
           </div>
 

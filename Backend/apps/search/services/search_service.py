@@ -100,6 +100,7 @@ class SearchService:
         return {
             "query": query,
             "count": len(results),
+            "total_count": data.get("meta", {}).get("count", 0),
             "filters": {
                 "year_from": year_from,
                 "year_to": year_to,

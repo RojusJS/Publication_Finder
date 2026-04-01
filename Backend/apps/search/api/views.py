@@ -69,7 +69,9 @@ def search_publications(request):
         return JsonResponse({"error": "year_from cannot be greater than year_to"}, status=400)
 
     per_page = 10
-    page = 1
+    page = _parse_int(request.GET.get("page")) or 1
+    if page < 1:
+        page = 1
 
     service = SearchService()
     try:
