@@ -19,10 +19,10 @@ class FolderSerializer(serializers.ModelSerializer):
 class SavedPublicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = SavedPublication
-        fields = ["id", "openalex_id", "title", "year", "doi", "pdf_url", "saved_at"]
-        read_only_fields = ["id", "saved_at"]
-
-    class Meta:
-        model = SavedPublication
-        fields = ["id", "folder_id", "openalex_id", "title", "year", "doi", "pdf_url", "saved_at"]
+        fields = [
+            "id", "openalex_id", "title", "year", "doi", "pdf_url",
+            "landing_page_url", "abstract", "authors", "institutions",
+            "source_name", "cited_by_count", "language", "keywords",
+            "is_oa", "pub_type", "saved_at",
+        ]
         read_only_fields = ["id", "saved_at"]

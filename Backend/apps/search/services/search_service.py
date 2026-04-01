@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from apps.search.integrations.openalex_client import OpenAlexClient
 
 CURRENT_YEAR = datetime.now().year

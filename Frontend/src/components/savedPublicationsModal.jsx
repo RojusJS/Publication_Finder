@@ -116,8 +116,7 @@ function SavedPublicationsModal({
   };
 
   const handleDeleteProject = async () => {
-    if (!confirm(`${t.delete_confirm_project} "${project.name}"?`))
-      return;
+    if (!confirm(`${t.delete_confirm_project} "${project.name}"?`)) return;
     try {
       await deleteProject(project.id);
       onProjectDeleted(project.id);
@@ -140,17 +139,17 @@ function SavedPublicationsModal({
   };
 
   const handleOpenPublication = async (pub) => {
-    try {
-      if (pub.openalex_id) {
-        const fullPub = await getPublicationDetail(pub.openalex_id);
-        setSelectedPub(fullPub);
-      } else {
-        setSelectedPub(pub);
+    if (pub.openalex_id && !pub.abstract) {
+      try {
+        const detail = await getPublicationDetail(pub.openalex_id);
+        setSelectedPub({ ...detail, type: detail.type ?? pub.type });
+      } catch {
+        setSelectedPub({ ...pub, type: pub.pub_type });
       }
-      setModalOpen(true);
-    } catch {
-      alert("Nepavyko gauti publikacijos informacijos");
+    } else {
+      setSelectedPub({ ...pub, type: pub.pub_type });
     }
+    setModalOpen(true);
   };
 
   const totalPubs = Object.values(folderPubs).reduce(

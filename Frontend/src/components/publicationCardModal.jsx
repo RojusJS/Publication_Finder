@@ -113,13 +113,7 @@ function PublicationCardModal({
   const handleSaveToFolder = async (folderId) => {
     try {
       setSaving(true);
-      await savePublication(selectedProject.id, folderId, {
-        openalex_id: pub.openalex_id,
-        title: pub.title,
-        year: pub.year,
-        doi: pub.doi,
-        pdf_url: pub.pdf_url,
-      });
+      await savePublication(selectedProject.id, folderId, pub);
       alert(t.saved);
       setSaveOpen(false);
       setSelectedProject(null);

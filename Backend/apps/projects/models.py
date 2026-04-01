@@ -33,6 +33,16 @@ class SavedPublication(models.Model):
     year = models.IntegerField(null=True, blank=True)
     doi = models.URLField(null=True, blank=True, max_length=500)
     pdf_url = models.URLField(null=True, blank=True, max_length=500)
+    landing_page_url = models.URLField(null=True, blank=True, max_length=500)
+    abstract = models.TextField(null=True, blank=True)
+    authors = models.JSONField(default=list, blank=True)
+    institutions = models.JSONField(default=list, blank=True)
+    source_name = models.CharField(null=True, blank=True, max_length=500)
+    cited_by_count = models.IntegerField(null=True, blank=True)
+    language = models.CharField(null=True, blank=True, max_length=50)
+    keywords = models.JSONField(default=list, blank=True)
+    is_oa = models.BooleanField(null=True, blank=True)
+    pub_type = models.CharField(null=True, blank=True, max_length=100)
     saved_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
