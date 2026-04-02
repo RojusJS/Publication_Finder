@@ -13,6 +13,8 @@ import {
   deleteProject,
   getRecommendations,
 } from "../services/projectApi";
+import { useToast } from "./toastContext";
+import jsPDF from "jspdf";
 
 function SavedPublicationsModal({
   open,
@@ -34,6 +36,7 @@ function SavedPublicationsModal({
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPub, setSelectedPub] = useState(null);
   const { t } = useLanguage();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (open && project) {
@@ -72,7 +75,7 @@ function SavedPublicationsModal({
       setNewFolderName("");
       setShowNewFolderInput(false);
     } catch {
-      alert("Nepavyko sukurti aplanko");
+      showToast("Nepavyko sukurti aplanko");
     } finally {
       setCreatingFolder(false);
     }
@@ -99,7 +102,7 @@ function SavedPublicationsModal({
         return next;
       });
     } catch {
-      alert("Nepavyko ištrinti aplanko");
+      showToast("Nepavyko ištrinti aplanko");
     }
   };
 
@@ -111,7 +114,7 @@ function SavedPublicationsModal({
         [folderId]: prev[folderId].filter((p) => p.id !== pubId),
       }));
     } catch {
-      alert("Nepavyko ištrinti publikacijos");
+      showToast("Nepavyko ištrinti publikacijos");
     }
   };
 
@@ -122,7 +125,7 @@ function SavedPublicationsModal({
       onProjectDeleted(project.id);
       onClose();
     } catch {
-      alert("Nepavyko ištrinti projekto");
+      showToast("Nepavyko ištrinti projekto");
     }
   };
 
@@ -132,7 +135,7 @@ function SavedPublicationsModal({
       const data = await getRecommendations(project.id);
       setRecommendations(data.recommendations);
     } catch {
-      alert("Nepavyko gauti rekomendacijų");
+      showToast("Nepavyko gauti rekomendacijų");
     } finally {
       setRecLoading(false);
     }
@@ -150,6 +153,95 @@ function SavedPublicationsModal({
       setSelectedPub({ ...pub, type: pub.pub_type });
     }
     setModalOpen(true);
+  };
+
+  const handleExport = async () => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 18;
+    const maxWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    const addText = (text, size, isBold = false, color = [0, 0, 0]) => {
+      doc.setFontSize(size);
+      doc.setFont("helvetica", isBold ? "bold" : "normal");
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(String(text ?? ""), maxWidth);
+      lines.forEach((line) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, margin, y);
+        y += size * 0.45;
+      });
+      y += 2;
+    };
+
+    addText(project.name, 20, true);
+    if (project.description)
+      addText(project.description, 11, false, [80, 80, 80]);
+    y += 4;
+
+    for (const folder of folders) {
+      let pubs = folderPubs[folder.id];
+      if (!pubs) {
+        try {
+          pubs = await getPublications(project.id, folder.id);
+        } catch {
+          pubs = [];
+        }
+      }
+
+      if (y > 260) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setDrawColor(180, 180, 180);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 5;
+      addText(folder.name, 14, true);
+
+      if (pubs.length === 0) {
+        addText("No publications", 10, false, [150, 150, 150]);
+      }
+
+      pubs.forEach((pub, i) => {
+        if (y > 255) {
+          doc.addPage();
+          y = 20;
+        }
+        addText(`${i + 1}. ${pub.title}`, 11, true);
+        if (pub.year) addText(`Year: ${pub.year}`, 10);
+        if (pub.authors?.length)
+          addText(
+            `Authors: ${pub.authors.slice(0, 5).join(", ")}${pub.authors.length > 5 ? ` +${pub.authors.length - 5} more` : ""}`,
+            10,
+          );
+        if (pub.source_name) addText(`Source: ${pub.source_name}`, 10);
+        if (pub.pub_type) addText(`Type: ${pub.pub_type}`, 10);
+        if (pub.language)
+          addText(`Language: ${pub.language.toUpperCase()}`, 10);
+        if (pub.cited_by_count != null)
+          addText(`Citations: ${pub.cited_by_count}`, 10);
+        if (pub.is_oa != null)
+          addText(`Open access: ${pub.is_oa ? "Yes" : "No"}`, 10);
+        if (pub.doi) addText(`DOI: ${pub.doi}`, 10);
+        if (pub.keywords?.length)
+          addText(`Keywords: ${pub.keywords.join(", ")}`, 10);
+        if (pub.abstract) {
+          const short =
+            pub.abstract.split(" ").slice(0, 60).join(" ") +
+            (pub.abstract.split(" ").length > 60 ? "..." : "");
+          addText(`Abstract: ${short}`, 9, false, [60, 60, 60]);
+        }
+        y += 4;
+      });
+
+      y += 4;
+    }
+
+    doc.save(`${project.name}.pdf`);
   };
 
   const totalPubs = Object.values(folderPubs).reduce(
@@ -172,21 +264,38 @@ function SavedPublicationsModal({
         <p style={{ color: "#636262", margin: 0 }}>
           {project.description || t.no_description}
         </p>
-        <button
-          onClick={handleDeleteProject}
-          style={{
-            padding: "4px 10px",
-            background: "#000000be",
-            border: "1px solid #000000",
-            borderRadius: "8px",
-            cursor: "pointer",
-            color: "#ffffff",
-            fontFamily: "Times New Roman",
-            fontSize: "15px",
-          }}
-        >
-          {t.delete_project}
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            onClick={handleExport}
+            style={{
+              padding: "4px 10px",
+              background: "#e2e2e2",
+              border: "1px solid #000000",
+              borderRadius: "8px",
+              cursor: "pointer",
+              color: "#000000",
+              fontFamily: "Times New Roman",
+              fontSize: "15px",
+            }}
+          >
+            {t.export}
+          </button>
+          <button
+            onClick={handleDeleteProject}
+            style={{
+              padding: "4px 10px",
+              background: "#000000",
+              border: "1px solid #000000",
+              borderRadius: "8px",
+              cursor: "pointer",
+              color: "#ffffff",
+              fontFamily: "Times New Roman",
+              fontSize: "16px",
+            }}
+          >
+            {t.delete_project}
+          </button>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>

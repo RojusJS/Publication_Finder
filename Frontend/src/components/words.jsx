@@ -90,6 +90,7 @@ export const translations = {
     err_password: "Įveskite slaptažodį",
     err_password2: "Pakartokite slaptažodį",
     err_passwords_match: "Slaptažodžiai nesutampa",
+    export: "Eksportuoti",
   },
   EN: {
     search_title: "Publication Search",
@@ -182,5 +183,6 @@ export const translations = {
     err_password: "Enter password",
     err_password2: "Repeat your password",
     err_passwords_match: "Passwords do not match",
+    export: "Export",
   },
 };

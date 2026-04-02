@@ -3,6 +3,7 @@ import Modal from "./modal";
 import CitationGraphModal from "./citationGraphModal";
 import { savePublication, getFolders } from "../services/projectApi";
 import { useLanguage } from "./language";
+import { useToast } from "./toastContext";
 
 function InstitutionsList({ institutions, highlightName }) {
   const [expanded, setExpanded] = React.useState(false);
@@ -86,6 +87,7 @@ function PublicationCardModal({
   const [selectedProject, setSelectedProject] = React.useState(null);
   const [folders, setFolders] = React.useState([]);
   const [foldersLoading, setFoldersLoading] = React.useState(false);
+  const { showToast } = useToast();
 
   React.useEffect(() => {
     if (!open) {
@@ -104,7 +106,7 @@ function PublicationCardModal({
       const data = await getFolders(project.id);
       setFolders(data);
     } catch {
-      alert("Nepavyko gauti aplankų");
+      showToast("Nepavyko gauti aplankų");
     } finally {
       setFoldersLoading(false);
     }
@@ -114,12 +116,12 @@ function PublicationCardModal({
     try {
       setSaving(true);
       await savePublication(selectedProject.id, folderId, pub);
-      alert(t.saved);
+      showToast(t.saved, "success");
       setSaveOpen(false);
       setSelectedProject(null);
       setFolders([]);
     } catch {
-      alert("Nepavyko išsaugoti");
+      showToast("Nepavyko išsaugoti");
     } finally {
       setSaving(false);
     }
