@@ -69,6 +69,7 @@ class SearchService:
     def search(
             self,
             query: str,
+            author="",
             per_page: int = 5,
             page: int = 1,
             year_from: int | None = None,
@@ -80,6 +81,7 @@ class SearchService:
         client = OpenAlexClient()
         data = client.search_publications(
             query=query,
+            author=author,
             per_page=per_page,
             page=page,
             year_from=year_from,

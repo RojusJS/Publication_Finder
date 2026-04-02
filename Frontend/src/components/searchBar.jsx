@@ -4,6 +4,8 @@ import { useLanguage } from "./language";
 function SearchBar({
   query,
   setQuery,
+  author,
+  setAuthor,
   onSearch,
   onSearchWithQuery,
   disabled,
@@ -31,13 +33,7 @@ function SearchBar({
   }, []);
 
   const saveToHistory = (q, by) => {
-    console.log("saveToHistory called with:", q, by);
-
-    if (!q.trim()) {
-      console.log("Not saving because query is empty");
-      return;
-    }
-
+    if (!q.trim()) return;
     const entry = { query: q.trim(), searchBy: by };
     const updated = [
       entry,
@@ -45,14 +41,11 @@ function SearchBar({
         (h) => !(h.query === entry.query && h.searchBy === by),
       ),
     ].slice(0, 8);
-
-    console.log("Saving history:", updated);
-
     localStorage.setItem("searchHistory", JSON.stringify(updated));
     setHistory(updated);
   };
+
   const handleSearch = () => {
-    console.log("handleSearch triggered");
     saveToHistory(query, searchBy);
     setDropdownOpen(false);
     onSearch();
@@ -97,32 +90,75 @@ function SearchBar({
         }}
       >
         <div style={{ position: "relative" }}>
-          <input
-            type="text"
-            placeholder={
-              searchBy === "author"
-                ? t.search_placeholder_author
-                : searchBy === "institution"
-                  ? t.search_placeholder_institution
-                  : t.search_placeholder_title
-            }
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setDropdownOpen(true)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleSearch();
-              if (e.key === "Escape") setDropdownOpen(false);
-            }}
-            style={{
-              padding: "8px 16px",
-              width: "500px",
-              borderRadius: "20px",
-              border: "2px solid #514f58",
-              fontFamily: "Times New Roman",
-              fontSize: "15px",
-              boxSizing: "border-box",
-            }}
-          />
+          {searchBy === "title_and_author" ? (
+            <div style={{ display: "flex", gap: "8px" }}>
+              <input
+                type="text"
+                placeholder={t.search_placeholder_title}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearch();
+                  if (e.key === "Escape") setDropdownOpen(false);
+                }}
+                style={{
+                  padding: "8px 16px",
+                  width: "246px",
+                  borderRadius: "20px",
+                  border: "2px solid #514f58",
+                  fontFamily: "Times New Roman",
+                  fontSize: "15px",
+                  boxSizing: "border-box",
+                }}
+              />
+              <input
+                type="text"
+                placeholder={t.search_placeholder_author}
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearch();
+                  if (e.key === "Escape") setDropdownOpen(false);
+                }}
+                style={{
+                  padding: "8px 16px",
+                  width: "246px",
+                  borderRadius: "20px",
+                  border: "2px solid #514f58",
+                  fontFamily: "Times New Roman",
+                  fontSize: "15px",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          ) : (
+            <input
+              type="text"
+              placeholder={
+                searchBy === "author"
+                  ? t.search_placeholder_author
+                  : searchBy === "institution"
+                    ? t.search_placeholder_institution
+                    : t.search_placeholder_title
+              }
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setDropdownOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearch();
+                if (e.key === "Escape") setDropdownOpen(false);
+              }}
+              style={{
+                padding: "8px 16px",
+                width: "500px",
+                borderRadius: "20px",
+                border: "2px solid #514f58",
+                fontFamily: "Times New Roman",
+                fontSize: "15px",
+                boxSizing: "border-box",
+              }}
+            />
+          )}
 
           {dropdownOpen && history.length > 0 && (
             <div
@@ -272,13 +308,28 @@ function SearchBar({
             borderRadius: "20px",
             border: "1.5px solid #514f58",
             background: searchBy === "author" ? "#57555f" : "#ffffff",
-            color: searchBy === "author" ? "#ffffff" : "#56545c",
+            color: searchBy === "author" ? "#ffffff" : "#4e4c55",
             cursor: "pointer",
             fontFamily: "Times New Roman",
             fontSize: "14px",
           }}
         >
           {t.by_author}
+        </button>
+        <button
+          onClick={() => setSearchBy("title_and_author")}
+          style={{
+            padding: "4px 14px",
+            borderRadius: "20px",
+            border: "1.5px solid #514f58",
+            background: searchBy === "title_and_author" ? "#57555f" : "#ffffff",
+            color: searchBy === "title_and_author" ? "#ffffff" : "#4e4c55",
+            cursor: "pointer",
+            fontFamily: "Times New Roman",
+            fontSize: "14px",
+          }}
+        >
+          {t.by_title_and_author}
         </button>
       </div>
     </div>

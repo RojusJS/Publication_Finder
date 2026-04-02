@@ -13,6 +13,7 @@ export async function searchPublications(query, filters = {}) {
   if (filters.searchBy) params.set("search_by", filters.searchBy);
   if (filters.institutionId)
     params.set("institution_id", filters.institutionId);
+  if (filters.author) params.set("author", filters.author);
   params.set("page", filters.page ?? 1);
 
   const url = `${API_BASE}/api/search/publications/?${params.toString()}`;

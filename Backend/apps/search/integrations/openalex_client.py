@@ -10,7 +10,6 @@ SELECTED_FIELDS = ",".join([
     "open_access",
     "type",
     "primary_location",
-    "abstract_inverted_index",
     "authorships",
     "cited_by_count",
     "language",
@@ -37,6 +36,7 @@ class OpenAlexClient:
     def search_publications(
             self,
             query: str,
+            author: str = "",
             per_page: int = 5,
             page: int = 1,
             year_from: int | None = None,
@@ -54,6 +54,9 @@ class OpenAlexClient:
 
         if search_by == "institution":
             filters.append(f"institutions.id:{query}")
+
+        if search_by == "title_and_author":
+            filters.append(f'raw_author_name.search:{author}')
 
         if year_from is not None:
             filters.append(f"from_publication_date:{year_from}-01-01")
@@ -74,13 +77,18 @@ class OpenAlexClient:
             "select": SELECTED_FIELDS if search_by in ("author", "institution") else SELECTED_FIELDS_WITH_ABSTRACT,
         }
 
-        if search_by in ("author", "institution"):
+        if search_by == "author":
             params["filter"] = ",".join(filters)
+        elif search_by == "institution":
+            params["filter"] = ",".join(filters)
+        elif search_by == "title_and_author":
+            params["search"] = query
+            if filters:
+                params["filter"] = ",".join(filters)
         else:
             params["search"] = query
             if filters:
                 params["filter"] = ",".join(filters)
-
         sort_map = {
             "year_desc": "publication_date:desc",
             "year_asc": "publication_date:asc",

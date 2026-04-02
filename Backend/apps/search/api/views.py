@@ -52,7 +52,7 @@ def search_publications(request):
         return JsonResponse({"error": "Invalid sort value"}, status=400)
 
     search_by = request.GET.get("search_by", "title")
-    if search_by not in {"title", "author", "institution"}:
+    if search_by not in {"title", "author", "institution", "title_and_author"}:
         return JsonResponse({"error": "Invalid search_by value"}, status=400)
 
 
@@ -60,6 +60,7 @@ def search_publications(request):
     year_to = _parse_int(request.GET.get("year_to"))
     oa = _parse_bool(request.GET.get("oa"))
     pub_type = request.GET.get("type")
+    author = request.GET.get("author", "").strip()
 
     if year_from is not None and (year_from < 1000 or year_from > 3000):
         return JsonResponse({"error": "year_from is invalid"}, status=400)
@@ -77,6 +78,7 @@ def search_publications(request):
     try:
         data = service.search(
             query=q,
+            author=author,
             per_page=per_page,
             page=page,
             year_from=year_from,

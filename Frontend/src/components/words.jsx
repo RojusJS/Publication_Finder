@@ -91,6 +91,7 @@ export const translations = {
     err_password2: "Pakartokite slaptažodį",
     err_passwords_match: "Slaptažodžiai nesutampa",
     export: "Eksportuoti",
+    by_title_and_author: "Pavadinimas ir autorius",
   },
   EN: {
     search_title: "Publication Search",
@@ -184,5 +185,6 @@ export const translations = {
     err_password2: "Repeat your password",
     err_passwords_match: "Passwords do not match",
     export: "Export",
+    by_title_and_author: "Title and author",
   },
 };

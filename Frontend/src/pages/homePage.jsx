@@ -27,6 +27,7 @@ function HomePage() {
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [institution, setInstitution] = useState(null);
+  const [author, setAuthor] = useState("");
   const [searchBy, setSearchBy] = useState("title");
   const handleLoginClick = () => setAuthMode("login");
   const handleRegisterClick = () => setAuthMode("register");
@@ -87,6 +88,7 @@ function HomePage() {
       const data = await searchPublications(institution ? institution.id : q, {
         yearFrom,
         yearTo,
+        author: author || undefined,
         oa: oaOnly ? true : undefined,
         type: type || undefined,
         sort: sort || undefined,
@@ -201,13 +203,15 @@ function HomePage() {
             height: "100%",
           }}
         >
-          <div style={{ fontFamily: "Times New Roman", fontSize: "16px" }}>
-
-          </div>
+          <div
+            style={{ fontFamily: "Times New Roman", fontSize: "16px" }}
+          ></div>
 
           <SearchBar
             query={query}
             setQuery={setQuery}
+            author={author}
+            setAuthor={setAuthor}
             onSearch={handleSearch}
             onSearchWithQuery={handleSearchWithQuery}
             disabled={loading}
