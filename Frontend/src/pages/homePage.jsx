@@ -26,6 +26,7 @@ function HomePage() {
   const [authMode, setAuthMode] = useState(null);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [selectedPubs, setSelectedPubs] = useState([]);
   const [institution, setInstitution] = useState(null);
   const [author, setAuthor] = useState("");
   const [searchBy, setSearchBy] = useState("title");
@@ -130,6 +131,16 @@ function HomePage() {
     setIsCreateProjectOpen(true);
   };
 
+  const handleToggleSelect = (pub) => {
+    setSelectedPubs((prev) =>
+      prev.find((p) => p.openalex_id === pub.openalex_id)
+        ? prev.filter((p) => p.openalex_id !== pub.openalex_id)
+        : [...prev, pub],
+    );
+  };
+
+  const handleClearSelected = () => setSelectedPubs([]);
+
   const handleLogout = () => {
     localStorage.removeItem("access");
     localStorage.removeItem("refresh");
@@ -175,7 +186,6 @@ function HomePage() {
           width: "100%",
           alignItems: "flex-start",
           height: "calc(100vh - 73px)",
-          overflow: "hidden",
           position: "relative",
         }}
       >
@@ -237,6 +247,10 @@ function HomePage() {
                 pub={pub}
                 projects={projects}
                 institutionName={institution?.display_name}
+                isSelected={selectedPubs.some(
+                  (p) => p.openalex_id === pub.openalex_id,
+                )}
+                onToggleSelect={handleToggleSelect}
               />
             ))}
             {totalPages > 1 && (
@@ -295,6 +309,9 @@ function HomePage() {
             setSort={setSort}
             institution={institution}
             setInstitution={setInstitution}
+            selectedPubs={selectedPubs}
+            projects={projects}
+            onClearSelected={handleClearSelected}
           />
         </div>
       </div>

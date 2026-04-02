@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "./language";
+import { getFolders, savePublication } from "../services/projectApi";
 
 function FiltersBar({
   yearFrom,
@@ -14,11 +15,20 @@ function FiltersBar({
   setSort,
   institution,
   setInstitution,
+  selectedPubs = [],
+  projects = [],
+  onClearSelected,
 }) {
   const [institutionQuery, setInstitutionQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [folders, setFolders] = useState([]);
+  const [foldersLoading, setFoldersLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const saveRef = useRef(null);
   const dropdownRef = useRef(null);
   const debounceRef = useRef(null);
   const { t } = useLanguage();
@@ -74,6 +84,39 @@ function FiltersBar({
     setInstitutionQuery("");
     setSuggestions([]);
     setDropdownOpen(false);
+  };
+
+  const handleSelectProject = async (project) => {
+    setSelectedProject(project);
+    setFolders([]);
+    setFoldersLoading(true);
+    try {
+      const data = await getFolders(project.id);
+      setFolders(data);
+    } catch {
+      alert("Nepavyko gauti aplankų");
+    } finally {
+      setFoldersLoading(false);
+    }
+  };
+
+  const handleSaveAll = async (folderId) => {
+    setSaving(true);
+    try {
+      await Promise.all(
+        selectedPubs.map((pub) =>
+          savePublication(selectedProject.id, folderId, pub),
+        ),
+      );
+      setSaveOpen(false);
+      setSelectedProject(null);
+      setFolders([]);
+      onClearSelected();
+    } catch {
+      alert("Nepavyko išsaugoti");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const labelStyle = {
@@ -273,9 +316,7 @@ function FiltersBar({
           style={{
             ...inputStyle,
             background: institution ? "#eeebeb" : "#ffffff",
-            border: institution
-              ? "0.5px solid #58575f"
-              : "0.5px solid #949494",
+            border: institution ? "0.5px solid #58575f" : "0.5px solid #949494",
           }}
         />
 
@@ -345,6 +386,166 @@ function FiltersBar({
           </div>
         )}
       </div>
+      {selectedPubs.length > 0 && (
+        <div ref={saveRef} style={{ position: "relative", marginTop: "20px" }}>
+          <button
+            onClick={() => {
+              setSaveOpen((p) => !p);
+              setSelectedProject(null);
+              setFolders([]);
+            }}
+            disabled={saving}
+            style={{
+              width: "100%",
+              padding: "10px",
+              background: "#1a1a1a",
+              color: "#fff",
+              border: "none",
+              borderRadius: "10px",
+              cursor: saving ? "not-allowed" : "pointer",
+              fontFamily: "Times New Roman",
+              fontSize: "15px",
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {saving ? t.saving : `${t.save} (${selectedPubs.length})`}
+          </button>
+
+          {saveOpen && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "calc(100% + 6px)",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #d6d6d6",
+                borderRadius: "10px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                minWidth: "220px",
+                zIndex: 20,
+              }}
+            >
+              {!selectedProject &&
+                (projects.length === 0 ? (
+                  <div
+                    style={{
+                      padding: "10px 16px",
+                      fontFamily: "Times New Roman",
+                      color: "#888",
+                    }}
+                  >
+                    {t.no_projects_dropdown}
+                  </div>
+                ) : (
+                  projects.map((project) => (
+                    <div
+                      key={project.id}
+                      onMouseEnter={() => handleSelectProject(project)}
+                      style={{ position: "relative" }}
+                    >
+                      <div
+                        style={{
+                          padding: "10px 16px",
+                          cursor: "pointer",
+                          fontFamily: "Times New Roman",
+                          fontSize: "15px",
+                          color: "#000",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          background:
+                            selectedProject?.id === project.id
+                              ? "#f0eef4"
+                              : "none",
+                        }}
+                      >
+                        {project.name}
+                        <span style={{ color: "#aaa", fontSize: "12px" }}>
+                          ▸
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ))}
+
+              {selectedProject && (
+                <>
+                  <button
+                    onClick={() => {
+                      setSelectedProject(null);
+                      setFolders([]);
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px 16px",
+                      background: "#f7f7f7",
+                      border: "none",
+                      borderBottom: "1px solid #eee",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      fontSize: "13px",
+                      color: "#666",
+                    }}
+                  >
+                    ← {selectedProject.name}
+                  </button>
+                  {foldersLoading ? (
+                    <div
+                      style={{
+                        padding: "10px 16px",
+                        fontFamily: "Times New Roman",
+                        color: "#888",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {t.loading}
+                    </div>
+                  ) : folders.length === 0 ? (
+                    <div
+                      style={{
+                        padding: "10px 16px",
+                        fontFamily: "Times New Roman",
+                        color: "#888",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {t.no_folders_dropdown}
+                    </div>
+                  ) : (
+                    folders.map((folder) => (
+                      <button
+                        key={folder.id}
+                        onClick={() => handleSaveAll(folder.id)}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = "#f0eef4")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "none")
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "10px 16px",
+                          background: "none",
+                          border: "none",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          fontFamily: "Times New Roman",
+                          fontSize: "14px",
+                          color: "#000",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        {folder.name}
+                      </button>
+                    ))
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

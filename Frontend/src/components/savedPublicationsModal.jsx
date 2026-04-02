@@ -12,6 +12,7 @@ import {
   deletePublication,
   deleteProject,
   getRecommendations,
+  savePublication,
 } from "../services/projectApi";
 import { useToast } from "./toastContext";
 import jsPDF from "jspdf";
@@ -35,6 +36,14 @@ function SavedPublicationsModal({
   const [recLoading, setRecLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPub, setSelectedPub] = useState(null);
+
+  const [selectedRecs, setSelectedRecs] = useState([]);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [selectedSaveProject, setSelectedSaveProject] = useState(null);
+  const [saveFolders, setSaveFolders] = useState([]);
+  const [saveFoldersLoading, setSaveFoldersLoading] = useState(false);
+  const [savingRecommendations, setSavingRecommendations] = useState(false);
+
   const { t } = useLanguage();
   const { showToast } = useToast();
 
@@ -44,6 +53,10 @@ function SavedPublicationsModal({
       setRecommendations([]);
       setExpandedFolders({});
       setFolderPubs({});
+      setSelectedRecs([]);
+      setSaveOpen(false);
+      setSelectedSaveProject(null);
+      setSaveFolders([]);
       getFolders(project.id)
         .then(setFolders)
         .catch(() => setFolders([]))
@@ -133,7 +146,11 @@ function SavedPublicationsModal({
     setRecLoading(true);
     try {
       const data = await getRecommendations(project.id);
-      setRecommendations(data.recommendations);
+      setRecommendations(data.recommendations || []);
+      setSelectedRecs([]);
+      setSaveOpen(false);
+      setSelectedSaveProject(null);
+      setSaveFolders([]);
     } catch {
       showToast("Nepavyko gauti rekomendacijų");
     } finally {
@@ -153,6 +170,50 @@ function SavedPublicationsModal({
       setSelectedPub({ ...pub, type: pub.pub_type });
     }
     setModalOpen(true);
+  };
+
+  const handleToggleRecommendation = (rec) => {
+    setSelectedRecs((prev) =>
+      prev.some((p) => p.openalex_id === rec.openalex_id)
+        ? prev.filter((p) => p.openalex_id !== rec.openalex_id)
+        : [...prev, rec],
+    );
+  };
+
+  const handleSelectSaveProject = async (projectItem) => {
+    if (selectedSaveProject?.id === projectItem.id) return;
+    setSelectedSaveProject(projectItem);
+    setSaveFolders([]);
+    setSaveFoldersLoading(true);
+    try {
+      const data = await getFolders(projectItem.id);
+      setSaveFolders(data);
+    } catch {
+      showToast("Nepavyko gauti aplankų");
+    } finally {
+      setSaveFoldersLoading(false);
+    }
+  };
+
+  const handleSaveSelectedRecommendations = async (folderId) => {
+    if (!selectedSaveProject || selectedRecs.length === 0) return;
+    setSavingRecommendations(true);
+    try {
+      await Promise.all(
+        selectedRecs.map((rec) =>
+          savePublication(selectedSaveProject.id, folderId, rec),
+        ),
+      );
+      showToast(t.saved, "success");
+      setSelectedRecs([]);
+      setSaveOpen(false);
+      setSelectedSaveProject(null);
+      setSaveFolders([]);
+    } catch {
+      showToast("Nepavyko išsaugoti");
+    } finally {
+      setSavingRecommendations(false);
+    }
   };
 
   const handleExport = async () => {
@@ -243,11 +304,6 @@ function SavedPublicationsModal({
 
     doc.save(`${project.name}.pdf`);
   };
-
-  const totalPubs = Object.values(folderPubs).reduce(
-    (sum, arr) => sum + arr.length,
-    0,
-  );
 
   if (!project) return null;
 
@@ -591,15 +647,192 @@ function SavedPublicationsModal({
         />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h3
+          <div
             style={{
-              margin: "0 0 12px 0",
-              fontFamily: "Times New Roman",
-              fontSize: "17px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "12px",
+              gap: "12px",
             }}
           >
-            {t.recommended}
-          </h3>
+            <h3
+              style={{
+                margin: 0,
+                fontFamily: "Times New Roman",
+                fontSize: "17px",
+              }}
+            >
+              {t.recommended}
+            </h3>
+
+            {selectedRecs.length > 0 && (
+              <div style={{ position: "relative" }}>
+                <button
+                  onClick={() => {
+                    setSaveOpen((p) => !p);
+                    setSelectedSaveProject(null);
+                    setSaveFolders([]);
+                  }}
+                  disabled={savingRecommendations}
+                  style={{
+                    padding: "8px 12px",
+                    background: "#1a1a1a",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "10px",
+                    cursor: savingRecommendations ? "not-allowed" : "pointer",
+                    fontFamily: "Times New Roman",
+                    fontSize: "15px",
+                    opacity: savingRecommendations ? 0.6 : 1,
+                  }}
+                >
+                  {savingRecommendations
+                    ? t.saving
+                    : `${t.save} (${selectedRecs.length})`}
+                </button>
+
+                {saveOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      right: 0,
+                      background: "#fff",
+                      border: "1px solid #d6d6d6",
+                      borderRadius: "10px",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                      minWidth: "220px",
+                      zIndex: 40,
+                    }}
+                  >
+                    {!selectedSaveProject &&
+                      (projects.length === 0 ? (
+                        <div
+                          style={{
+                            padding: "10px 16px",
+                            fontFamily: "Times New Roman",
+                            color: "#888",
+                          }}
+                        >
+                          {t.no_projects_dropdown}
+                        </div>
+                      ) : (
+                        projects.map((projectItem) => (
+                          <div
+                            key={projectItem.id}
+                            onMouseEnter={() =>
+                              handleSelectSaveProject(projectItem)
+                            }
+                            style={{ position: "relative" }}
+                          >
+                            <div
+                              style={{
+                                padding: "10px 16px",
+                                cursor: "pointer",
+                                fontFamily: "Times New Roman",
+                                fontSize: "15px",
+                                color: "#000",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                background:
+                                  selectedSaveProject?.id === projectItem.id
+                                    ? "#f0eef4"
+                                    : "none",
+                              }}
+                            >
+                              {projectItem.name}
+                              <span style={{ color: "#aaa", fontSize: "12px" }}>
+                                ▸
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      ))}
+
+                    {selectedSaveProject && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedSaveProject(null);
+                            setSaveFolders([]);
+                          }}
+                          style={{
+                            width: "100%",
+                            padding: "8px 16px",
+                            background: "#f7f7f7",
+                            border: "none",
+                            borderBottom: "1px solid #eee",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontFamily: "Times New Roman",
+                            fontSize: "13px",
+                            color: "#666",
+                          }}
+                        >
+                          ← {selectedSaveProject.name}
+                        </button>
+
+                        {saveFoldersLoading ? (
+                          <div
+                            style={{
+                              padding: "10px 16px",
+                              fontFamily: "Times New Roman",
+                              color: "#888",
+                              fontSize: "14px",
+                            }}
+                          >
+                            {t.loading}
+                          </div>
+                        ) : saveFolders.length === 0 ? (
+                          <div
+                            style={{
+                              padding: "10px 16px",
+                              fontFamily: "Times New Roman",
+                              color: "#888",
+                              fontSize: "14px",
+                            }}
+                          >
+                            {t.no_folders_dropdown}
+                          </div>
+                        ) : (
+                          saveFolders.map((folder) => (
+                            <button
+                              key={folder.id}
+                              onClick={() =>
+                                handleSaveSelectedRecommendations(folder.id)
+                              }
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#f0eef4")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = "none")
+                              }
+                              style={{
+                                width: "100%",
+                                padding: "10px 16px",
+                                background: "none",
+                                border: "none",
+                                textAlign: "left",
+                                cursor: "pointer",
+                                fontFamily: "Times New Roman",
+                                fontSize: "14px",
+                                color: "#000",
+                                boxSizing: "border-box",
+                              }}
+                            >
+                              {folder.name}
+                            </button>
+                          ))
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {!recLoading && recommendations.length === 0 && (
             <div
@@ -641,88 +874,130 @@ function SavedPublicationsModal({
             <div
               style={{ display: "flex", flexDirection: "column", gap: "10px" }}
             >
-              {recommendations.map((rec, i) => (
-                <div
-                  key={rec.openalex_id ?? i}
-                  onClick={() => handleOpenPublication(rec)}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#e6e6e6")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "#f3f4ff")
-                  }
-                  style={{
-                    background: "#f3f4ff",
-                    padding: "16px 20px",
-                    borderRadius: "12px",
-                    border: "0.5px solid #86848a",
-                    cursor: "pointer",
-                    fontFamily: "Times New Roman",
-                    transition: "background 0.12s",
-                    boxSizing: "border-box",
-                  }}
-                >
+              {recommendations.map((rec, i) => {
+                const isSelected = selectedRecs.some(
+                  (p) => p.openalex_id === rec.openalex_id,
+                );
+
+                return (
                   <div
+                    key={rec.openalex_id ?? i}
+                    onClick={() => handleOpenPublication(rec)}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#e6e6e6")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = isSelected
+                        ? "#eef0ff"
+                        : "#f3f4ff")
+                    }
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: "10px",
+                      background: isSelected ? "#eef0ff" : "#f3f4ff",
+                      padding: "16px 20px",
+                      borderRadius: "12px",
+                      border: isSelected
+                        ? "0.5px solid #7a78c8"
+                        : "0.5px solid #86848a",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      transition: "background 0.12s",
+                      boxSizing: "border-box",
+                      position: "relative",
                     }}
                   >
-                    <strong style={{ fontSize: "15px", lineHeight: "1.4" }}>
-                      {rec.title}
-                    </strong>
-                    <button
-                      onClick={(e) => e.stopPropagation()}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleRecommendation(rec);
+                      }}
                       style={{
-                        padding: "3px 8px",
-                        background: "#d4d4d4",
-                        border: "1px solid #000",
-                        borderRadius: "6px",
+                        position: "absolute",
+                        top: "12px",
+                        right: "14px",
+                        width: "18px",
+                        height: "18px",
+                        borderRadius: "4px",
+                        border: isSelected
+                          ? "2px solid #5b58c0"
+                          : "1.5px solid #aaa",
+                        background: isSelected ? "#5b58c0" : "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         cursor: "pointer",
-                        fontFamily: "Times New Roman",
-                        fontSize: "13px",
                         flexShrink: 0,
+                        zIndex: 2,
                       }}
                     >
-                      {t.save}
-                    </button>
-                  </div>
-                  <div
-                    style={{
-                      marginTop: "6px",
-                      fontSize: "13px",
-                      color: "#5e5b5b",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "3px",
-                    }}
-                  >
-                    <span>Metai: {rec.year ?? "—"}</span>
-                    {rec.authors?.length > 0 && (
-                      <span>
-                        {rec.authors.slice(0, 3).join(", ")}
-                        {rec.authors.length > 3 &&
-                          ` ir dar ${rec.authors.length - 3}`}
-                      </span>
-                    )}
-                    {rec.doi && (
-                      <span>
-                        DOI:{" "}
-                        <a
-                          href={rec.doi}
-                          target="_blank"
-                          rel="noreferrer"
-                          onClick={(e) => e.stopPropagation()}
+                      {isSelected && (
+                        <span
+                          style={{
+                            color: "#fff",
+                            fontSize: "11px",
+                            lineHeight: 1,
+                          }}
                         >
-                          {rec.doi}
-                        </a>
+                          ✓
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: "10px",
+                      }}
+                    >
+                      <strong
+                        style={{
+                          fontSize: "15px",
+                          lineHeight: "1.4",
+                          paddingRight: "28px",
+                        }}
+                      >
+                        {rec.title}
+                      </strong>
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontSize: "13px",
+                        color: "#5e5b5b",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "3px",
+                      }}
+                    >
+                      <span>
+                        {t.year} {rec.year ?? "—"}
                       </span>
-                    )}
+                      {rec.authors?.length > 0 && (
+                        <span>
+                          {rec.authors.slice(0, 3).join(", ")}
+                          {rec.authors.length > 3 &&
+                            ` ir dar ${rec.authors.length - 3}`}
+                        </span>
+                      )}
+                      {rec.doi && (
+                        <span>
+                          DOI:{" "}
+                          <a
+                            href={rec.doi}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {rec.doi}
+                          </a>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

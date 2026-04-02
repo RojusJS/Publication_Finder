@@ -3,40 +3,68 @@ import { savePublication } from "../services/projectApi";
 import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
 
-function PublicationCard({ pub, projects, institutionName }) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+function PublicationCard({
+  pub,
+  projects,
+  institutionName,
+  isSelected,
+  onToggleSelect,
+}) {
   const [modalOpen, setModalOpen] = useState(false);
-  const dropdownRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   return (
     <>
       <div
         onClick={() => setModalOpen(true)}
         onMouseEnter={(e) => (e.currentTarget.style.background = "#e6e6e6")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.background = isSelected
+            ? "#eef0ff"
+            : "#ffffff")
+        }
         style={{
-          background: "#ffffff",
+          background: isSelected ? "#eef0ff" : "#ffffff",
           padding: "16px 20px",
           marginBottom: "10px",
           borderRadius: "12px",
           width: "100%",
-          border: "0.5px solid #86848a",
+          border: isSelected ? "0.5px solid #7a78c8" : "0.5px solid #86848a",
           fontFamily: "Times New Roman",
           cursor: "pointer",
           boxSizing: "border-box",
           transition: "background 0.12s",
+          position: "relative",
         }}
       >
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(pub);
+          }}
+          style={{
+            position: "absolute",
+            top: "12px",
+            right: "14px",
+            width: "18px",
+            height: "18px",
+            borderRadius: "4px",
+            border: isSelected ? "2px solid #5b58c0" : "1.5px solid #aaa",
+            background: isSelected ? "#5b58c0" : "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+            zIndex: 2,
+          }}
+        >
+          {isSelected && (
+            <span style={{ color: "#fff", fontSize: "11px", lineHeight: 1 }}>
+              ✓
+            </span>
+          )}
+        </div>
+
         <div
           style={{
             display: "flex",
@@ -45,7 +73,7 @@ function PublicationCard({ pub, projects, institutionName }) {
             gap: "12px",
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, paddingRight: "28px" }}>
             <p
               style={{
                 fontSize: "15px",
@@ -100,7 +128,6 @@ function PublicationCard({ pub, projects, institutionName }) {
                   {pub.year}
                 </span>
               )}
-
               {pub.doi && (
                 <span style={{ fontSize: "12px", color: "#888" }}>
                   DOI:{" "}
@@ -115,7 +142,6 @@ function PublicationCard({ pub, projects, institutionName }) {
                   </a>
                 </span>
               )}
-
               {pub.pdf_url && (
                 <a
                   href={pub.pdf_url}
@@ -129,9 +155,6 @@ function PublicationCard({ pub, projects, institutionName }) {
               )}
             </div>
           </div>
-
-          
-       
         </div>
       </div>
 
