@@ -125,7 +125,7 @@ function HomePage() {
 
   const handleOpenCreateProject = () => {
     if (!isLoggedIn) {
-      alert("Pirmiausia prisijunkite.");
+      showToast("Pirmiausia prisijunkite.");
       return;
     }
     setIsCreateProjectOpen(true);
@@ -156,7 +156,7 @@ function HomePage() {
       setIsCreateProjectOpen(false);
     } catch (err) {
       console.error("Nepavyko sukurti projekto:", err);
-      alert("Nepavyko sukurti projekto.");
+      showToast("Nepavyko sukurti projekto.");
     }
   };
 

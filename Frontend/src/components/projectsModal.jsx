@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./modal";
 import { useLanguage } from "./language";
+import { useToast } from "./toastContext";
 
 function CreateProjectModal({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const { t } = useLanguage();
+  const {showToast} = useToast();
 
   useEffect(() => {
     if (open) {
@@ -18,7 +20,7 @@ function CreateProjectModal({ open, onClose, onCreate }) {
     e.preventDefault();
 
     if (!name.trim()) {
-      alert("Įveskite projekto pavadinimą.");
+      showToast("Įveskite projekto pavadinimą.");
       return;
     }
 

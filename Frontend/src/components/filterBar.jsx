@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "./language";
 import { getFolders, savePublication } from "../services/projectApi";
+import { useToast } from "./toastContext";
 
 function FiltersBar({
   yearFrom,
@@ -32,6 +33,7 @@ function FiltersBar({
   const dropdownRef = useRef(null);
   const debounceRef = useRef(null);
   const { t } = useLanguage();
+  const {showToast} = useToast();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -94,7 +96,7 @@ function FiltersBar({
       const data = await getFolders(project.id);
       setFolders(data);
     } catch {
-      alert("Nepavyko gauti aplankų");
+      showToast("Nepavyko gauti aplankų");
     } finally {
       setFoldersLoading(false);
     }
@@ -113,7 +115,7 @@ function FiltersBar({
       setFolders([]);
       onClearSelected();
     } catch {
-      alert("Nepavyko išsaugoti");
+      showToast("Nepavyko išsaugoti");
     } finally {
       setSaving(false);
     }

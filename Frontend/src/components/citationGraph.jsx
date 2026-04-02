@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getPublicationDetail } from "../services/openalexApi";
 import PublicationCardModal from "./publicationCardModal";
 import { useLanguage } from "./language";
+import { useToast } from "./toastContext";
 
 const OPENALEX_BASE = "https://api.openalex.org";
 
@@ -81,6 +82,7 @@ export default function CitationGraph({ pub, projects = [] }) {
   const [selectedPub, setSelectedPub] = useState(null);
   const [selectedPubOpen, setSelectedPubOpen] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
+  const {showToast} = useToast();
 
   useEffect(() => {
     if (!pub?.openalex_id) return;
@@ -112,7 +114,7 @@ export default function CitationGraph({ pub, projects = [] }) {
       setSelectedPub(fullPub);
       setSelectedPubOpen(true);
     } catch (err) {
-      alert("Nepavyko gauti publikacijos informacijos");
+      showToast("Nepavyko gauti publikacijos informacijos");
     }
   };
 
