@@ -186,6 +186,7 @@ function HomePage() {
           width: "100%",
           alignItems: "flex-start",
           height: "calc(100vh - 73px)",
+          overflow: "hidden",
           position: "relative",
         }}
       >

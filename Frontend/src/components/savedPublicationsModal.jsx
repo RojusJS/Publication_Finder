@@ -225,7 +225,7 @@ function SavedPublicationsModal({
 
     const addText = (text, size, isBold = false, color = [0, 0, 0]) => {
       doc.setFontSize(size);
-      doc.setFont("helvetica", isBold ? "bold" : "normal");
+      doc.setFont("Times New Roman", isBold ? "bold" : "normal");
       doc.setTextColor(...color);
       const lines = doc.splitTextToSize(String(text ?? ""), maxWidth);
       lines.forEach((line) => {
