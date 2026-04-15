@@ -1,0 +1,36 @@
+stages:
+  - build
+  - test
+  - run
+
+variables:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+
+build-backend:
+  stage: build
+  image: python:3.11
+  script:
+    - cd Backend
+    - pip install -r requirements.txt
+
+test-backend:
+  stage: test
+  image: python:3.11
+  script:
+    - cd Backend
+    - pip install -r requirements.txt
+    - pip install pytest pytest-django
+    - pytest
+
+build-frontend:
+  stage: build
+  image: node:20
+  script:
+    - cd Frontend
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - Frontend/dist/
+    expire_in: 1 hour
