@@ -171,7 +171,11 @@ function SavedPublicationsModal({
     if (pub.openalex_id && !pub.abstract) {
       try {
         const detail = await getPublicationDetail(pub.openalex_id);
-        setSelectedPub({ ...detail, type: detail.type ?? pub.type });
+        setSelectedPub({
+          ...detail,
+          type: detail.type ?? pub.type,
+          id: pub.id,
+        });
       } catch {
         setSelectedPub({ ...pub, type: pub.pub_type });
       }

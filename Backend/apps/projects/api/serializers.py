@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.projects.models import Project, Folder, SavedPublication
+from apps.projects.models import Project, Folder, SavedPublication, PublicationNote
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -15,14 +15,21 @@ class FolderSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "created_at"]
         read_only_fields = ["id", "created_at"]
 
+class PublicationNoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PublicationNote
+        fields = ["id", "text", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
 class SavedPublicationSerializer(serializers.ModelSerializer):
+    notes = PublicationNoteSerializer(many=True, read_only=True)
+
     class Meta:
         model = SavedPublication
         fields = [
             "id", "openalex_id", "title", "year", "doi", "pdf_url",
             "landing_page_url", "abstract", "authors", "institutions",
             "source_name", "cited_by_count", "language", "keywords",
-            "is_oa", "pub_type", "saved_at",
+            "is_oa", "pub_type", "saved_at", "notes",
         ]
         read_only_fields = ["id", "saved_at"]

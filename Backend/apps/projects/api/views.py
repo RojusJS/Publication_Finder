@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions
-from apps.projects.models import Project, Folder, SavedPublication
-from apps.projects.api.serializers import ProjectSerializer, FolderSerializer, SavedPublicationSerializer
+from apps.projects.models import Project, Folder, SavedPublication, PublicationNote
+from apps.projects.api.serializers import ProjectSerializer, FolderSerializer, SavedPublicationSerializer, PublicationNoteSerializer
 
 
 class ProjectListCreateView(generics.ListCreateAPIView):
@@ -111,4 +111,34 @@ class ProjectPublicationDeleteView(generics.DestroyAPIView):
             id=self.kwargs["publication_id"],
             folder=None,
             project__user=self.request.user
+        )
+
+class PublicationNoteListCreateView(generics.ListCreateAPIView):
+    serializer_class = PublicationNoteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_publication(self):
+        return get_object_or_404(
+            SavedPublication,
+            id=self.kwargs["publication_id"],
+            project__user=self.request.user
+        )
+
+    def get_queryset(self):
+        return self.get_publication().notes.order_by("created_at")
+
+    def perform_create(self, serializer):
+        serializer.save(publication=self.get_publication())
+
+
+class PublicationNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = PublicationNoteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return get_object_or_404(
+            PublicationNote,
+            id=self.kwargs["note_id"],
+            publication__id=self.kwargs["publication_id"],
+            publication__project__user=self.request.user
         )

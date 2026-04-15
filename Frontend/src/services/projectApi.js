@@ -105,3 +105,22 @@ export const getRecommendations = async (projectId) => {
   const response = await apiClient.post(`/recommendations/${projectId}/`);
   return response.data;
 };
+
+export const getNotes = async (publicationId) => {
+  const response = await apiClient.get(`/projects/publications/${publicationId}/notes/`);
+  return response.data;
+};
+
+export const createNote = async (publicationId, text) => {
+  const response = await apiClient.post(`/projects/publications/${publicationId}/notes/`, { text });
+  return response.data;
+};
+
+export const updateNote = async (publicationId, noteId, text) => {
+  const response = await apiClient.patch(`/projects/publications/${publicationId}/notes/${noteId}/`, { text });
+  return response.data;
+};
+
+export const deleteNote = async (publicationId, noteId) => {
+  await apiClient.delete(`/projects/publications/${publicationId}/notes/${noteId}/`);
+};

@@ -1,7 +1,15 @@
 import React from "react";
 import Modal from "./modal";
 import CitationGraphModal from "./citationGraphModal";
-import { savePublication, getFolders, savePublicationToProject } from "../services/projectApi";
+import {
+  savePublication,
+  getFolders,
+  savePublicationToProject,
+  getNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+} from "../services/projectApi";
 import { useLanguage } from "./language";
 import { useToast } from "./toastContext";
 
@@ -69,6 +77,270 @@ function InstitutionsList({ institutions, highlightName }) {
           </>
         )}
       </span>
+    </div>
+  );
+}
+
+function PublicationNotes({ pubId }) {
+  const [notes, setNotes] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [newText, setNewText] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const [editingId, setEditingId] = React.useState(null);
+  const [editText, setEditText] = React.useState("");
+
+  React.useEffect(() => {
+    setLoading(true);
+    getNotes(pubId)
+      .then(setNotes)
+      .catch(() => setNotes([]))
+      .finally(() => setLoading(false));
+  }, [pubId]);
+
+  const handleCreate = async () => {
+    if (!newText.trim()) return;
+    setSaving(true);
+    try {
+      const note = await createNote(pubId, newText.trim());
+      setNotes((prev) => [...prev, note]);
+      setNewText("");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdate = async (noteId) => {
+    if (!editText.trim()) return;
+    try {
+      const updated = await updateNote(pubId, noteId, editText.trim());
+      setNotes((prev) => prev.map((n) => (n.id === noteId ? updated : n)));
+      setEditingId(null);
+    } catch {}
+  };
+
+  const handleDelete = async (noteId) => {
+    try {
+      await deleteNote(pubId, noteId);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    } catch {}
+  };
+
+  return (
+    <div style={{ marginTop: "8px" }}>
+      <div
+        style={{
+          width: "100%",
+          height: "1px",
+          background: "#e8e8e8",
+          marginBottom: "16px",
+        }}
+      />
+      <strong style={{ fontFamily: "Times New Roman", fontSize: "15px" }}>
+        Pastabos
+      </strong>
+
+      {loading ? (
+        <p style={{ color: "#aaaaaa", fontSize: "13px", marginTop: "8px" }}>
+          Kraunama...
+        </p>
+      ) : (
+        <div
+          style={{
+            marginTop: "10px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          {notes.map((note) => (
+            <div
+              key={note.id}
+              style={{
+                background: "#fafaf7",
+                border: "0.5px solid #d6d4cc",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                fontFamily: "Times New Roman",
+              }}
+            >
+              {editingId === note.id ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <textarea
+                    autoFocus
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    rows={3}
+                    style={{
+                      width: "100%",
+                      padding: "6px 8px",
+                      borderRadius: "6px",
+                      border: "0.5px solid #bbb",
+                      fontFamily: "Times New Roman",
+                      fontSize: "14px",
+                      resize: "vertical",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button
+                      onClick={() => handleUpdate(note.id)}
+                      style={{
+                        padding: "3px 12px",
+                        background: "#1a1a1a",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Išsaugoti
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      style={{
+                        padding: "3px 12px",
+                        background: "none",
+                        color: "#888",
+                        border: "0.5px solid #ccc",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "13px",
+                      }}
+                    >
+                      Atšaukti
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: "10px",
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "14px",
+                      lineHeight: "1.5",
+                      whiteSpace: "pre-wrap",
+                      color: "#2a2535",
+                    }}
+                  >
+                    {note.text}
+                  </p>
+                  <div style={{ display: "flex", gap: "4px", flexShrink: 0 }}>
+                    <button
+                      onClick={() => {
+                        setEditingId(note.id);
+                        setEditText(note.text);
+                      }}
+                      style={{
+                        padding: "2px 8px",
+                        background: "none",
+                        border: "0.5px solid #ccc",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "12px",
+                        color: "#666",
+                      }}
+                    >
+                      Redaguoti
+                    </button>
+                    <button
+                      onClick={() => handleDelete(note.id)}
+                      style={{
+                        padding: "2px 8px",
+                        background: "none",
+                        border: "0.5px solid #ccc",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "12px",
+                        color: "#999",
+                      }}
+                    >
+                      Ištrinti
+                    </button>
+                  </div>
+                </div>
+              )}
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "#bbb",
+                  marginTop: "4px",
+                  display: "block",
+                }}
+              >
+                {new Date(note.created_at).toLocaleDateString("lt-LT", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
+          ))}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+            <textarea
+              value={newText}
+              onChange={(e) => setNewText(e.target.value)}
+              placeholder="Pridėti pastabą..."
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
+                  handleCreate();
+              }}
+              style={{
+                width: "100%",
+                padding: "8px 10px",
+                borderRadius: "8px",
+                border: "0.5px solid #cacaca",
+                fontFamily: "Times New Roman",
+                fontSize: "14px",
+                resize: "vertical",
+                outline: "none",
+                color: "#333",
+                boxSizing: "border-box",
+                background: "#fafaf7",
+              }}
+            />
+            {newText.trim() && (
+              <button
+                onClick={handleCreate}
+                disabled={saving}
+                style={{
+                  alignSelf: "flex-end",
+                  padding: "4px 14px",
+                  background: saving ? "#a39f9f" : "#1a1a1a",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: saving ? "not-allowed" : "pointer",
+                  fontFamily: "Times New Roman",
+                  fontSize: "14px",
+                }}
+              >
+                {saving ? "Saugoma..." : "Pridėti"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -466,6 +738,7 @@ function PublicationCardModal({
             )}
           </div>
         </div>
+        {pub.id && <PublicationNotes pubId={pub.id} />}
       </Modal>
 
       <CitationGraphModal

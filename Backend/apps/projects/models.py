@@ -61,3 +61,16 @@ class SavedPublication(models.Model):
 
     def __str__(self):
         return self.title
+
+class PublicationNote(models.Model):
+    publication = models.ForeignKey(
+        SavedPublication,
+        on_delete=models.CASCADE,
+        related_name="notes"
+    )
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Note for {self.publication.title[:40]}"
