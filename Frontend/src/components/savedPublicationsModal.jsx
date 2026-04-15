@@ -9,7 +9,9 @@ import {
   createFolder,
   deleteFolder,
   getPublications,
+  getProjectPublications,
   deletePublication,
+  deleteProjectPublication,
   deleteProject,
   getRecommendations,
   savePublication,
@@ -43,6 +45,7 @@ function SavedPublicationsModal({
   const [saveFolders, setSaveFolders] = useState([]);
   const [saveFoldersLoading, setSaveFoldersLoading] = useState(false);
   const [savingRecommendations, setSavingRecommendations] = useState(false);
+  const [projectPubs, setProjectPubs] = useState([]);
 
   const { t } = useLanguage();
   const { showToast } = useToast();
@@ -57,9 +60,15 @@ function SavedPublicationsModal({
       setSaveOpen(false);
       setSelectedSaveProject(null);
       setSaveFolders([]);
-      getFolders(project.id)
-        .then(setFolders)
-        .catch(() => setFolders([]))
+      setProjectPubs([]);
+      Promise.all([
+        getFolders(project.id).catch(() => []),
+        getProjectPublications(project.id).catch(() => []),
+      ])
+        .then(([foldersData, projectPubsData]) => {
+          setFolders(foldersData);
+          setProjectPubs(projectPubsData);
+        })
         .finally(() => setLoadingFolders(false));
     }
   }, [open, project]);
@@ -307,6 +316,93 @@ function SavedPublicationsModal({
 
   if (!project) return null;
 
+  const renderPublicationCard = (pub, onDelete) => (
+    <div
+      key={pub.id}
+      onClick={() => handleOpenPublication(pub)}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "#e6e6e6")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "#ffffff")}
+      style={{
+        background: "#ffffff",
+        padding: "12px 16px",
+        borderRadius: "10px",
+        border: "0.5px solid #86848a",
+        cursor: "pointer",
+        fontFamily: "Times New Roman",
+        transition: "background 0.12s",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: "10px",
+        }}
+      >
+        <strong style={{ fontSize: "14px", lineHeight: "1.4" }}>
+          {pub.title}
+        </strong>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(pub.id);
+          }}
+          style={{
+            padding: "2px 8px",
+            background: "#a1a1a1a2",
+            border: "1px solid #000",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontFamily: "Times New Roman",
+            fontSize: "12px",
+            flexShrink: 0,
+          }}
+        >
+          {t.delete}
+        </button>
+      </div>
+
+      <div
+        style={{
+          marginTop: "4px",
+          fontSize: "12px",
+          color: "#5e5b5b",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2px",
+        }}
+      >
+        <span>
+          {t.year} {pub.year ?? "—"}
+        </span>
+        {pub.doi && (
+          <span>
+            DOI:{" "}
+            <a
+              href={pub.doi}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {pub.doi}
+            </a>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  const handleDeleteProjectPublication = async (pubId) => {
+    try {
+      await deleteProjectPublication(project.id, pubId);
+      setProjectPubs((prev) => prev.filter((p) => p.id !== pubId));
+    } catch {
+      showToast("Nepavyko ištrinti publikacijos");
+    }
+  };
+
   return (
     <Modal open={open} title={project.name} onClose={onClose} maxWidth="1400px">
       <div
@@ -432,7 +528,6 @@ function SavedPublicationsModal({
           {!loadingFolders && folders.length === 0 && (
             <p style={{ color: "#888787", fontSize: "14px" }}>{t.no_folders}</p>
           )}
-
           {!loadingFolders &&
             folders.map((folder) => {
               const isOpen = expandedFolders[folder.id];
@@ -614,6 +709,33 @@ function SavedPublicationsModal({
                 </div>
               );
             })}
+          {!loadingFolders && projectPubs.length > 0 && (
+            <div style={{ marginTop: "18px" }}>
+              <h4
+                style={{
+                  margin: "0 0 10px 0",
+                  fontFamily: "Times New Roman",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: "#2a2535",
+                }}
+              >
+                Publikacijos projekte
+              </h4>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                }}
+              >
+                {projectPubs.map((pub) =>
+                  renderPublicationCard(pub, handleDeleteProjectPublication),
+                )}
+              </div>
+            </div>
+          )}
 
           {!loadingFolders && folders.length > 0 && (
             <button
@@ -992,6 +1114,31 @@ function SavedPublicationsModal({
                           >
                             {rec.doi}
                           </a>
+                        </span>
+                      )}
+                      {rec.similarity != null && (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            marginTop: "4px",
+                            padding: "1px 8px",
+                            borderRadius: "20px",
+                            fontSize: "12px",
+                            background:
+                              rec.similarity >= 70
+                                ? "#d3ecd9"
+                                : rec.similarity >= 40
+                                  ? "#f8edc7"
+                                  : "#f3d3d6",
+                            color:
+                              rec.similarity >= 70
+                                ? "#2b703c"
+                                : rec.similarity >= 40
+                                  ? "#836304"
+                                  : "#831f28",
+                          }}
+                        >
+                          {rec.similarity}% atitikimas
                         </span>
                       )}
                     </div>

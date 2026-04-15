@@ -101,6 +101,7 @@ class ProjectRecommendationsView(generics.GenericAPIView):
 
         for i, candidate in enumerate(candidates):
             candidate["_score"] = combined_score(similarity_scores[i], candidate["citation_count"])
+            candidate["similarity"] = round(similarity_scores[i] * 100)
 
         ranked = sorted(candidates, key=lambda c: c["_score"], reverse=True)
         top = []

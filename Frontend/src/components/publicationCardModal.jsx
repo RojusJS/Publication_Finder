@@ -1,7 +1,7 @@
 import React from "react";
 import Modal from "./modal";
 import CitationGraphModal from "./citationGraphModal";
-import { savePublication, getFolders } from "../services/projectApi";
+import { savePublication, getFolders, savePublicationToProject } from "../services/projectApi";
 import { useLanguage } from "./language";
 import { useToast } from "./toastContext";
 
@@ -115,7 +115,11 @@ function PublicationCardModal({
   const handleSaveToFolder = async (folderId) => {
     try {
       setSaving(true);
-      await savePublication(selectedProject.id, folderId, pub);
+      if (folderId === null) {
+        await savePublicationToProject(selectedProject.id, pub);
+      } else {
+        await savePublication(selectedProject.id, folderId, pub);
+      }
       showToast(t.saved, "success");
       setSaveOpen(false);
       setSelectedProject(null);
@@ -260,27 +264,16 @@ function PublicationCardModal({
                               <div
                                 style={{
                                   padding: "10px 16px",
-                                  fontFamily: "Times New Roman",
-                                  color: "#888",
-                                  fontSize: "14px",
-                                }}
-                              ></div>
-                            ) : folders.length === 0 ? (
-                              <div
-                                style={{
-                                  padding: "10px 16px",
-                                  fontFamily: "Times New Roman",
                                   color: "#888",
                                   fontSize: "14px",
                                 }}
                               >
-                                {t.no_folders_dropdown}
+                                {t.loading}
                               </div>
                             ) : (
-                              folders.map((folder) => (
+                              <>
                                 <button
-                                  key={folder.id}
-                                  onClick={() => handleSaveToFolder(folder.id)}
+                                  onClick={() => handleSaveToFolder(null)}
                                   onMouseEnter={(e) =>
                                     (e.currentTarget.style.background =
                                       "#f0eef4")
@@ -293,17 +286,62 @@ function PublicationCardModal({
                                     padding: "10px 16px",
                                     background: "none",
                                     border: "none",
+                                    borderBottom: "1px solid #eee",
                                     textAlign: "left",
                                     cursor: "pointer",
                                     fontFamily: "Times New Roman",
                                     fontSize: "14px",
-                                    color: "#000",
+                                    color: "#525050",
                                     boxSizing: "border-box",
+                                    fontStyle: "italic",
                                   }}
                                 >
-                                  {folder.name}
+                                  Išsaugoti pačiame projekte
                                 </button>
-                              ))
+
+                                {folders.length === 0 ? (
+                                  <div
+                                    style={{
+                                      padding: "10px 16px",
+                                      color: "#888",
+                                      fontSize: "14px",
+                                    }}
+                                  >
+                                    {t.no_folders_dropdown}
+                                  </div>
+                                ) : (
+                                  folders.map((folder) => (
+                                    <button
+                                      key={folder.id}
+                                      onClick={() =>
+                                        handleSaveToFolder(folder.id)
+                                      }
+                                      onMouseEnter={(e) =>
+                                        (e.currentTarget.style.background =
+                                          "#f0eef4")
+                                      }
+                                      onMouseLeave={(e) =>
+                                        (e.currentTarget.style.background =
+                                          "none")
+                                      }
+                                      style={{
+                                        width: "100%",
+                                        padding: "10px 16px",
+                                        background: "none",
+                                        border: "none",
+                                        textAlign: "left",
+                                        cursor: "pointer",
+                                        fontFamily: "Times New Roman",
+                                        fontSize: "14px",
+                                        color: "#000",
+                                        boxSizing: "border-box",
+                                      }}
+                                    >
+                                      {folder.name}
+                                    </button>
+                                  ))
+                                )}
+                              </>
                             )}
                           </div>
                         )}

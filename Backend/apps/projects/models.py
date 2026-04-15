@@ -46,7 +46,18 @@ class SavedPublication(models.Model):
     saved_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("folder", "openalex_id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["folder", "openalex_id"],
+                condition=models.Q(folder__isnull=False),
+                name="unique_pub_in_folder"
+            ),
+            models.UniqueConstraint(
+                fields=["project", "openalex_id"],
+                condition=models.Q(folder__isnull=True),
+                name="unique_pub_in_project"
+            ),
+        ]
 
     def __str__(self):
         return self.title
