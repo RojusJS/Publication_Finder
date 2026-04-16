@@ -17,6 +17,7 @@ import {
   savePublication,
 } from "../services/projectApi";
 import { useToast } from "./toastContext";
+import LabelBadge from "./labelBadge";
 import jsPDF from "jspdf";
 
 function SavedPublicationsModal({
@@ -320,7 +321,7 @@ function SavedPublicationsModal({
 
   if (!project) return null;
 
-  const renderPublicationCard = (pub, onDelete) => (
+  const renderPublicationCard = (pub, onDelete, context = "project") => (
     <div
       key={pub.id}
       onClick={() => handleOpenPublication(pub)}
@@ -394,9 +395,29 @@ function SavedPublicationsModal({
             </a>
           </span>
         )}
+        <LabelBadge
+          pubId={pub.id}
+          currentLabel={pub.label}
+          onChange={(newLabel) => handleLabelChange(pub.id, newLabel, context)}
+        />
       </div>
     </div>
   );
+
+  const handleLabelChange = (pubId, newLabel, context) => {
+    if (context === "project") {
+      setProjectPubs((prev) =>
+        prev.map((p) => (p.id === pubId ? { ...p, label: newLabel } : p)),
+      );
+    } else {
+      setFolderPubs((prev) => ({
+        ...prev,
+        [context]: prev[context].map((p) =>
+          p.id === pubId ? { ...p, label: newLabel } : p,
+        ),
+      }));
+    }
+  };
 
   const handleDeleteProjectPublication = async (pubId) => {
     try {
@@ -626,93 +647,19 @@ function SavedPublicationsModal({
                         </p>
                       )}
                       {pubs &&
-                        pubs.map((pub) => (
-                          <div
-                            key={pub.id}
-                            onClick={() => handleOpenPublication(pub)}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background = "#e6e6e6")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background = "#ffffff")
-                            }
-                            style={{
-                              background: "#ffffff",
-                              padding: "12px 16px",
-                              borderRadius: "10px",
-                              border: "0.5px solid #86848a",
-                              cursor: "pointer",
-                              fontFamily: "Times New Roman",
-                              transition: "background 0.12s",
-                              boxSizing: "border-box",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "flex-start",
-                                gap: "10px",
-                              }}
-                            >
-                              <strong
-                                style={{ fontSize: "14px", lineHeight: "1.4" }}
-                              >
-                                {pub.title}
-                              </strong>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeletePublication(folder.id, pub.id);
-                                }}
-                                style={{
-                                  padding: "2px 8px",
-                                  background: "#a1a1a1a2",
-                                  border: "1px solid #000",
-                                  borderRadius: "6px",
-                                  cursor: "pointer",
-                                  fontFamily: "Times New Roman",
-                                  fontSize: "12px",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {t.delete}
-                              </button>
-                            </div>
-                            <div
-                              style={{
-                                marginTop: "4px",
-                                fontSize: "12px",
-                                color: "#5e5b5b",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "2px",
-                              }}
-                            >
-                              <span>
-                                {t.year} {pub.year ?? "—"}
-                              </span>
-                              {pub.doi && (
-                                <span>
-                                  DOI:{" "}
-                                  <a
-                                    href={pub.doi}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {pub.doi}
-                                  </a>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                        pubs.map((pub) =>
+                          renderPublicationCard(
+                            pub,
+                            (id) => handleDeletePublication(folder.id, id),
+                            folder.id,
+                          ),
+                        )}
                     </div>
                   )}
                 </div>
               );
             })}
+
           {!loadingFolders && projectPubs.length > 0 && (
             <div style={{ marginTop: "18px" }}>
               <h4
@@ -735,7 +682,11 @@ function SavedPublicationsModal({
                 }}
               >
                 {projectPubs.map((pub) =>
-                  renderPublicationCard(pub, handleDeleteProjectPublication),
+                  renderPublicationCard(
+                    pub,
+                    handleDeleteProjectPublication,
+                    "project",
+                  ),
                 )}
               </div>
             </div>

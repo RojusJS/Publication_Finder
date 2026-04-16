@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ProjectListCreateView, SavedPublicationListCreateView, SavedPublicationDeleteView, ProjectDeleteView, FolderDeleteView, FolderListCreateView, ProjectPublicationListCreateView, ProjectPublicationDeleteView, PublicationNoteListCreateView, PublicationNoteDetailView
+from .views import ProjectListCreateView, SavedPublicationListCreateView, SavedPublicationDeleteView, ProjectDeleteView, FolderDeleteView, FolderListCreateView, ProjectPublicationListCreateView, ProjectPublicationDeleteView, PublicationNoteListCreateView, PublicationNoteDetailView, PublicationLabelUpdateView
 
 urlpatterns = [
     path("", ProjectListCreateView.as_view()),
@@ -12,4 +12,6 @@ urlpatterns = [
     path("<int:project_id>/publications/<int:publication_id>/", ProjectPublicationDeleteView.as_view()),
     path("publications/<int:publication_id>/notes/", PublicationNoteListCreateView.as_view()),
     path("publications/<int:publication_id>/notes/<int:note_id>/", PublicationNoteDetailView.as_view()),
+    path("publications/<int:publication_id>/label/", PublicationLabelUpdateView.as_view()),
+
 ]

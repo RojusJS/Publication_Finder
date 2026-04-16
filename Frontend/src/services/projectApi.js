@@ -124,3 +124,8 @@ export const updateNote = async (publicationId, noteId, text) => {
 export const deleteNote = async (publicationId, noteId) => {
   await apiClient.delete(`/projects/publications/${publicationId}/notes/${noteId}/`);
 };
+
+export const updateLabel = async (publicationId, label) => {
+  const response = await apiClient.patch(`/projects/publications/${publicationId}/label/`, { label });
+  return response.data;
+};

@@ -23,6 +23,10 @@ class PublicationNoteSerializer(serializers.ModelSerializer):
 
 class SavedPublicationSerializer(serializers.ModelSerializer):
     notes = PublicationNoteSerializer(many=True, read_only=True)
+    label_choices = serializers.SerializerMethodField(read_only=True)
+
+    def get_label_choices(self, obj):
+        return [{"value": v, "label": l} for v, l in SavedPublication.Label.choices]
 
     class Meta:
         model = SavedPublication
@@ -30,6 +34,6 @@ class SavedPublicationSerializer(serializers.ModelSerializer):
             "id", "openalex_id", "title", "year", "doi", "pdf_url",
             "landing_page_url", "abstract", "authors", "institutions",
             "source_name", "cited_by_count", "language", "keywords",
-            "is_oa", "pub_type", "saved_at", "notes",
+            "is_oa", "pub_type", "saved_at", "notes", "label", "label_choices",
         ]
         read_only_fields = ["id", "saved_at"]

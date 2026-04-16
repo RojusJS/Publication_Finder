@@ -142,3 +142,15 @@ class PublicationNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
             publication__id=self.kwargs["publication_id"],
             publication__project__user=self.request.user
         )
+
+class PublicationLabelUpdateView(generics.UpdateAPIView):
+    serializer_class = SavedPublicationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["patch"]
+
+    def get_object(self):
+        return get_object_or_404(
+            SavedPublication,
+            id=self.kwargs["publication_id"],
+            project__user=self.request.user
+        )

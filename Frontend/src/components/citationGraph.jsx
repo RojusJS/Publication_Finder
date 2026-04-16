@@ -10,14 +10,26 @@ async function fetchCitingWorks(openalexId) {
   const shortId = openalexId.replace("https://openalex.org/", "");
   const url =
     `${OPENALEX_BASE}/works?filter=cites:${shortId}` +
-    `&select=id,title,publication_year,cited_by_count` +
-    `&per-page=16`;
-
+    `&select=id,title,publication_year,cited_by_count&per-page=16`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("OpenAlex fetch failed");
+  return (await res.json()).results || [];
+}
 
-  const data = await res.json();
-  return data.results || [];
+async function fetchReferencedWorks(openalexId) {
+  const shortId = openalexId.replace("https://openalex.org/", "");
+  const metaRes = await fetch(
+    `${OPENALEX_BASE}/works/${shortId}?select=referenced_works`
+  );
+  if (!metaRes.ok) throw new Error("OpenAlex fetch failed");
+  const meta = await metaRes.json();
+  const refs = meta.referenced_works || [];
+  if (refs.length === 0) return [];
+  const ids = refs.slice(0, 16).map(id => id.replace("https://openalex.org/", "")).join("|");
+  const url = `${OPENALEX_BASE}/works?filter=openalex_id:${ids}&select=id,title,publication_year,cited_by_count&per-page=16`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("OpenAlex fetch failed");
+  return (await res.json()).results || [];
 }
 
 function trimTitle(title, max = 38) {
@@ -36,61 +48,39 @@ function buildStaticNodes(centerPub, works) {
     y: 50,
   };
 
-  const radius = 40;
-
   const nodes = works.slice(0, 16).map((work, index, arr) => {
     const angle = (2 * Math.PI * index) / arr.length;
-
     return {
       id: work.id,
       title: work.title || "Be pavadinimo",
       year: work.publication_year,
       citations: work.cited_by_count ?? 0,
       isCenter: false,
-      x: 50 + radius * Math.cos(angle),
-      y: 50 + radius * Math.sin(angle),
+      x: 50 + 40 * Math.cos(angle),
+      y: 50 + 40 * Math.sin(angle),
     };
   });
 
   return [center, ...nodes];
 }
 
-function getNodeStyle(isCenter) {
-  if (isCenter) {
-    return {
-      background: "#000000",
-      color: "#ffffff",
-      border: "1px solid #000000",
-      fontWeight: "bold",
-      zIndex: 3,
-    };
-  }
-
-  return {
-    background: "#ffffff",
-    color: "#000000",
-    border: "1px solid #000000",
-    zIndex: 2,
-  };
-}
-
 export default function CitationGraph({ pub, projects = [] }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [works, setWorks] = useState([]);
+  const [mode, setMode] = useState("citing");
   const { t } = useLanguage();
   const [selectedPub, setSelectedPub] = useState(null);
   const [selectedPubOpen, setSelectedPubOpen] = useState(false);
   const [hoveredId, setHoveredId] = useState(null);
-  const {showToast} = useToast();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!pub?.openalex_id) return;
-
     setLoading(true);
     setError("");
-
-    fetchCitingWorks(pub.openalex_id)
+    const fetch = mode === "citing" ? fetchCitingWorks : fetchReferencedWorks;
+    fetch(pub.openalex_id)
       .then((data) => {
         setWorks(data);
         setLoading(false);
@@ -99,27 +89,58 @@ export default function CitationGraph({ pub, projects = [] }) {
         setError("Nepavyko įkelti citavimų");
         setLoading(false);
       });
-  }, [pub?.openalex_id]);
+  }, [pub?.openalex_id, mode]);
 
   const nodes = useMemo(() => buildStaticNodes(pub, works), [pub, works]);
-
   const centerNode = nodes[0];
   const outerNodes = nodes.slice(1);
 
   const handleNodeClick = async (node) => {
     if (node.isCenter) return;
-
     try {
       const fullPub = await getPublicationDetail(node.id);
       setSelectedPub(fullPub);
       setSelectedPubOpen(true);
-    } catch (err) {
+    } catch {
       showToast("Nepavyko gauti publikacijos informacijos");
     }
   };
 
   return (
     <>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+        <button
+          onClick={() => setMode("citing")}
+          style={{
+            padding: "6px 14px",
+            borderRadius: "20px",
+            border: "1.5px solid #514f58",
+            background: mode === "citing" ? "#1a1a1a" : "#ffffff",
+            color: mode === "citing" ? "#ffffff" : "#1a1a1a",
+            cursor: "pointer",
+            fontFamily: "Times New Roman",
+            fontSize: "14px",
+          }}
+        >
+          {t.citing_my_pub}
+        </button>
+        <button
+          onClick={() => setMode("referenced")}
+          style={{
+            padding: "6px 14px",
+            borderRadius: "20px",
+            border: "1.5px solid #514f58",
+            background: mode === "referenced" ? "#1a1a1a" : "#ffffff",
+            color: mode === "referenced" ? "#ffffff" : "#1a1a1a",
+            cursor: "pointer",
+            fontFamily: "Times New Roman",
+            fontSize: "14px",
+          }}
+        >
+          {t.cited_by_my_pub}
+        </button>
+      </div>
+
       <div
         style={{
           width: "100%",
@@ -140,7 +161,7 @@ export default function CitationGraph({ pub, projects = [] }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#636363",
+              color: "#606060",
               fontSize: "15px",
             }}
           >
@@ -164,7 +185,23 @@ export default function CitationGraph({ pub, projects = [] }) {
           </div>
         )}
 
-        {!loading && !error && (
+        {!loading && !error && works.length === 0 && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#ababab",
+              fontSize: "15px",
+            }}
+          >
+            {mode === "citing" ? t.no_citing_works : t.no_referenced_works}
+          </div>
+        )}
+
+        {!loading && !error && works.length > 0 && (
           <>
             <svg
               width="100%"
@@ -225,7 +262,6 @@ export default function CitationGraph({ pub, projects = [] }) {
                 }}
               >
                 <div>{trimTitle(node.title, node.isCenter ? 55 : 28)}</div>
-
                 {!node.isCenter && (
                   <div
                     style={{

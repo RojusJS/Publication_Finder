@@ -67,7 +67,8 @@ export const translations = {
     open_pdf: "Atidaryti PDF",
     show_citation_graph: "Rodyti citavimo grafą",
     citation_graph_title: "Citavimo grafas",
-    citation_graph_desc: "Rodomos publikacijos, kurios cituoja pasirinktą publikaciją",
+    citation_graph_desc:
+      "Rodomos publikacijos, kurios cituoja pasirinktą publikaciją",
     citation_graph_unavailable: "Citavimo grafikas nepasiekiamas",
     loading_citations: "Kraunami citavimai...",
     pub_search_title: "Publikacijų paieška",
@@ -92,6 +93,10 @@ export const translations = {
     err_passwords_match: "Slaptažodžiai nesutampa",
     export: "Eksportuoti",
     by_title_and_author: "Pavadinimas ir autorius",
+    citing_my_pub: "Cituoja šią publikaciją",
+    cited_by_my_pub: "Šios publikacijos cituojami darbai",
+    no_citing_works: "Nėra publikacijų, kurios cituotų šią",
+    no_referenced_works: "Nėra cituojamų darbų",
   },
   EN: {
     search_title: "Publication Search",
@@ -186,5 +191,9 @@ export const translations = {
     err_passwords_match: "Passwords do not match",
     export: "Export",
     by_title_and_author: "Title and author",
+    citing_my_pub: "Citing this publication",
+    cited_by_my_pub: "Works cited by this publication",
+    no_citing_works: "No publications cite this one",
+    no_referenced_works: "No referenced works found",
   },
 };

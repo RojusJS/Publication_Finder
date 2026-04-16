@@ -26,8 +26,15 @@ class Folder(models.Model):
 
 
 class SavedPublication(models.Model):
+    class Label(models.TextChoices):
+        CITED = "Cituota", "Cituota"
+        TO_BE_CITED = "Cituoti", "Cituoti"
+        READ = "Perskaityta", "Perskaityta"
+        TO_BE_READ = "Perskaityti", "Perskaityti"
+
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="publications")
     folder = models.ForeignKey(Folder, on_delete=models.SET_NULL, null=True, blank=True, related_name="publications")
+    label = models.CharField(max_length=20, choices=Label.choices, null=True, blank=True)
     openalex_id = models.CharField(max_length=255)
     title = models.TextField()
     year = models.IntegerField(null=True, blank=True)
