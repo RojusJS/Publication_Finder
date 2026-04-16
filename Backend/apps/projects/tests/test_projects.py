@@ -212,7 +212,7 @@ def test_delete_publication_note(auth_client, saved_publication):
 @pytest.mark.django_db
 def test_update_publication_label(auth_client, saved_publication):
     payload = {
-        "label": "important"
+        "label": "Cituoti"
     }
     response = auth_client.patch(
         f"/api/projects/publications/{saved_publication.id}/label/",
@@ -221,7 +221,7 @@ def test_update_publication_label(auth_client, saved_publication):
     )
     assert response.status_code == status.HTTP_200_OK
     saved_publication.refresh_from_db()
-    assert saved_publication.label == "important"
+    assert saved_publication.label == "Cituoti"
 
 
 @pytest.mark.django_db
