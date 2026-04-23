@@ -7,6 +7,7 @@ import HeaderBar from "../components/topHeaderBar";
 import AuthModal from "../components/AuthModal";
 import ProjectsBar from "../components/projectsBar";
 import CreateProjectModal from "../components/projectsModal";
+import ProjectView from "../components/ProjectView";
 import { getProjects, createProject } from "../services/projectApi";
 import apiClient from "../services/apiClient";
 import { useLanguage } from "../components/language";
@@ -30,6 +31,7 @@ function HomePage() {
   const [institution, setInstitution] = useState(null);
   const [author, setAuthor] = useState("");
   const [searchBy, setSearchBy] = useState("title");
+  const [activeProject, setActiveProject] = useState(null);
   const handleLoginClick = () => setAuthMode("login");
   const handleRegisterClick = () => setAuthMode("register");
   const closeAuthModal = () => setAuthMode(null);
@@ -41,6 +43,7 @@ function HomePage() {
   useEffect(() => {
     setPage(1);
   }, [yearFrom, yearTo, oaOnly, type, sort]);
+
   const handleAuthSubmit = async () => {
     setIsLoggedIn(true);
     closeAuthModal();
@@ -147,6 +150,7 @@ function HomePage() {
     localStorage.removeItem("username");
     setIsLoggedIn(false);
     setProjects([]);
+    setActiveProject(null);
   };
 
   const handleCreateProject = async (projectData) => {
@@ -187,134 +191,162 @@ function HomePage() {
           alignItems: "flex-start",
           height: "calc(100vh - 73px)",
           overflow: "hidden",
-          position: "relative",
+          position: activeProject ? "static" : "relative",
         }}
       >
         <ProjectsBar
           onCreateProjectClick={handleOpenCreateProject}
           isLoggedIn={isLoggedIn}
           projects={projects}
-          onProjectDeleted={(id) =>
-            setProjects((prev) => prev.filter((p) => p.id !== id))
-          }
+          onProjectDeleted={(id) => {
+            setProjects((prev) => prev.filter((p) => p.id !== id));
+            if (activeProject?.id === id) setActiveProject(null);
+          }}
+          onProjectClick={(project) => setActiveProject(project)}
         />
 
         <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "100%",
-            maxWidth: "1200px",
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            boxSizing: "border-box",
-            height: "100%",
-          }}
-        >
-          <div
-            style={{ fontFamily: "Times New Roman", fontSize: "16px" }}
-          ></div>
-
-          <SearchBar
-            query={query}
-            setQuery={setQuery}
-            author={author}
-            setAuthor={setAuthor}
-            onSearch={handleSearch}
-            onSearchWithQuery={handleSearchWithQuery}
-            disabled={loading}
-            searchBy={searchBy}
-            setSearchBy={setSearchBy}
-          />
-
-          {loading && <p>{t.loading}</p>}
-          {error && <p style={{ color: "red" }}>{error}</p>}
-
-          <div
-            ref={resultsRef}
-            style={{
-              marginTop: "18px",
-              width: "100%",
-              overflowY: "auto",
-              flex: 1,
-            }}
-          >
-            {results.map((pub, index) => (
-              <PublicationCard
-                key={pub.openalex_id ?? index}
-                pub={pub}
-                projects={projects}
-                institutionName={institution?.display_name}
-                isSelected={selectedPubs.some(
-                  (p) => p.openalex_id === pub.openalex_id,
-                )}
-                onToggleSelect={handleToggleSelect}
-              />
-            ))}
-            {totalPages > 1 && (
-              <div
-                style={{
+          style={
+            activeProject
+              ? {
+                  flex: 1,
+                  minWidth: 0,
+                  padding: "20px",
                   display: "flex",
-                  gap: "6px",
-                  justifyContent: "center",
-                  padding: "16px 0",
-                  flexWrap: "wrap",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  boxSizing: "border-box",
+                  height: "100%",
+                  overflow: "hidden",
+                }
+              : {
+                  position: "absolute",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: "100%",
+                  maxWidth: "1200px",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  boxSizing: "border-box",
+                  height: "100%",
+                }
+          }
+        >
+          {activeProject ? (
+            <ProjectView
+              project={activeProject}
+              onClose={() => setActiveProject(null)}
+              onProjectDeleted={(id) => {
+                setProjects((prev) => prev.filter((p) => p.id !== id));
+                setActiveProject(null);
+              }}
+              projects={projects}
+              institutionName={institution?.display_name}
+            />
+          ) : (
+            <>
+              <SearchBar
+                query={query}
+                setQuery={setQuery}
+                author={author}
+                setAuthor={setAuthor}
+                onSearch={handleSearch}
+                onSearchWithQuery={handleSearchWithQuery}
+                disabled={loading}
+                searchBy={searchBy}
+                setSearchBy={setSearchBy}
+              />
+
+              {loading && <p>{t.loading}</p>}
+              {error && <p style={{ color: "red" }}>{error}</p>}
+
+              <div
+                ref={resultsRef}
+                style={{
+                  marginTop: "18px",
+                  width: "100%",
+                  overflowY: "auto",
+                  flex: 1,
                 }}
               >
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (p) => (
-                    <button
-                      key={p}
-                      onClick={() => handlePageChange(p)}
-                      style={{
-                        width: "34px",
-                        height: "34px",
-                        borderRadius: "8px",
-                        border:
-                          p === page ? "2px solid #000" : "1px solid #ccc",
-                        background: p === page ? "#000" : "#fff",
-                        color: p === page ? "#fff" : "#000",
-                        cursor: "pointer",
-                        fontFamily: "Times New Roman",
-                        fontSize: "14px",
-                        padding: 0,
-                        lineHeight: "1",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {p}
-                    </button>
-                  ),
+                {results.map((pub, index) => (
+                  <PublicationCard
+                    key={pub.openalex_id ?? index}
+                    pub={pub}
+                    projects={projects}
+                    institutionName={institution?.display_name}
+                    isSelected={selectedPubs.some(
+                      (p) => p.openalex_id === pub.openalex_id,
+                    )}
+                    onToggleSelect={handleToggleSelect}
+                  />
+                ))}
+                {totalPages > 1 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "6px",
+                      justifyContent: "center",
+                      padding: "16px 0",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (p) => (
+                        <button
+                          key={p}
+                          onClick={() => handlePageChange(p)}
+                          style={{
+                            width: "34px",
+                            height: "34px",
+                            borderRadius: "8px",
+                            border:
+                              p === page ? "2px solid #000000" : "1px solid #cecece",
+                            background: p === page ? "#000000" : "#ffffff",
+                            color: p === page ? "#ffffff" : "#010101",
+                            cursor: "pointer",
+                            fontFamily: "Times New Roman",
+                            fontSize: "14px",
+                            padding: 0,
+                            lineHeight: "1",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {p}
+                        </button>
+                      ),
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </>
+          )}
+        </div>
+        {!activeProject && (
+          <div style={{ marginLeft: "auto" }}>
+            <FiltersBar
+              yearFrom={yearFrom}
+              setYearFrom={setYearFrom}
+              yearTo={yearTo}
+              setYearTo={setYearTo}
+              type={type}
+              setType={setType}
+              oaOnly={oaOnly}
+              setOaOnly={setOaOnly}
+              sort={sort}
+              setSort={setSort}
+              institution={institution}
+              setInstitution={setInstitution}
+              selectedPubs={selectedPubs}
+              projects={projects}
+              onClearSelected={handleClearSelected}
+            />
           </div>
-        </div>
-
-        <div style={{ marginLeft: "auto" }}>
-          <FiltersBar
-            yearFrom={yearFrom}
-            setYearFrom={setYearFrom}
-            yearTo={yearTo}
-            setYearTo={setYearTo}
-            type={type}
-            setType={setType}
-            oaOnly={oaOnly}
-            setOaOnly={setOaOnly}
-            sort={sort}
-            setSort={setSort}
-            institution={institution}
-            setInstitution={setInstitution}
-            selectedPubs={selectedPubs}
-            projects={projects}
-            onClearSelected={handleClearSelected}
-          />
-        </div>
+        )}
       </div>
     </div>
   );

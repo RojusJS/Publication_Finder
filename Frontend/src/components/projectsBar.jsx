@@ -1,6 +1,4 @@
-import { useState } from "react";
 import React from "react";
-import ProjectModal from "./savedPublicationsModal.jsx";
 import { useLanguage } from "./language";
 
 function ProjectsBar({
@@ -8,9 +6,10 @@ function ProjectsBar({
   isLoggedIn,
   projects,
   onProjectDeleted,
+  onProjectClick,
 }) {
-  const [selectedProject, setSelectedProject] = useState(null);
   const { t } = useLanguage();
+
   return (
     <div
       style={{
@@ -106,7 +105,7 @@ function ProjectsBar({
           projects.map((project) => (
             <div
               key={project.id}
-              onClick={() => setSelectedProject(project)}
+              onClick={() => onProjectClick(project)}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.background = "#ebebeb")
               }
@@ -120,7 +119,7 @@ function ProjectsBar({
                 cursor: "pointer",
                 transition: "background 0.1s",
                 border: "0.5px solid #979797",
-                marginBottom: "8px"
+                marginBottom: "8px",
               }}
             >
               <p
@@ -153,13 +152,6 @@ function ProjectsBar({
           ))
         )}
       </div>
-
-      <ProjectModal
-        open={selectedProject !== null}
-        project={selectedProject}
-        onClose={() => setSelectedProject(null)}
-        onProjectDeleted={onProjectDeleted}
-      />
     </div>
   );
 }
