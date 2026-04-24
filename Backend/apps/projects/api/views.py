@@ -2,6 +2,9 @@ from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions
 from apps.projects.models import Project, Folder, SavedPublication, PublicationNote
 from apps.projects.api.serializers import ProjectSerializer, FolderSerializer, SavedPublicationSerializer, PublicationNoteSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from collections import Counter
 
 
 class ProjectListCreateView(generics.ListCreateAPIView):
@@ -15,10 +18,10 @@ class ProjectListCreateView(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 
-class ProjectDeleteView(generics.DestroyAPIView):
+class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProjectSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    http_method_names = ["get", "patch", "delete"]
     def get_object(self):
         return get_object_or_404(Project, id=self.kwargs["project_id"], user=self.request.user)
 
@@ -36,10 +39,10 @@ class FolderListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(project=self.get_project())
 
-
-class FolderDeleteView(generics.DestroyAPIView):
+class FolderDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = FolderSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    http_method_names = ["get", "patch", "delete"]
     def get_object(self):
         return get_object_or_404(
             Folder,
@@ -47,7 +50,6 @@ class FolderDeleteView(generics.DestroyAPIView):
             project__id=self.kwargs["project_id"],
             project__user=self.request.user
         )
-
 
 class SavedPublicationListCreateView(generics.ListCreateAPIView):
     serializer_class = SavedPublicationSerializer
@@ -154,3 +156,44 @@ class PublicationLabelUpdateView(generics.UpdateAPIView):
             id=self.kwargs["publication_id"],
             project__user=self.request.user
         )
+
+class ProjectAnalyticsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id, user=request.user)
+        publications = SavedPublication.objects.filter(project=project)
+        total_publications = publications.count()
+        years = [
+            pub.year for pub in publications
+            if pub.year is not None
+        ]
+        average_year = round(sum(years) / len(years)) if years else None
+        total_citations = sum(
+            pub.cited_by_count or 0 for pub in publications
+        )
+        keyword_counter = Counter()
+        for pub in publications:
+            for keyword in pub.keywords or []:
+                if isinstance(keyword, str):
+                    keyword_counter[keyword] += 1
+                elif isinstance(keyword, dict):
+                    name = keyword.get("display_name")
+                    if name:
+                        keyword_counter[name] += 1
+        top_keywords = [
+            keyword for keyword, _ in keyword_counter.most_common(5)
+        ]
+        type_distribution = Counter(
+            pub.pub_type for pub in publications if pub.pub_type
+        )
+        label_distribution = Counter(
+            pub.label for pub in publications if pub.label
+        )
+        return Response({
+            "total_publications": total_publications,
+            "average_year": average_year,
+            "total_citations": total_citations,
+            "top_keywords": top_keywords,
+            "type_distribution": dict(type_distribution),
+            "label_distribution": dict(label_distribution),
+        })

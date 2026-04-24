@@ -220,7 +220,7 @@ function HomePage() {
                   boxSizing: "border-box",
                   height: "100%",
                   overflow: "hidden",
-                  background: "#ffffff",
+                  background: "#fff",
                 }
               : {
                   position: "absolute",
@@ -244,6 +244,12 @@ function HomePage() {
               onProjectDeleted={(id) => {
                 setProjects((prev) => prev.filter((p) => p.id !== id));
                 setActiveProject(null);
+              }}
+              onProjectUpdated={(updated) => {
+                setProjects((prev) =>
+                  prev.map((p) => (p.id === updated.id ? updated : p)),
+                );
+                setActiveProject(updated);
               }}
               projects={projects}
               institutionName={institution?.display_name}
@@ -329,8 +335,8 @@ function HomePage() {
                               p === page
                                 ? "2px solid #1e2d4a"
                                 : "1px solid #dce3ed",
-                            background: p === page ? "#1e2d4a" : "#ffffff",
-                            color: p === page ? "#ffffff" : "#5a7090",
+                            background: p === page ? "#1e2d4a" : "#fff",
+                            color: p === page ? "#fff" : "#5a7090",
                             cursor: "pointer",
                             fontFamily: "Times New Roman",
                             fontSize: "14px",
@@ -351,7 +357,7 @@ function HomePage() {
             </>
           )}
         </div>
-
+        
         {!activeProject && (
           <div style={{ marginLeft: "auto" }}>
             <FiltersBar

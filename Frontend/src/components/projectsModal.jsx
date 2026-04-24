@@ -3,18 +3,24 @@ import Modal from "./modal";
 import { useLanguage } from "./language";
 import { useToast } from "./toastContext";
 
-function CreateProjectModal({ open, onClose, onCreate }) {
+function CreateProjectModal({
+  open,
+  onClose,
+  onCreate,
+  initialProject = null,
+  mode = "create",
+}) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const { t } = useLanguage();
-  const {showToast} = useToast();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (open) {
-      setName("");
-      setDescription("");
+      setName(initialProject?.name ?? "");
+      setDescription(initialProject?.description ?? "");
     }
-  }, [open]);
+  }, [open, initialProject]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -31,7 +37,11 @@ function CreateProjectModal({ open, onClose, onCreate }) {
   };
 
   return (
-    <Modal open={open} title={t.create_project} onClose={onClose}>
+    <Modal
+      open={open}
+      title={mode === "edit" ? "Redaguoti projektą" : t.create_project}
+      onClose={onClose}
+    >
       <form
         onSubmit={handleSubmit}
         style={{ display: "flex", flexDirection: "column", gap: "12px" }}
@@ -109,10 +119,10 @@ function CreateProjectModal({ open, onClose, onCreate }) {
               background: "#000000",
               cursor: "pointer",
               fontFamily: "Times New Roman",
-              color: "#fff"
+              color: "#fff",
             }}
           >
-            {t.create}
+            {mode === "edit" ? "Išsaugoti" : t.create}
           </button>
         </div>
       </form>

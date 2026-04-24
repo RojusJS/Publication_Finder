@@ -85,7 +85,9 @@ export const getProjectPublications = async (projectId) => {
 };
 
 export const deleteProjectPublication = async (projectId, publicationId) => {
-  await apiClient.delete(`/projects/${projectId}/publications/${publicationId}/`);
+  await apiClient.delete(
+    `/projects/${projectId}/publications/${publicationId}/`,
+  );
 };
 
 export const getPublications = async (projectId, folderId) => {
@@ -101,31 +103,64 @@ export const deletePublication = async (projectId, folderId, publicationId) => {
   );
 };
 
-export const getRecommendations = async (projectId) => {
-  const response = await apiClient.post(`/recommendations/${projectId}/`);
+export const getRecommendations = async (projectId, folderId = null) => {
+  const response = await apiClient.post(`/recommendations/${projectId}/`, {
+    folder_id: folderId,
+  });
   return response.data;
 };
 
 export const getNotes = async (publicationId) => {
-  const response = await apiClient.get(`/projects/publications/${publicationId}/notes/`);
+  const response = await apiClient.get(
+    `/projects/publications/${publicationId}/notes/`,
+  );
   return response.data;
 };
 
 export const createNote = async (publicationId, text) => {
-  const response = await apiClient.post(`/projects/publications/${publicationId}/notes/`, { text });
+  const response = await apiClient.post(
+    `/projects/publications/${publicationId}/notes/`,
+    { text },
+  );
   return response.data;
 };
 
 export const updateNote = async (publicationId, noteId, text) => {
-  const response = await apiClient.patch(`/projects/publications/${publicationId}/notes/${noteId}/`, { text });
+  const response = await apiClient.patch(
+    `/projects/publications/${publicationId}/notes/${noteId}/`,
+    { text },
+  );
   return response.data;
 };
 
 export const deleteNote = async (publicationId, noteId) => {
-  await apiClient.delete(`/projects/publications/${publicationId}/notes/${noteId}/`);
+  await apiClient.delete(
+    `/projects/publications/${publicationId}/notes/${noteId}/`,
+  );
 };
 
 export const updateLabel = async (publicationId, label) => {
-  const response = await apiClient.patch(`/projects/publications/${publicationId}/label/`, { label });
+  const response = await apiClient.patch(
+    `/projects/publications/${publicationId}/label/`,
+    { label },
+  );
+  return response.data;
+};
+
+export const updateProject = async (projectId, projectData) => {
+  const response = await apiClient.patch(`/projects/${projectId}/`, projectData);
+  return response.data;
+};
+
+export const updateFolder = async (projectId, folderId, folderData) => {
+  const response = await apiClient.patch(
+    `/projects/${projectId}/folders/${folderId}/`,
+    folderData,
+  );
+  return response.data;
+};
+
+export const getProjectAnalytics = async (projectId) => {
+  const response = await apiClient.get(`/projects/${projectId}/analytics/`);
   return response.data;
 };
