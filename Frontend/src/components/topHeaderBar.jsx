@@ -28,6 +28,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
   };
 
   const isAdmin = localStorage.getItem("is_staff") === "true";
+  const username = localStorage.getItem("username") || "";
 
   return (
     <>
@@ -35,83 +36,136 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
         style={{
           width: "100%",
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          padding: "16px 20px",
-          borderBottom: "2px solid #1b1b1b",
+          padding: "0 24px",
+          height: "52px",
+          borderBottom: "1px solid #d8d8d8",
           boxSizing: "border-box",
           background: "#ffffff",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+          position: "relative",
+          zIndex: 100,
         }}
       >
-        <button
-          onClick={() => setLang(lang === "LT" ? "EN" : "LT")}
+        <div style={{ width: "200px", display: "flex", alignItems: "center" }}>
+          <button
+            onClick={() => setLang(lang === "LT" ? "EN" : "LT")}
+            style={{
+              padding: "4px 10px",
+              background: "none",
+              border: "1px solid #cccccc",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontFamily: "Times New Roman",
+              fontSize: "13px",
+              color: "#444444",
+              letterSpacing: "0.04em",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#888888")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#cccccc")}
+          >
+            {lang}
+          </button>
+        </div>
+
+        <div
           style={{
-            padding: "6px 12px",
-            background: "#f0efef",
-            border: "1px solid #bbb",
-            borderRadius: "10px",
-            cursor: "pointer",
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
             fontFamily: "Times New Roman",
-            fontSize: "14px",
+            fontSize: "16px",
+            fontWeight: "400",
+            color: "#111111",
+            letterSpacing: "0.02em",
+            whiteSpace: "nowrap",
           }}
         >
-          {lang === "LT" ? "LT" : "EN"}
-        </button>
-        <div style={{ fontFamily: "Times New Roman" }}>
-          <h2 style={{ margin: 0 }}>{t.search_title}</h2>
+          {t.search_title}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
           {!isLoggedIn ? (
             <>
               <button
                 onClick={onLogin}
                 style={{
-                  padding: "8px 16px",
-                  background: "#f0efef",
-                  border: "1px solid #bbb",
-                  borderRadius: "10px",
+                  padding: "5px 14px",
+                  background: "none",
+                  border: "1px solid #cccccc",
+                  borderRadius: "6px",
                   cursor: "pointer",
+                  fontFamily: "Times New Roman",
+                  fontSize: "13px",
+                  color: "#333333",
                 }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#f5f5f5")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "none")
+                }
               >
                 {t.login}
               </button>
               <button
                 onClick={onRegister}
                 style={{
-                  padding: "8px 16px",
-                  background: "#f0efef",
-                  border: "1px solid #bbb",
-                  borderRadius: "10px",
+                  padding: "5px 14px",
+                  background: "#111111",
+                  border: "1px solid #111111",
+                  borderRadius: "6px",
                   cursor: "pointer",
+                  fontFamily: "Times New Roman",
+                  fontSize: "13px",
+                  color: "#ffffff",
                 }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = "#333333")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = "#111111")
+                }
               >
                 {t.register}
               </button>
             </>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontFamily: "Times New Roman", fontSize: "20px" }}>
-                {t.greeting} {localStorage.getItem("username")}!
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span
+                style={{
+                  fontFamily: "Times New Roman",
+                  fontSize: "13px",
+                  color: "#555555",
+                }}
+              >
+                {username}
               </span>
 
               {isAdmin && (
                 <button
                   onClick={() => setAdminOpen(true)}
                   style={{
-                    padding: "8px 14px",
-                    background: "#f0efef",
-                    border: "1px solid #bbb",
-                    borderRadius: "10px",
+                    padding: "4px 12px",
+                    background: "none",
+                    border: "1px solid #cccccc",
+                    borderRadius: "6px",
                     cursor: "pointer",
                     fontFamily: "Times New Roman",
-                    fontSize: "14px",
+                    fontSize: "13px",
+                    color: "#333333",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#e6e1e1")
+                    (e.currentTarget.style.background = "#f5f5f5")
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "#eceaea")
+                    (e.currentTarget.style.background = "none")
                   }
                 >
                   {t.users}
@@ -121,33 +175,44 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
               <div ref={dropdownRef} style={{ position: "relative" }}>
                 <button
                   onClick={() => setDropdownOpen((prev) => !prev)}
-                  title="Profilis"
                   style={{
-                    width: "38px",
-                    height: "38px",
+                    width: "30px",
+                    height: "30px",
                     borderRadius: "50%",
-                    border: "1px solid #000000",
-                    background: dropdownOpen ? "#d3ccd3" : "#f0efef",
+                    border: "1px solid #cccccc",
+                    background: dropdownOpen ? "#ebebeb" : "#f5f5f5",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontWeight: "bold",
+                    fontFamily: "Times New Roman",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    color: "#333333",
                   }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#ebebeb")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = dropdownOpen
+                      ? "#ebebeb"
+                      : "#f5f5f5")
+                  }
                 >
-                  👤
+                  {username.charAt(0).toUpperCase() || "U"}
                 </button>
+
                 {dropdownOpen && (
                   <div
                     style={{
                       position: "absolute",
-                      top: "44px",
+                      top: "38px",
                       right: 0,
                       background: "#ffffff",
-                      border: "1px solid #d6d6d6",
-                      borderRadius: "10px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                      minWidth: "140px",
+                      border: "1px solid #d0d0d0",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                      minWidth: "130px",
                       zIndex: 1000,
                       overflow: "hidden",
                     }}
@@ -156,19 +221,21 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                       onClick={handleLogout}
                       style={{
                         width: "100%",
-                        padding: "10px 16px",
+                        padding: "9px 14px",
                         background: "none",
                         border: "none",
                         textAlign: "left",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
-                        fontSize: "15px",
-                        color: "#000000",
+                        fontSize: "13px",
+                        color: "#222222",
                       }}
                       onMouseEnter={(e) =>
-                        (e.target.style.background = "#e7e1e1")
+                        (e.currentTarget.style.background = "#f5f5f5")
                       }
-                      onMouseLeave={(e) => (e.target.style.background = "none")}
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.background = "none")
+                      }
                     >
                       {t.logout}
                     </button>
