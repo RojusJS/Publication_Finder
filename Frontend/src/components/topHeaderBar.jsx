@@ -39,9 +39,8 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
           alignItems: "center",
           padding: "0 24px",
           height: "52px",
-          borderBottom: "1px solid #d8d8d8",
+          background: "#1e2d4a",
           boxSizing: "border-box",
-          background: "#ffffff",
           position: "relative",
           zIndex: 100,
         }}
@@ -51,17 +50,21 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
             onClick={() => setLang(lang === "LT" ? "EN" : "LT")}
             style={{
               padding: "4px 10px",
-              background: "none",
-              border: "1px solid #cccccc",
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.2)",
               borderRadius: "6px",
               cursor: "pointer",
               fontFamily: "Times New Roman",
-              fontSize: "13px",
-              color: "#444444",
-              letterSpacing: "0.04em",
+              fontSize: "12px",
+              color: "rgba(255,255,255,0.8)",
+              letterSpacing: "0.06em",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#888888")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#cccccc")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "rgba(255,255,255,0.18)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "rgba(255,255,255,0.1)")
+            }
           >
             {lang}
           </button>
@@ -75,8 +78,8 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
             fontFamily: "Times New Roman",
             fontSize: "16px",
             fontWeight: "400",
-            color: "#111111",
-            letterSpacing: "0.02em",
+            color: "#ffffff",
+            letterSpacing: "0.04em",
             whiteSpace: "nowrap",
           }}
         >
@@ -97,19 +100,19 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                 onClick={onLogin}
                 style={{
                   padding: "5px 14px",
-                  background: "none",
-                  border: "1px solid #cccccc",
+                  background: "transparent",
+                  border: "1px solid rgba(255,255,255,0.3)",
                   borderRadius: "6px",
                   cursor: "pointer",
                   fontFamily: "Times New Roman",
                   fontSize: "13px",
-                  color: "#333333",
+                  color: "rgba(255,255,255,0.85)",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#f5f5f5")
+                  (e.currentTarget.style.background = "rgba(255,255,255,0.1)")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "none")
+                  (e.currentTarget.style.background = "transparent")
                 }
               >
                 {t.login}
@@ -118,19 +121,20 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                 onClick={onRegister}
                 style={{
                   padding: "5px 14px",
-                  background: "#111111",
-                  border: "1px solid #111111",
+                  background: "#ffffff",
+                  border: "1px solid #ffffff",
                   borderRadius: "6px",
                   cursor: "pointer",
                   fontFamily: "Times New Roman",
                   fontSize: "13px",
-                  color: "#ffffff",
+                  color: "#1e2d4a",
+                  fontWeight: "600",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#333333")
+                  (e.currentTarget.style.background = "#e8eef7")
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "#111111")
+                  (e.currentTarget.style.background = "#ffffff")
                 }
               >
                 {t.register}
@@ -142,7 +146,7 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                 style={{
                   fontFamily: "Times New Roman",
                   fontSize: "13px",
-                  color: "#555555",
+                  color: "rgba(255,255,255,0.65)",
                 }}
               >
                 {username}
@@ -153,19 +157,20 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                   onClick={() => setAdminOpen(true)}
                   style={{
                     padding: "4px 12px",
-                    background: "none",
-                    border: "1px solid #cccccc",
+                    background: "rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.2)",
                     borderRadius: "6px",
                     cursor: "pointer",
                     fontFamily: "Times New Roman",
-                    fontSize: "13px",
-                    color: "#333333",
+                    fontSize: "12px",
+                    color: "rgba(255,255,255,0.8)",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#f5f5f5")
+                    (e.currentTarget.style.background =
+                      "rgba(255,255,255,0.18)")
                   }
                   onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "none")
+                    (e.currentTarget.style.background = "rgba(255,255,255,0.1)")
                   }
                 >
                   {t.users}
@@ -179,24 +184,26 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                     width: "30px",
                     height: "30px",
                     borderRadius: "50%",
-                    border: "1px solid #cccccc",
-                    background: dropdownOpen ? "#ebebeb" : "#f5f5f5",
+                    border: "1.5px solid rgba(255,255,255,0.4)",
+                    background: dropdownOpen
+                      ? "rgba(255,255,255,0.2)"
+                      : "rgba(255,255,255,0.12)",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontFamily: "Times New Roman",
                     fontSize: "12px",
-                    fontWeight: "600",
-                    color: "#333333",
+                    fontWeight: "700",
+                    color: "#ffffff",
                   }}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#ebebeb")
+                    (e.currentTarget.style.background = "rgba(255,255,255,0.2)")
                   }
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.background = dropdownOpen
-                      ? "#ebebeb"
-                      : "#f5f5f5")
+                      ? "rgba(255,255,255,0.2)"
+                      : "rgba(255,255,255,0.12)")
                   }
                 >
                   {username.charAt(0).toUpperCase() || "U"}
@@ -209,9 +216,9 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                       top: "38px",
                       right: 0,
                       background: "#ffffff",
-                      border: "1px solid #d0d0d0",
+                      border: "1px solid #dce3ed",
                       borderRadius: "8px",
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                      boxShadow: "0 8px 24px rgba(30,45,74,0.15)",
                       minWidth: "130px",
                       zIndex: 1000,
                       overflow: "hidden",
@@ -221,17 +228,17 @@ function HeaderBar({ isLoggedIn, onLogin, onRegister, onLogout }) {
                       onClick={handleLogout}
                       style={{
                         width: "100%",
-                        padding: "9px 14px",
+                        padding: "10px 14px",
                         background: "none",
                         border: "none",
                         textAlign: "left",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
                         fontSize: "13px",
-                        color: "#222222",
+                        color: "#1e2d4a",
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#f5f5f5")
+                        (e.currentTarget.style.background = "#f0f4fa")
                       }
                       onMouseLeave={(e) =>
                         (e.currentTarget.style.background = "none")

@@ -59,9 +59,7 @@ function FiltersBar({
       setLoadingSuggestions(true);
       try {
         const resp = await fetch(
-          `https://api.openalex.org/autocomplete/institutions?q=${encodeURIComponent(
-            institutionQuery,
-          )}`,
+          `https://api.openalex.org/autocomplete/institutions?q=${encodeURIComponent(institutionQuery)}`,
         );
         const data = await resp.json();
         setSuggestions(data.results || []);
@@ -122,43 +120,40 @@ function FiltersBar({
   };
 
   const labelStyle = {
-    margin: "0 0 6px",
-    fontSize: "12px",
-    fontWeight: "500",
-    letterSpacing: "0.08em",
+    display: "block",
+    margin: "0 0 5px",
+    fontSize: "10px",
+    fontWeight: "700",
+    letterSpacing: "0.1em",
     textTransform: "uppercase",
-    color: "#000000",
+    color: "#7a90aa",
     fontFamily: "Times New Roman",
   };
 
   const inputStyle = {
     width: "100%",
-    padding: "8px 12px",
-    borderRadius: "8px",
-    border: "0.5px solid #979797",
+    padding: "7px 10px",
+    borderRadius: "6px",
+    border: "1px solid #c8d4e3",
     fontFamily: "Times New Roman",
-    fontSize: "14px",
-    color: "#2a2535",
+    fontSize: "13px",
+    color: "#1e2d4a",
     boxSizing: "border-box",
     background: "#ffffff",
     outline: "none",
-  };
-
-  const selectWrapStyle = {
-    position: "relative",
-    width: "100%",
+    transition: "border-color 0.15s",
   };
 
   const selectStyle = {
     width: "100%",
-    padding: "8px 36px 8px 12px",
-    borderRadius: "8px",
-    border: "0.5px solid #979797",
+    padding: "7px 30px 7px 10px",
+    borderRadius: "6px",
+    border: "1px solid #c8d4e3",
     fontFamily: "Times New Roman",
-    fontSize: "14px",
-    color: "#2a2535",
+    fontSize: "13px",
+    color: "#1e2d4a",
     boxSizing: "border-box",
-    background: "#ffffff",
+    background: "#fdfdfd",
     outline: "none",
     appearance: "none",
     WebkitAppearance: "none",
@@ -173,54 +168,55 @@ function FiltersBar({
         top: 0,
         height: "100vh",
         overflowY: "auto",
-        width: "240px",
-        minWidth: "240px",
+        width: "220px",
+        minWidth: "220px",
         padding: "20px 16px",
         boxSizing: "border-box",
         fontFamily: "Times New Roman",
-        background: "#f3f3f307",
-        borderLeft: "0.5px solid #ddd9e3",
+        background: "#eef1f6",
+        borderLeft: "1px solid #dce3ed",
       }}
     >
       <p
         style={{
-          margin: "0 0 16px",
-          fontSize: "11px",
-          fontWeight: "500",
-          letterSpacing: "0.08em",
+          margin: "0 0 18px",
+          fontSize: "10px",
+          fontWeight: "700",
+          letterSpacing: "0.14em",
           textTransform: "uppercase",
-          color: "#000000",
-          fontFamily: "Times New Roman",
+          color: "#1e2d4a",
         }}
       >
         {t.filters}
       </p>
 
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "14px" }}>
         <label style={labelStyle}>{t.year_from}</label>
         <input
           type="number"
-          //placeholder="pvz. 2010"
           value={yearFrom}
           onChange={(e) => setYearFrom(e.target.value)}
           style={inputStyle}
+          onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+          onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
         />
       </div>
 
-      <div style={{ marginBottom: "16px" }}>
-        <label style={labelStyle}>{t.type}</label>
+      <div style={{ marginBottom: "14px" }}>
+        <label style={labelStyle}>{t.year_to ?? "METAI IKI"}</label>
         <input
           type="number"
-          //placeholder="pvz. 2024"
           value={yearTo}
           onChange={(e) => setYearTo(e.target.value)}
           style={inputStyle}
+          onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+          onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
         />
       </div>
 
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "14px" }}>
         <label style={labelStyle}>{t.type}</label>
-        <div style={selectWrapStyle}>
+        <div style={{ position: "relative" }}>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -236,12 +232,12 @@ function FiltersBar({
           <span
             style={{
               position: "absolute",
-              right: "12px",
+              right: "10px",
               top: "50%",
               transform: "translateY(-50%)",
               pointerEvents: "none",
-              fontSize: "12px",
-              color: "#686666",
+              fontSize: "10px",
+              color: "#7a90aa",
             }}
           >
             ▼
@@ -249,9 +245,9 @@ function FiltersBar({
         </div>
       </div>
 
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "14px" }}>
         <label style={labelStyle}>{t.sort}</label>
-        <div style={selectWrapStyle}>
+        <div style={{ position: "relative" }}>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
@@ -264,12 +260,12 @@ function FiltersBar({
           <span
             style={{
               position: "absolute",
-              right: "12px",
+              right: "10px",
               top: "50%",
               transform: "translateY(-50%)",
               pointerEvents: "none",
-              fontSize: "12px",
-              color: "#666565",
+              fontSize: "10px",
+              color: "#7a90aa",
             }}
           >
             ▼
@@ -277,11 +273,11 @@ function FiltersBar({
         </div>
       </div>
 
-      <div style={{ marginBottom: "16px" }}>
+      <div style={{ marginBottom: "14px" }}>
         <label
           style={{
-            fontSize: "14px",
-            color: "#2a2535",
+            fontSize: "13px",
+            color: "#1e2d4a",
             fontFamily: "Times New Roman",
             display: "flex",
             alignItems: "center",
@@ -294,33 +290,76 @@ function FiltersBar({
             type="checkbox"
             checked={oaOnly}
             onChange={(e) => setOaOnly(e.target.checked)}
+            style={{ accentColor: "#1e2d4a" }}
           />
           {t.open_access}
         </label>
       </div>
 
+      <div
+        style={{ height: "1px", background: "#dce3ed", margin: "6px 0 14px" }}
+      />
+
       <div ref={dropdownRef} style={{ position: "relative" }}>
         <label style={labelStyle}>
-          {t.institution}{" "}
+          {t.institution}
           {loadingSuggestions && (
-            <span style={{ color: "#9993a8", textTransform: "none" }}>...</span>
+            <span
+              style={{
+                color: "#7a90aa",
+                textTransform: "none",
+                letterSpacing: 0,
+              }}
+            >
+              {" "}
+              …
+            </span>
           )}
         </label>
 
-        <input
-          type="text"
-          placeholder={t.institution_placeholder}
-          value={institutionQuery}
-          onChange={(e) => {
-            setInstitutionQuery(e.target.value);
-            if (institution) setInstitution(null);
-          }}
-          style={{
-            ...inputStyle,
-            background: institution ? "#eeebeb" : "#ffffff",
-            border: institution ? "0.5px solid #58575f" : "0.5px solid #949494",
-          }}
-        />
+        <div style={{ position: "relative" }}>
+          <input
+            type="text"
+            placeholder={t.institution_placeholder}
+            value={institutionQuery}
+            onChange={(e) => {
+              setInstitutionQuery(e.target.value);
+              if (institution) setInstitution(null);
+            }}
+            style={{
+              ...inputStyle,
+              background: institution ? "#e8eef7" : "#ffffff",
+              borderColor: institution ? "#7fa8d4" : "#c8d4e3",
+              paddingRight: institution ? "28px" : "10px",
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+            onBlur={(e) =>
+              (e.currentTarget.style.borderColor = institution
+                ? "#7fa8d4"
+                : "#c8d4e3")
+            }
+          />
+          {institution && (
+            <button
+              onClick={handleClear}
+              style={{
+                position: "absolute",
+                right: "8px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#7a90aa",
+                fontSize: "13px",
+                padding: 0,
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
         {dropdownOpen && suggestions.length > 0 && (
           <div
@@ -329,11 +368,11 @@ function FiltersBar({
               top: "100%",
               left: 0,
               right: 0,
-              marginTop: "6px",
-              background: "#ffffff",
-              border: "0.5px solid #979797",
+              marginTop: "4px",
+              background: "#fff",
+              border: "1px solid #dce3ed",
               borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
               maxHeight: "220px",
               overflowY: "auto",
               zIndex: 1000,
@@ -344,36 +383,35 @@ function FiltersBar({
                 key={item.id}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#ebebeb")
+                  (e.currentTarget.style.background = "#f0f4fa")
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.background = "transparent")
                 }
                 style={{
-                  padding: "10px 12px",
+                  padding: "9px 12px",
                   cursor: "pointer",
                   transition: "background 0.1s",
-                  borderBottom: "0.5px solid #ececec",
+                  borderBottom: "1px solid #f0f4fa",
                 }}
               >
                 <p
                   style={{
                     margin: 0,
-                    fontSize: "14px",
+                    fontSize: "13px",
                     fontWeight: "500",
-                    color: "#2a2535",
+                    color: "#1e2d4a",
                     fontFamily: "Times New Roman",
                   }}
                 >
                   {item.display_name}
                 </p>
-
                 {item.hint && (
                   <p
                     style={{
                       margin: "2px 0 0",
-                      fontSize: "12px",
-                      color: "#9993a8",
+                      fontSize: "11px",
+                      color: "#7a90aa",
                       fontFamily: "sans-serif",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
@@ -388,6 +426,7 @@ function FiltersBar({
           </div>
         )}
       </div>
+
       {selectedPubs.length > 0 && (
         <div ref={saveRef} style={{ position: "relative", marginTop: "20px" }}>
           <button
@@ -399,15 +438,22 @@ function FiltersBar({
             disabled={saving}
             style={{
               width: "100%",
-              padding: "10px",
-              background: "#1a1a1a",
-              color: "#fff",
+              padding: "9px",
+              background: saving ? "#7a90aa" : "#1e2d4a",
+              color: "#ffffff",
               border: "none",
-              borderRadius: "10px",
+              borderRadius: "8px",
               cursor: saving ? "not-allowed" : "pointer",
               fontFamily: "Times New Roman",
-              fontSize: "15px",
-              opacity: saving ? 0.6 : 1,
+              fontSize: "13px",
+              fontWeight: "600",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              if (!saving) e.currentTarget.style.background = "#2a3f63";
+            }}
+            onMouseLeave={(e) => {
+              if (!saving) e.currentTarget.style.background = "#1e2d4a";
             }}
           >
             {saving ? t.saving : `${t.save} (${selectedPubs.length})`}
@@ -419,21 +465,23 @@ function FiltersBar({
                 position: "absolute",
                 bottom: "calc(100% + 6px)",
                 left: 0,
-                background: "#fff",
-                border: "1px solid #d6d6d6",
-                borderRadius: "10px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                minWidth: "220px",
+                background: "#ffffff",
+                border: "1px solid #dce3ed",
+                borderRadius: "8px",
+                boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
+                minWidth: "200px",
                 zIndex: 20,
+                overflow: "hidden",
               }}
             >
               {!selectedProject &&
                 (projects.length === 0 ? (
                   <div
                     style={{
-                      padding: "10px 16px",
+                      padding: "10px 14px",
                       fontFamily: "Times New Roman",
-                      color: "#888",
+                      color: "#7a90aa",
+                      fontSize: "13px",
                     }}
                   >
                     {t.no_projects_dropdown}
@@ -447,22 +495,22 @@ function FiltersBar({
                     >
                       <div
                         style={{
-                          padding: "10px 16px",
+                          padding: "9px 14px",
                           cursor: "pointer",
                           fontFamily: "Times New Roman",
-                          fontSize: "15px",
-                          color: "#000",
+                          fontSize: "13px",
+                          color: "#1e2d4a",
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
                           background:
                             selectedProject?.id === project.id
-                              ? "#f0eef4"
+                              ? "#f0f4fa"
                               : "none",
                         }}
                       >
                         {project.name}
-                        <span style={{ color: "#aaa", fontSize: "12px" }}>
+                        <span style={{ color: "#c8d4e3", fontSize: "11px" }}>
                           ▸
                         </span>
                       </div>
@@ -479,15 +527,15 @@ function FiltersBar({
                     }}
                     style={{
                       width: "100%",
-                      padding: "8px 16px",
-                      background: "#f7f7f7",
+                      padding: "8px 14px",
+                      background: "#f0f4fa",
                       border: "none",
-                      borderBottom: "1px solid #eee",
+                      borderBottom: "1px solid #dce3ed",
                       textAlign: "left",
                       cursor: "pointer",
                       fontFamily: "Times New Roman",
-                      fontSize: "13px",
-                      color: "#666",
+                      fontSize: "12px",
+                      color: "#7a90aa",
                     }}
                   >
                     ← {selectedProject.name}
@@ -495,10 +543,9 @@ function FiltersBar({
                   {foldersLoading ? (
                     <div
                       style={{
-                        padding: "10px 16px",
-                        fontFamily: "Times New Roman",
-                        color: "#888",
-                        fontSize: "14px",
+                        padding: "10px 14px",
+                        color: "#7a90aa",
+                        fontSize: "13px",
                       }}
                     >
                       {t.loading}
@@ -506,10 +553,9 @@ function FiltersBar({
                   ) : folders.length === 0 ? (
                     <div
                       style={{
-                        padding: "10px 16px",
-                        fontFamily: "Times New Roman",
-                        color: "#888",
-                        fontSize: "14px",
+                        padding: "10px 14px",
+                        color: "#7a90aa",
+                        fontSize: "13px",
                       }}
                     >
                       {t.no_folders_dropdown}
@@ -520,21 +566,21 @@ function FiltersBar({
                         key={folder.id}
                         onClick={() => handleSaveAll(folder.id)}
                         onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#f0eef4")
+                          (e.currentTarget.style.background = "#f0f4fa")
                         }
                         onMouseLeave={(e) =>
                           (e.currentTarget.style.background = "none")
                         }
                         style={{
                           width: "100%",
-                          padding: "10px 16px",
+                          padding: "9px 14px",
                           background: "none",
                           border: "none",
                           textAlign: "left",
                           cursor: "pointer",
                           fontFamily: "Times New Roman",
-                          fontSize: "14px",
-                          color: "#000",
+                          fontSize: "13px",
+                          color: "#1e2d4a",
                           boxSizing: "border-box",
                         }}
                       >

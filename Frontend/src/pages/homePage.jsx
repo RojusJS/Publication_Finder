@@ -189,15 +189,17 @@ function HomePage() {
           display: "flex",
           width: "100%",
           alignItems: "flex-start",
-          height: "calc(100vh - 73px)",
+          height: "calc(100vh - 52px)",
           overflow: "hidden",
           position: activeProject ? "static" : "relative",
+          background: "#f0f2f5",
         }}
       >
         <ProjectsBar
           onCreateProjectClick={handleOpenCreateProject}
           isLoggedIn={isLoggedIn}
           projects={projects}
+          activeProjectId={activeProject?.id ?? null}
           onProjectDeleted={(id) => {
             setProjects((prev) => prev.filter((p) => p.id !== id));
             if (activeProject?.id === id) setActiveProject(null);
@@ -218,6 +220,7 @@ function HomePage() {
                   boxSizing: "border-box",
                   height: "100%",
                   overflow: "hidden",
+                  background: "#ffffff",
                 }
               : {
                   position: "absolute",
@@ -225,7 +228,7 @@ function HomePage() {
                   transform: "translateX(-50%)",
                   width: "100%",
                   maxWidth: "1200px",
-                  padding: "20px",
+                  padding: "0 20px 20px",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -259,13 +262,33 @@ function HomePage() {
                 setSearchBy={setSearchBy}
               />
 
-              {loading && <p>{t.loading}</p>}
-              {error && <p style={{ color: "red" }}>{error}</p>}
+              {loading && (
+                <p
+                  style={{
+                    color: "#7a90aa",
+                    fontFamily: "Times New Roman",
+                    fontSize: "14px",
+                  }}
+                >
+                  {t.loading}
+                </p>
+              )}
+              {error && (
+                <p
+                  style={{
+                    color: "#c0392b",
+                    fontFamily: "Times New Roman",
+                    fontSize: "14px",
+                  }}
+                >
+                  {error}
+                </p>
+              )}
 
               <div
                 ref={resultsRef}
                 style={{
-                  marginTop: "18px",
+                  marginTop: "8px",
                   width: "100%",
                   overflowY: "auto",
                   flex: 1,
@@ -303,9 +326,11 @@ function HomePage() {
                             height: "34px",
                             borderRadius: "8px",
                             border:
-                              p === page ? "2px solid #000000" : "1px solid #cecece",
-                            background: p === page ? "#000000" : "#ffffff",
-                            color: p === page ? "#ffffff" : "#010101",
+                              p === page
+                                ? "2px solid #1e2d4a"
+                                : "1px solid #dce3ed",
+                            background: p === page ? "#1e2d4a" : "#ffffff",
+                            color: p === page ? "#ffffff" : "#5a7090",
                             cursor: "pointer",
                             fontFamily: "Times New Roman",
                             fontSize: "14px",
@@ -326,6 +351,7 @@ function HomePage() {
             </>
           )}
         </div>
+
         {!activeProject && (
           <div style={{ marginLeft: "auto" }}>
             <FiltersBar

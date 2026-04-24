@@ -70,22 +70,37 @@ function SearchBar({
     setHistory(updated);
   };
 
+  const inputStyle = {
+    padding: "10px 18px",
+    borderRadius: "8px",
+    border: "1.5px solid #c8d4e3",
+    fontFamily: "Times New Roman",
+    fontSize: "15px",
+    boxSizing: "border-box",
+    background: "#ffffff",
+    color: "#1e2d4a",
+    outline: "none",
+    transition: "border-color 0.15s, box-shadow 0.15s",
+  };
+
   return (
     <div
       style={{
-        marginBottom: "20px",
+        width: "100%",
+        padding: "40px 0 28px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "8px",
+        gap: "12px",
       }}
     >
+
       <div
         ref={containerRef}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "10px",
+          gap: "8px",
           position: "relative",
         }}
       >
@@ -101,14 +116,15 @@ function SearchBar({
                   if (e.key === "Enter") handleSearch();
                   if (e.key === "Escape") setDropdownOpen(false);
                 }}
-                style={{
-                  padding: "8px 16px",
-                  width: "246px",
-                  borderRadius: "20px",
-                  border: "2px solid #514f58",
-                  fontFamily: "Times New Roman",
-                  fontSize: "15px",
-                  boxSizing: "border-box",
+                style={{ ...inputStyle, width: "240px" }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#1e2d4a";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 3px rgba(30,45,74,0.08)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#c8d4e3";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               />
               <input
@@ -120,14 +136,15 @@ function SearchBar({
                   if (e.key === "Enter") handleSearch();
                   if (e.key === "Escape") setDropdownOpen(false);
                 }}
-                style={{
-                  padding: "8px 16px",
-                  width: "246px",
-                  borderRadius: "20px",
-                  border: "2px solid #514f58",
-                  fontFamily: "Times New Roman",
-                  fontSize: "15px",
-                  boxSizing: "border-box",
+                style={{ ...inputStyle, width: "240px" }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#1e2d4a";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 0 3px rgba(30,45,74,0.08)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "#c8d4e3";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               />
             </div>
@@ -143,20 +160,21 @@ function SearchBar({
               }
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setDropdownOpen(true)}
+              onFocus={(e) => {
+                setDropdownOpen(true);
+                e.currentTarget.style.borderColor = "#1e2d4a";
+                e.currentTarget.style.boxShadow =
+                  "0 0 0 3px rgba(30,45,74,0.08)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#c8d4e3";
+                e.currentTarget.style.boxShadow = "none";
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSearch();
                 if (e.key === "Escape") setDropdownOpen(false);
               }}
-              style={{
-                padding: "8px 16px",
-                width: "500px",
-                borderRadius: "20px",
-                border: "2px solid #514f58",
-                fontFamily: "Times New Roman",
-                fontSize: "15px",
-                boxSizing: "border-box",
-              }}
+              style={{ ...inputStyle, width: "480px" }}
             />
           )}
 
@@ -168,9 +186,9 @@ function SearchBar({
                 left: 0,
                 width: "100%",
                 background: "#ffffff",
-                border: "1.5px solid #d6d3dc",
-                borderRadius: "14px",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                border: "1.5px solid #dce3ed",
+                borderRadius: "10px",
+                boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
                 zIndex: 1000,
                 overflow: "hidden",
               }}
@@ -180,15 +198,17 @@ function SearchBar({
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "8px 14px 4px",
-                  borderBottom: "1px solid #f0eef4",
+                  padding: "8px 14px 6px",
+                  borderBottom: "1px solid #eef1f6",
                 }}
               >
                 <span
                   style={{
-                    fontSize: "12px",
-                    color: "#888",
+                    fontSize: "11px",
+                    color: "#7a90aa",
                     fontFamily: "Times New Roman",
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
                   }}
                 >
                   {t.search_history}
@@ -198,11 +218,11 @@ function SearchBar({
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#a09aad",
+                    color: "#7a90aa",
                     cursor: "pointer",
-                    fontSize: "12px",
+                    fontSize: "11px",
                     fontFamily: "Times New Roman",
-                    padding: "0",
+                    padding: 0,
                   }}
                 >
                   {t.clear_all}
@@ -214,7 +234,7 @@ function SearchBar({
                   key={i}
                   onClick={() => handleHistoryClick(entry)}
                   onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "#f5f3ff")
+                    (e.currentTarget.style.background = "#f0f4fa")
                   }
                   onMouseLeave={(e) =>
                     (e.currentTarget.style.background = "#ffffff")
@@ -225,40 +245,30 @@ function SearchBar({
                     alignItems: "center",
                     padding: "9px 14px",
                     cursor: "pointer",
-                    borderBottom: "1px solid #f5f3f8",
+                    borderBottom: "1px solid #f4f6f9",
                   }}
                 >
-                  <div
+                  <span
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      minWidth: 0,
+                      fontFamily: "Times New Roman",
+                      fontSize: "14px",
+                      color: "#1e2d4a",
                     }}
                   >
-                    <span
-                      style={{
-                        fontFamily: "Times New Roman",
-                        fontSize: "14px",
-                        color: "#333",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {entry.query}
-                    </span>
-                  </div>
+                    {entry.query}
+                  </span>
                   <button
                     onClick={(e) => handleDeleteEntry(e, i)}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#333")}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "#bbb")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.color = "#1e2d4a")
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "#bbbbbb")}
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#bbb",
+                      color: "#bbbbbb",
                       cursor: "pointer",
-                      fontSize: "14px",
+                      fontSize: "13px",
                       padding: "0 0 0 8px",
                       flexShrink: 0,
                     }}
@@ -275,62 +285,68 @@ function SearchBar({
           onClick={handleSearch}
           disabled={disabled}
           style={{
-            padding: "8px 16px",
-            background: "#f0efef",
+            padding: "10px 20px",
+            background: disabled ? "#7a90aa" : "#1e2d4a",
+            border: "none",
+            borderRadius: "8px",
             cursor: disabled ? "not-allowed" : "pointer",
-            opacity: disabled ? 0.7 : 1,
+            fontFamily: "Times New Roman",
+            fontSize: "14px",
+            color: "#ffffff",
+            fontWeight: "600",
+            letterSpacing: "0.02em",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            if (!disabled) e.currentTarget.style.background = "#2a3f63";
+          }}
+          onMouseLeave={(e) => {
+            if (!disabled) e.currentTarget.style.background = "#1e2d4a";
           }}
         >
           {t.search}
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: "6px" }}>
-        <button
-          onClick={() => setSearchBy("title")}
-          style={{
-            padding: "4px 14px",
-            borderRadius: "20px",
-            border: "1.5px solid #514f58",
-            background: searchBy === "title" ? "#5b5963" : "#ffffff",
-            color: searchBy === "title" ? "#ffffff" : "#4e4c55",
-            cursor: "pointer",
-            fontFamily: "Times New Roman",
-            fontSize: "14px",
-          }}
-        >
-          {t.by_title}
-        </button>
-        <button
-          onClick={() => setSearchBy("author")}
-          style={{
-            padding: "4px 14px",
-            borderRadius: "20px",
-            border: "1.5px solid #514f58",
-            background: searchBy === "author" ? "#57555f" : "#ffffff",
-            color: searchBy === "author" ? "#ffffff" : "#4e4c55",
-            cursor: "pointer",
-            fontFamily: "Times New Roman",
-            fontSize: "14px",
-          }}
-        >
-          {t.by_author}
-        </button>
-        <button
-          onClick={() => setSearchBy("title_and_author")}
-          style={{
-            padding: "4px 14px",
-            borderRadius: "20px",
-            border: "1.5px solid #514f58",
-            background: searchBy === "title_and_author" ? "#57555f" : "#ffffff",
-            color: searchBy === "title_and_author" ? "#ffffff" : "#4e4c55",
-            cursor: "pointer",
-            fontFamily: "Times New Roman",
-            fontSize: "14px",
-          }}
-        >
-          {t.by_title_and_author}
-        </button>
+      <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
+        {[
+          { key: "title", label: t.by_title },
+          { key: "author", label: t.by_author },
+          { key: "title_and_author", label: t.by_title_and_author },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSearchBy(key)}
+            style={{
+              padding: "4px 14px",
+              borderRadius: "20px",
+              border:
+                searchBy === key
+                  ? "1.5px solid #1e2d4a"
+                  : "1.5px solid #c8d4e3",
+              background: searchBy === key ? "#1e2d4a" : "#ffffff",
+              color: searchBy === key ? "#ffffff" : "#7a90aa",
+              cursor: "pointer",
+              fontFamily: "Times New Roman",
+              fontSize: "13px",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              if (searchBy !== key) {
+                e.currentTarget.style.borderColor = "#1e2d4a";
+                e.currentTarget.style.color = "#1e2d4a";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (searchBy !== key) {
+                e.currentTarget.style.borderColor = "#c8d4e3";
+                e.currentTarget.style.color = "#7a90aa";
+              }
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
     </div>
   );

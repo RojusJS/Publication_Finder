@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { savePublication } from "../services/projectApi";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
 
@@ -16,23 +15,30 @@ function PublicationCard({
     <>
       <div
         onClick={() => setModalOpen(true)}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#e6e6e6")}
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.background = isSelected
-            ? "#eef0ff"
-            : "#ffffff")
-        }
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "#7fa8d4";
+          e.currentTarget.style.boxShadow = "0 2px 12px rgba(30,45,74,0.08)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = isSelected
+            ? "#7fa8d4"
+            : "#dce3ed";
+          e.currentTarget.style.boxShadow = isSelected
+            ? "0 0 0 2px rgba(127,168,212,0.2)"
+            : "none";
+        }}
         style={{
-          background: isSelected ? "#eef0ff" : "#ffffff",
-          padding: "16px 20px",
-          marginBottom: "10px",
-          borderRadius: "12px",
+          background: isSelected ? "#f0f6ff" : "#ffffff",
+          padding: "16px 18px",
+          marginBottom: "8px",
+          borderRadius: "10px",
           width: "100%",
-          border: isSelected ? "0.5px solid #7a78c8" : "0.5px solid #86848a",
+          border: isSelected ? "1.5px solid #7fa8d4" : "1px solid #dce3ed",
+          boxShadow: isSelected ? "0 0 0 2px rgba(127,168,212,0.2)" : "none",
           fontFamily: "Times New Roman",
           cursor: "pointer",
           boxSizing: "border-box",
-          transition: "background 0.12s",
+          transition: "border-color 0.15s, box-shadow 0.15s",
           position: "relative",
         }}
       >
@@ -43,117 +49,133 @@ function PublicationCard({
           }}
           style={{
             position: "absolute",
-            top: "12px",
+            top: "14px",
             right: "14px",
-            width: "18px",
-            height: "18px",
+            width: "17px",
+            height: "17px",
             borderRadius: "4px",
-            border: isSelected ? "2px solid #5b58c0" : "1.5px solid #aaa",
-            background: isSelected ? "#5b58c0" : "#fff",
+            border: isSelected ? "2px solid #1e2d4a" : "1.5px solid #c8d4e3",
+            background: isSelected ? "#1e2d4a" : "#ffffff",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
             flexShrink: 0,
             zIndex: 2,
+            transition: "all 0.15s",
           }}
         >
           {isSelected && (
-            <span style={{ color: "#fff", fontSize: "11px", lineHeight: 1 }}>
+            <span style={{ color: "#ffffff", fontSize: "10px", lineHeight: 1 }}>
               ✓
             </span>
           )}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: "12px",
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0, paddingRight: "28px" }}>
+        <div style={{ flex: 1, minWidth: 0, paddingRight: "28px" }}>
+          <p
+            style={{
+              fontSize: "14px",
+              fontWeight: "600",
+              margin: "0 0 5px",
+              lineHeight: "1.45",
+              color: "#1e2d4a",
+            }}
+          >
+            {pub.title}
+          </p>
+
+          {pub.authors?.length > 0 && (
             <p
               style={{
-                fontSize: "15px",
-                fontWeight: "500",
-                margin: "0 0 4px",
-                lineHeight: "1.4",
-                color: "#1a1a1a",
+                fontSize: "12px",
+                color: "#5a7090",
+                margin: "0 0 8px",
+                fontFamily: "Times New Roman",
               }}
             >
-              {pub.title}
+              {pub.authors.slice(0, 3).join(", ")}
+              {pub.authors.length > 3 && ` +${pub.authors.length - 3}`}
             </p>
+          )}
 
-            {pub.authors?.length > 0 && (
-              <p style={{ fontSize: "13px", color: "#666", margin: "0 0 8px" }}>
-                {pub.authors.slice(0, 3).join(", ")}
-                {pub.authors.length > 3 && ` ir dar ${pub.authors.length - 3}`}
-              </p>
-            )}
+          {pub.abstract && (
+            <p
+              style={{
+                fontSize: "12px",
+                color: "#7a90aa",
+                margin: "0 0 10px",
+                lineHeight: "1.5",
+              }}
+            >
+              {pub.abstract.split(" ").slice(0, 30).join(" ")}...
+            </p>
+          )}
 
-            {pub.abstract && (
-              <p
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            {pub.year && (
+              <span
                 style={{
-                  fontSize: "13px",
-                  color: "#777",
-                  margin: "0 0 12px",
-                  lineHeight: "1.5",
+                  fontSize: "11px",
+                  background: "#eef1f6",
+                  color: "#1e2d4a",
+                  padding: "2px 9px",
+                  borderRadius: "20px",
+                  border: "1px solid #dce3ed",
+                  fontWeight: "600",
+                  letterSpacing: "0.02em",
                 }}
               >
-                {pub.abstract.split(" ").slice(0, 30).join(" ")}...
-              </p>
+                {pub.year}
+              </span>
             )}
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                flexWrap: "wrap",
-              }}
-            >
-              {pub.year && (
-                <span
-                  style={{
-                    fontSize: "12px",
-                    background: "#f0eef4",
-                    color: "#5a5870",
-                    padding: "2px 10px",
-                    borderRadius: "20px",
-                    border: "0.5px solid #d6d3dc",
-                  }}
-                >
-                  {pub.year}
-                </span>
-              )}
-              {pub.doi && (
-                <span style={{ fontSize: "12px", color: "#888" }}>
-                  DOI:{" "}
-                  <a
-                    href={pub.doi}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ color: "#4a7cc7" }}
-                  >
-                    {pub.doi}
-                  </a>
-                </span>
-              )}
-              {pub.pdf_url && (
+            {pub.is_oa && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  background: "#e8f4ee",
+                  color: "#2a7050",
+                  padding: "2px 9px",
+                  borderRadius: "20px",
+                  border: "1px solid #b8dfc8",
+                  fontWeight: "600",
+                }}
+              >
+                Open Access
+              </span>
+            )}
+            {pub.doi && (
+              <span style={{ fontSize: "12px", color: "#7a90aa" }}>
+                DOI:{" "}
                 <a
-                  href={pub.pdf_url}
+                  href={pub.doi}
                   target="_blank"
                   rel="noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  style={{ fontSize: "12px", color: "#4a7cc7" }}
+                  style={{ color: "#2a5db0" }}
                 >
-                  Atidaryti PDF
+                  {pub.doi}
                 </a>
-              )}
-            </div>
+              </span>
+            )}
+            {pub.pdf_url && (
+              <a
+                href={pub.pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{ fontSize: "12px", color: "#2a5db0" }}
+              >
+                PDF ↗
+              </a>
+            )}
           </div>
         </div>
       </div>
