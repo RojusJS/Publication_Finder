@@ -3,6 +3,7 @@ import requests
 
 from apps.search.services.search_service import SearchService
 
+
 def publication_detail(request):
     openalex_id = request.GET.get("id", "").strip()
     if not openalex_id:
@@ -13,15 +14,38 @@ def publication_detail(request):
         data = service.get_publication_detail(openalex_id)
         return JsonResponse(data)
     except requests.RequestException as e:
-        return JsonResponse(
-            {"error": "OpenAlex request failed", "details": str(e)},
-            status=502,
-        )
+        return JsonResponse({"error": "OpenAlex request failed", "details": str(e)}, status=502)
     except Exception as e:
-        return JsonResponse(
-            {"error": "Internal error", "details": str(e)},
-            status=500,
-        )
+        return JsonResponse({"error": "Internal error", "details": str(e)}, status=500)
+
+def citing_works(request):
+    openalex_id = request.GET.get("id", "").strip()
+    if not openalex_id:
+        return JsonResponse({"error": "Missing query parameter: id"}, status=400)
+
+    service = SearchService()
+    try:
+        data = service.get_citing_works(openalex_id)
+        return JsonResponse({"results": data})
+    except requests.RequestException as e:
+        return JsonResponse({"error": "OpenAlex request failed", "details": str(e)}, status=502)
+    except Exception as e:
+        return JsonResponse({"error": "Internal error", "details": str(e)}, status=500)
+
+
+def referenced_works(request):
+    openalex_id = request.GET.get("id", "").strip()
+    if not openalex_id:
+        return JsonResponse({"error": "Missing query parameter: id"}, status=400)
+    service = SearchService()
+    try:
+        data = service.get_referenced_works(openalex_id)
+        return JsonResponse({"results": data})
+    except requests.RequestException as e:
+        return JsonResponse({"error": "OpenAlex request failed", "details": str(e)}, status=502)
+    except Exception as e:
+        return JsonResponse({"error": "Internal error", "details": str(e)}, status=500)
+
 
 def _parse_bool(value: str | None) -> bool | None:
     if value is None:
@@ -33,6 +57,7 @@ def _parse_bool(value: str | None) -> bool | None:
         return False
     return None
 
+
 def _parse_int(value: str | None) -> int | None:
     if value is None:
         return None
@@ -40,6 +65,7 @@ def _parse_int(value: str | None) -> int | None:
         return int(value)
     except ValueError:
         return None
+
 
 def search_publications(request):
     q = request.GET.get("q", "").strip()
@@ -54,7 +80,6 @@ def search_publications(request):
     search_by = request.GET.get("search_by", "title")
     if search_by not in {"title", "author", "institution", "title_and_author"}:
         return JsonResponse({"error": "Invalid search_by value"}, status=400)
-
 
     year_from = _parse_int(request.GET.get("year_from"))
     year_to = _parse_int(request.GET.get("year_to"))

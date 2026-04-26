@@ -33,8 +33,8 @@ function InstitutionsList({ institutions, highlightName }) {
 
   return (
     <div>
-      <strong>{t.institutions}:</strong>{" "}
-      <span>
+      <strong style={{ color: "#1e2d4a" }}>{t.institutions}:</strong>{" "}
+      <span style={{ color: "#5a7090" }}>
         {visible.join(", ")}
         {!expanded && sorted.length > PREVIEW_COUNT && (
           <>
@@ -44,12 +44,11 @@ function InstitutionsList({ institutions, highlightName }) {
               style={{
                 background: "none",
                 border: "none",
-                color: "#514f58",
+                color: "#2a5db0",
                 cursor: "pointer",
                 padding: 0,
                 fontFamily: "Times New Roman",
-                fontSize: "15px",
-                textDecoration: "underline",
+                fontSize: "14px",
               }}
             >
               {t.show_more} {sorted.length - PREVIEW_COUNT} ...
@@ -64,12 +63,11 @@ function InstitutionsList({ institutions, highlightName }) {
               style={{
                 background: "none",
                 border: "none",
-                color: "#514f58",
+                color: "#2a5db0",
                 cursor: "pointer",
                 padding: 0,
                 fontFamily: "Times New Roman",
-                fontSize: "15px",
-                textDecoration: "underline",
+                fontSize: "14px",
               }}
             >
               {t.show_less}
@@ -131,16 +129,26 @@ function PublicationNotes({ pubId }) {
         style={{
           width: "100%",
           height: "1px",
-          background: "#e8e8e8",
+          background: "#eef1f6",
           marginBottom: "16px",
         }}
       />
-      <strong style={{ fontFamily: "Times New Roman", fontSize: "15px" }}>
+      <strong
+        style={{
+          fontFamily: "Times New Roman",
+          fontSize: "14px",
+          color: "#1e2d4a",
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          fontSize: "10px",
+          fontWeight: "700",
+        }}
+      >
         Pastabos
       </strong>
 
       {loading ? (
-        <p style={{ color: "#aaaaaa", fontSize: "13px", marginTop: "8px" }}>
+        <p style={{ color: "#7a90aa", fontSize: "13px", marginTop: "8px" }}>
           Kraunama...
         </p>
       ) : (
@@ -156,8 +164,8 @@ function PublicationNotes({ pubId }) {
             <div
               key={note.id}
               style={{
-                background: "#fafaf7",
-                border: "0.5px solid #d6d4cc",
+                background: "#f7f9fc",
+                border: "1px solid #dce3ed",
                 borderRadius: "8px",
                 padding: "10px 14px",
                 fontFamily: "Times New Roman",
@@ -180,12 +188,13 @@ function PublicationNotes({ pubId }) {
                       width: "100%",
                       padding: "6px 8px",
                       borderRadius: "6px",
-                      border: "0.5px solid #bbb",
+                      border: "1px solid #c8d4e3",
                       fontFamily: "Times New Roman",
-                      fontSize: "14px",
+                      fontSize: "13px",
                       resize: "vertical",
                       outline: "none",
                       boxSizing: "border-box",
+                      color: "#1e2d4a",
                     }}
                   />
                   <div style={{ display: "flex", gap: "6px" }}>
@@ -193,13 +202,13 @@ function PublicationNotes({ pubId }) {
                       onClick={() => handleUpdate(note.id)}
                       style={{
                         padding: "3px 12px",
-                        background: "#1a1a1a",
-                        color: "#fff",
+                        background: "#1e2d4a",
+                        color: "#ffffff",
                         border: "none",
                         borderRadius: "6px",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
-                        fontSize: "13px",
+                        fontSize: "12px",
                       }}
                     >
                       Išsaugoti
@@ -209,12 +218,12 @@ function PublicationNotes({ pubId }) {
                       style={{
                         padding: "3px 12px",
                         background: "none",
-                        color: "#888",
-                        border: "0.5px solid #ccc",
+                        color: "#7a90aa",
+                        border: "1px solid #dce3ed",
                         borderRadius: "6px",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
-                        fontSize: "13px",
+                        fontSize: "12px",
                       }}
                     >
                       Atšaukti
@@ -233,10 +242,10 @@ function PublicationNotes({ pubId }) {
                   <p
                     style={{
                       margin: 0,
-                      fontSize: "14px",
+                      fontSize: "13px",
                       lineHeight: "1.5",
                       whiteSpace: "pre-wrap",
-                      color: "#2a2535",
+                      color: "#1e2d4a",
                     }}
                   >
                     {note.text}
@@ -250,12 +259,20 @@ function PublicationNotes({ pubId }) {
                       style={{
                         padding: "2px 8px",
                         background: "none",
-                        border: "0.5px solid #ccc",
-                        borderRadius: "6px",
+                        border: "1px solid #dce3ed",
+                        borderRadius: "5px",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
-                        fontSize: "12px",
-                        color: "#666",
+                        fontSize: "11px",
+                        color: "#7a90aa",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#7fa8d4";
+                        e.currentTarget.style.color = "#1e2d4a";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#dce3ed";
+                        e.currentTarget.style.color = "#7a90aa";
                       }}
                     >
                       Redaguoti
@@ -265,12 +282,20 @@ function PublicationNotes({ pubId }) {
                       style={{
                         padding: "2px 8px",
                         background: "none",
-                        border: "0.5px solid #ccc",
-                        borderRadius: "6px",
+                        border: "1px solid #dce3ed",
+                        borderRadius: "5px",
                         cursor: "pointer",
                         fontFamily: "Times New Roman",
-                        fontSize: "12px",
-                        color: "#999",
+                        fontSize: "11px",
+                        color: "#7a90aa",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#c0392b";
+                        e.currentTarget.style.color = "#c0392b";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#dce3ed";
+                        e.currentTarget.style.color = "#7a90aa";
                       }}
                     >
                       Ištrinti
@@ -281,7 +306,7 @@ function PublicationNotes({ pubId }) {
               <span
                 style={{
                   fontSize: "11px",
-                  color: "#bbb",
+                  color: "#7a90aa",
                   marginTop: "4px",
                   display: "block",
                 }}
@@ -308,16 +333,18 @@ function PublicationNotes({ pubId }) {
               style={{
                 width: "100%",
                 padding: "8px 10px",
-                borderRadius: "8px",
-                border: "0.5px solid #cacaca",
+                borderRadius: "7px",
+                border: "1px solid #c8d4e3",
                 fontFamily: "Times New Roman",
-                fontSize: "14px",
+                fontSize: "13px",
                 resize: "vertical",
                 outline: "none",
-                color: "#333",
+                color: "#1e2d4a",
                 boxSizing: "border-box",
-                background: "#fafaf7",
+                background: "#f7f9fc",
               }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
             />
             {newText.trim() && (
               <button
@@ -325,14 +352,14 @@ function PublicationNotes({ pubId }) {
                 disabled={saving}
                 style={{
                   alignSelf: "flex-end",
-                  padding: "4px 14px",
-                  background: saving ? "#a39f9f" : "#1a1a1a",
-                  color: "#fff",
+                  padding: "5px 14px",
+                  background: saving ? "#7a90aa" : "#1e2d4a",
+                  color: "#ffffff",
                   border: "none",
-                  borderRadius: "8px",
+                  borderRadius: "7px",
                   cursor: saving ? "not-allowed" : "pointer",
                   fontFamily: "Times New Roman",
-                  fontSize: "14px",
+                  fontSize: "13px",
                 }}
               >
                 {saving ? "Saugoma..." : "Pridėti"}
@@ -405,22 +432,28 @@ function PublicationCardModal({
 
   if (!pub) return null;
 
+  const metaStyle = {
+    fontSize: "13px",
+    color: "#5a7090",
+    fontFamily: "Times New Roman",
+  };
+  const labelStyle = { fontWeight: "700", color: "#1e2d4a" };
+
   return (
     <>
-      <Modal open={open} onClose={onClose} title={pub.title} maxWidth="1600px">
+      <Modal open={open} onClose={onClose} title={pub.title} maxWidth="820px">
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
-            fontSize: "15px",
-            position: "relative",
+            gap: "14px",
+            fontSize: "14px",
           }}
         >
           <div
             style={{
               display: "flex",
-              gap: "10px",
+              gap: "8px",
               flexWrap: "wrap",
               alignItems: "center",
             }}
@@ -428,15 +461,22 @@ function PublicationCardModal({
             <button
               onClick={() => setGraphOpen(true)}
               style={{
-                padding: "8px 14px",
-                borderRadius: "10px",
-                border: "1px solid #7f7a88",
-                background: "#000000",
+                padding: "6px 14px",
+                borderRadius: "7px",
+                border: "1px solid #dce3ed",
+                background: "#1e2d4a",
                 cursor: "pointer",
                 fontFamily: "Times New Roman",
-                fontSize: "15px",
+                fontSize: "13px",
                 color: "#ffffff",
+                fontWeight: "600",
               }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#2a3f63")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "#1e2d4a")
+              }
             >
               {t.show_citation_graph}
             </button>
@@ -450,15 +490,23 @@ function PublicationCardModal({
                 }}
                 disabled={saving}
                 style={{
-                  padding: "8px 14px",
-                  borderRadius: "10px",
-                  border: "1px solid #7f7a88",
-                  background: "#000000",
+                  padding: "6px 14px",
+                  borderRadius: "7px",
+                  border: "1px solid #dce3ed",
+                  background: "none",
                   cursor: saving ? "not-allowed" : "pointer",
                   fontFamily: "Times New Roman",
-                  fontSize: "15px",
+                  fontSize: "13px",
+                  color: "#1e2d4a",
                   opacity: saving ? 0.7 : 1,
-                  color: "#fff",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f0f4fa";
+                  e.currentTarget.style.borderColor = "#7fa8d4";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "none";
+                  e.currentTarget.style.borderColor = "#dce3ed";
                 }}
               >
                 {saving ? t.saving : t.save_to_project}
@@ -470,20 +518,22 @@ function PublicationCardModal({
                     position: "absolute",
                     top: "calc(100% + 6px)",
                     left: 0,
-                    background: "#fff",
-                    border: "1px solid #d6d6d6",
-                    borderRadius: "10px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                    background: "#ffffff",
+                    border: "1px solid #dce3ed",
+                    borderRadius: "8px",
+                    boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
                     minWidth: "220px",
                     zIndex: 20,
+                    overflow: "hidden",
                   }}
                 >
                   {projects.length === 0 ? (
                     <div
                       style={{
-                        padding: "10px 16px",
+                        padding: "10px 14px",
                         fontFamily: "Times New Roman",
-                        color: "#888",
+                        color: "#7a90aa",
+                        fontSize: "13px",
                       }}
                     >
                       {t.no_projects_dropdown}
@@ -497,36 +547,35 @@ function PublicationCardModal({
                       >
                         <div
                           style={{
-                            padding: "10px 16px",
+                            padding: "9px 14px",
                             cursor: "pointer",
                             fontFamily: "Times New Roman",
-                            fontSize: "15px",
-                            color: "#000",
+                            fontSize: "13px",
+                            color: "#1e2d4a",
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
                             background:
                               selectedProject?.id === project.id
-                                ? "#f0eef4"
+                                ? "#eef1f6"
                                 : "none",
                           }}
                         >
                           {project.name}
-                          <span style={{ color: "#aaa", fontSize: "12px" }}>
+                          <span style={{ color: "#c8d4e3", fontSize: "11px" }}>
                             ▸
                           </span>
                         </div>
-
                         {selectedProject?.id === project.id && (
                           <div
                             style={{
                               position: "absolute",
                               top: 0,
                               left: "calc(100% + 4px)",
-                              background: "#fff",
-                              border: "1px solid #d6d6d6",
-                              borderRadius: "10px",
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                              background: "#ffffff",
+                              border: "1px solid #dce3ed",
+                              borderRadius: "8px",
+                              boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
                               minWidth: "200px",
                               zIndex: 21,
                               overflow: "hidden",
@@ -535,9 +584,9 @@ function PublicationCardModal({
                             {foldersLoading ? (
                               <div
                                 style={{
-                                  padding: "10px 16px",
-                                  color: "#888",
-                                  fontSize: "14px",
+                                  padding: "10px 14px",
+                                  color: "#7a90aa",
+                                  fontSize: "13px",
                                 }}
                               >
                                 {t.loading}
@@ -548,35 +597,34 @@ function PublicationCardModal({
                                   onClick={() => handleSaveToFolder(null)}
                                   onMouseEnter={(e) =>
                                     (e.currentTarget.style.background =
-                                      "#f0eef4")
+                                      "#eef1f6")
                                   }
                                   onMouseLeave={(e) =>
                                     (e.currentTarget.style.background = "none")
                                   }
                                   style={{
                                     width: "100%",
-                                    padding: "10px 16px",
+                                    padding: "9px 14px",
                                     background: "none",
                                     border: "none",
-                                    borderBottom: "1px solid #eee",
+                                    borderBottom: "1px solid #eef1f6",
                                     textAlign: "left",
                                     cursor: "pointer",
                                     fontFamily: "Times New Roman",
-                                    fontSize: "14px",
-                                    color: "#525050",
+                                    fontSize: "13px",
+                                    color: "#7a90aa",
                                     boxSizing: "border-box",
                                     fontStyle: "italic",
                                   }}
                                 >
                                   Išsaugoti pačiame projekte
                                 </button>
-
                                 {folders.length === 0 ? (
                                   <div
                                     style={{
-                                      padding: "10px 16px",
-                                      color: "#888",
-                                      fontSize: "14px",
+                                      padding: "10px 14px",
+                                      color: "#7a90aa",
+                                      fontSize: "13px",
                                     }}
                                   >
                                     {t.no_folders_dropdown}
@@ -590,7 +638,7 @@ function PublicationCardModal({
                                       }
                                       onMouseEnter={(e) =>
                                         (e.currentTarget.style.background =
-                                          "#f0eef4")
+                                          "#eef1f6")
                                       }
                                       onMouseLeave={(e) =>
                                         (e.currentTarget.style.background =
@@ -598,14 +646,14 @@ function PublicationCardModal({
                                       }
                                       style={{
                                         width: "100%",
-                                        padding: "10px 16px",
+                                        padding: "9px 14px",
                                         background: "none",
                                         border: "none",
                                         textAlign: "left",
                                         cursor: "pointer",
                                         fontFamily: "Times New Roman",
-                                        fontSize: "14px",
-                                        color: "#000",
+                                        fontSize: "13px",
+                                        color: "#1e2d4a",
                                         boxSizing: "border-box",
                                       }}
                                     >
@@ -625,73 +673,78 @@ function PublicationCardModal({
             </div>
           </div>
 
+          <div style={{ height: "1px", background: "#eef1f6" }} />
+
           {pub.authors?.length > 0 && (
-            <div>
-              <strong>{t.authors}:</strong> {pub.authors.join(", ")}
+            <div style={metaStyle}>
+              <span style={labelStyle}>{t.authors}:</span>{" "}
+              {pub.authors.join(", ")}
             </div>
           )}
           {pub.institutions?.length > 0 && (
-            <InstitutionsList
-              institutions={pub.institutions}
-              highlightName={institutionName}
-            />
+            <div style={metaStyle}>
+              <InstitutionsList
+                institutions={pub.institutions}
+                highlightName={institutionName}
+              />
+            </div>
           )}
           {pub.source_name && (
-            <div>
-              <strong>{t.source}:</strong> {pub.source_name}
+            <div style={metaStyle}>
+              <span style={labelStyle}>{t.source}:</span> {pub.source_name}
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
             {pub.year && (
-              <div>
-                <strong>{t.year}:</strong> {pub.year}
+              <div style={metaStyle}>
+                <span style={labelStyle}>{t.year}:</span> {pub.year}
               </div>
             )}
             {pub.type && (
-              <div>
-                <strong>{t.type_label}:</strong> {pub.type}
+              <div style={metaStyle}>
+                <span style={labelStyle}>{t.type_label}:</span> {pub.type}
               </div>
             )}
             {pub.language && (
-              <div>
-                <strong>{t.language}:</strong> {pub.language.toUpperCase()}
+              <div style={metaStyle}>
+                <span style={labelStyle}>{t.language}:</span>{" "}
+                {pub.language.toUpperCase()}
               </div>
             )}
             {pub.cited_by_count != null && (
-              <div>
-                <strong>{t.citations}:</strong> {pub.cited_by_count}
+              <div style={metaStyle}>
+                <span style={labelStyle}>{t.citations}:</span>{" "}
+                {pub.cited_by_count}
               </div>
             )}
             {pub.is_oa != null && (
-              <div>
-                <strong>{t.open_access_label}:</strong>{" "}
-                {pub.is_oa ? t.yes : t.no}
+              <div style={metaStyle}>
+                <span style={labelStyle}>{t.open_access_label}:</span>{" "}
+                <span style={{ color: pub.is_oa ? "#2a7050" : "#7a90aa" }}>
+                  {pub.is_oa ? t.yes : t.no}
+                </span>
               </div>
             )}
           </div>
 
           {pub.keywords?.length > 0 && (
             <div>
-              <strong>{t.keywords}:</strong>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "6px",
-                  marginTop: "6px",
-                }}
-              >
+              <div style={{ ...metaStyle, marginBottom: "8px" }}>
+                <span style={labelStyle}>{t.keywords}:</span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                 {pub.keywords.map((kw) => (
                   <span
                     key={kw}
                     style={{
                       padding: "2px 10px",
                       borderRadius: "20px",
-                      background: "#ffffff",
-                      border: "2px solid #000000",
-                      fontSize: "13px",
-                      color: "#000000",
+                      background: "#eef1f6",
+                      border: "1px solid #dce3ed",
+                      fontSize: "12px",
+                      color: "#1e2d4a",
+                      fontFamily: "Times New Roman",
                     }}
                   >
                     {kw}
@@ -703,13 +756,16 @@ function PublicationCardModal({
 
           {pub.abstract && (
             <div>
-              <strong>{t.abstract}:</strong>
+              <div style={{ ...metaStyle, marginBottom: "6px" }}>
+                <span style={labelStyle}>{t.abstract}:</span>
+              </div>
               <p
                 style={{
-                  marginTop: "6px",
-                  marginBottom: 0,
+                  margin: 0,
                   lineHeight: "1.6",
-                  color: "#333",
+                  color: "#5a7090",
+                  fontSize: "13px",
+                  fontFamily: "Times New Roman",
                 }}
               >
                 {pub.abstract}
@@ -719,25 +775,35 @@ function PublicationCardModal({
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {pub.doi && (
-              <span>
-                <strong>DOI:</strong>{" "}
-                <a href={pub.doi} target="_blank" rel="noreferrer">
+              <div style={metaStyle}>
+                <span style={labelStyle}>DOI:</span>{" "}
+                <a
+                  href={pub.doi}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#2a5db0" }}
+                >
                   {pub.doi}
                 </a>
-              </span>
-            )}
-            {pub.landing_page_url && (
-              <a href={pub.landing_page_url} target="_blank" rel="noreferrer">
-                {t.open_page}
-              </a>
+              </div>
             )}
             {pub.pdf_url && (
-              <a href={pub.pdf_url} target="_blank" rel="noreferrer">
-                {t.open_pdf}
+              <a
+                href={pub.pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  fontSize: "13px",
+                  color: "#2a5db0",
+                  fontFamily: "Times New Roman",
+                }}
+              >
+                {t.open_pdf} ↗
               </a>
             )}
           </div>
         </div>
+
         {pub.id && <PublicationNotes pubId={pub.id} />}
       </Modal>
 

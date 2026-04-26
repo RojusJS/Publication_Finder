@@ -3,33 +3,20 @@ import { getPublicationDetail } from "../services/openalexApi";
 import PublicationCardModal from "./publicationCardModal";
 import { useLanguage } from "./language";
 import { useToast } from "./toastContext";
-
-const OPENALEX_BASE = "https://api.openalex.org";
+import apiClient from "../services/apiClient";
 
 async function fetchCitingWorks(openalexId) {
-  const shortId = openalexId.replace("https://openalex.org/", "");
-  const url =
-    `${OPENALEX_BASE}/works?filter=cites:${shortId}` +
-    `&select=id,title,publication_year,cited_by_count&per-page=16`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("OpenAlex fetch failed");
-  return (await res.json()).results || [];
+  const resp = await apiClient.get("/search/publications/citing/", {
+    params: { id: openalexId },
+  });
+  return resp.data.results || [];
 }
 
 async function fetchReferencedWorks(openalexId) {
-  const shortId = openalexId.replace("https://openalex.org/", "");
-  const metaRes = await fetch(
-    `${OPENALEX_BASE}/works/${shortId}?select=referenced_works`
-  );
-  if (!metaRes.ok) throw new Error("OpenAlex fetch failed");
-  const meta = await metaRes.json();
-  const refs = meta.referenced_works || [];
-  if (refs.length === 0) return [];
-  const ids = refs.slice(0, 16).map(id => id.replace("https://openalex.org/", "")).join("|");
-  const url = `${OPENALEX_BASE}/works?filter=openalex_id:${ids}&select=id,title,publication_year,cited_by_count&per-page=16`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("OpenAlex fetch failed");
-  return (await res.json()).results || [];
+  const resp = await apiClient.get("/search/publications/referenced/", {
+    params: { id: openalexId },
+  });
+  return resp.data.results || [];
 }
 
 function trimTitle(title, max = 38) {
@@ -47,20 +34,18 @@ function buildStaticNodes(centerPub, works) {
     x: 50,
     y: 50,
   };
-
   const nodes = works.slice(0, 16).map((work, index, arr) => {
     const angle = (2 * Math.PI * index) / arr.length;
     return {
       id: work.id,
       title: work.title || "Be pavadinimo",
-      year: work.publication_year,
+      year: work.year,
       citations: work.cited_by_count ?? 0,
       isCenter: false,
       x: 50 + 40 * Math.cos(angle),
       y: 50 + 40 * Math.sin(angle),
     };
   });
-
   return [center, ...nodes];
 }
 
@@ -79,8 +64,8 @@ export default function CitationGraph({ pub, projects = [] }) {
     if (!pub?.openalex_id) return;
     setLoading(true);
     setError("");
-    const fetch = mode === "citing" ? fetchCitingWorks : fetchReferencedWorks;
-    fetch(pub.openalex_id)
+    const fetchFn = mode === "citing" ? fetchCitingWorks : fetchReferencedWorks;
+    fetchFn(pub.openalex_id)
       .then((data) => {
         setWorks(data);
         setLoading(false);
@@ -108,46 +93,51 @@ export default function CitationGraph({ pub, projects = [] }) {
 
   return (
     <>
-      <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-        <button
-          onClick={() => setMode("citing")}
-          style={{
-            padding: "6px 14px",
-            borderRadius: "20px",
-            border: "1.5px solid #514f58",
-            background: mode === "citing" ? "#1a1a1a" : "#ffffff",
-            color: mode === "citing" ? "#ffffff" : "#1a1a1a",
-            cursor: "pointer",
-            fontFamily: "Times New Roman",
-            fontSize: "14px",
-          }}
-        >
-          {t.citing_my_pub}
-        </button>
-        <button
-          onClick={() => setMode("referenced")}
-          style={{
-            padding: "6px 14px",
-            borderRadius: "20px",
-            border: "1.5px solid #514f58",
-            background: mode === "referenced" ? "#1a1a1a" : "#ffffff",
-            color: mode === "referenced" ? "#ffffff" : "#1a1a1a",
-            cursor: "pointer",
-            fontFamily: "Times New Roman",
-            fontSize: "14px",
-          }}
-        >
-          {t.cited_by_my_pub}
-        </button>
+      <div style={{ display: "flex", gap: "6px", marginBottom: "14px" }}>
+        {[
+          { key: "citing", label: t.citing_my_pub },
+          { key: "referenced", label: t.cited_by_my_pub },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setMode(key)}
+            style={{
+              padding: "5px 14px",
+              borderRadius: "20px",
+              border:
+                mode === key ? "1.5px solid #1e2d4a" : "1.5px solid #c8d4e3",
+              background: mode === key ? "#1e2d4a" : "#ffffff",
+              color: mode === key ? "#ffffff" : "#7a90aa",
+              cursor: "pointer",
+              fontFamily: "Times New Roman",
+              fontSize: "13px",
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              if (mode !== key) {
+                e.currentTarget.style.borderColor = "#1e2d4a";
+                e.currentTarget.style.color = "#1e2d4a";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (mode !== key) {
+                e.currentTarget.style.borderColor = "#c8d4e3";
+                e.currentTarget.style.color = "#7a90aa";
+              }
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div
         style={{
           width: "100%",
-          height: "700px",
-          borderRadius: "12px",
-          border: "1px solid #cecece",
-          background: "#f5f5f5",
+          height: "680px",
+          borderRadius: "10px",
+          border: "1px solid #dce3ed",
+          background: "#f0f2f5",
           position: "relative",
           overflow: "hidden",
           fontFamily: "Times New Roman",
@@ -161,14 +151,13 @@ export default function CitationGraph({ pub, projects = [] }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#606060",
-              fontSize: "15px",
+              color: "#7a90aa",
+              fontSize: "14px",
             }}
           >
             {t.loading_citations}
           </div>
         )}
-
         {error && (
           <div
             style={{
@@ -178,13 +167,12 @@ export default function CitationGraph({ pub, projects = [] }) {
               alignItems: "center",
               justifyContent: "center",
               color: "#c0392b",
-              fontSize: "15px",
+              fontSize: "14px",
             }}
           >
             {error}
           </div>
         )}
-
         {!loading && !error && works.length === 0 && (
           <div
             style={{
@@ -193,8 +181,8 @@ export default function CitationGraph({ pub, projects = [] }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#ababab",
-              fontSize: "15px",
+              color: "#7a90aa",
+              fontSize: "14px",
             }}
           >
             {mode === "citing" ? t.no_citing_works : t.no_referenced_works}
@@ -220,8 +208,8 @@ export default function CitationGraph({ pub, projects = [] }) {
                   y1={`${centerNode.y}%`}
                   x2={`${node.x}%`}
                   y2={`${node.y}%`}
-                  stroke="rgba(0, 0, 0, 0.22)"
-                  strokeWidth="1.2"
+                  stroke="#c8d4e3"
+                  strokeWidth="1.5"
                 />
               ))}
             </svg>
@@ -239,26 +227,34 @@ export default function CitationGraph({ pub, projects = [] }) {
                   top: `${node.y}%`,
                   transform: "translate(-50%, -50%)",
                   zIndex: node.isCenter ? 3 : 2,
-                  minWidth: node.isCenter ? "220px" : "130px",
-                  maxWidth: node.isCenter ? "300px" : "160px",
+                  minWidth: node.isCenter ? "200px" : "120px",
+                  maxWidth: node.isCenter ? "280px" : "150px",
                   padding: node.isCenter ? "12px 16px" : "8px 10px",
-                  borderRadius: node.isCenter ? "14px" : "10px",
+                  borderRadius: node.isCenter ? "10px" : "8px",
                   textAlign: "center",
-                  fontSize: node.isCenter ? "15px" : "12px",
+                  fontSize: node.isCenter ? "14px" : "11px",
                   lineHeight: "1.35",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  boxShadow: node.isCenter
+                    ? "0 4px 16px rgba(30,45,74,0.2)"
+                    : hoveredId === node.id
+                      ? "0 4px 12px rgba(30,45,74,0.12)"
+                      : "0 2px 6px rgba(30,45,74,0.07)",
                   boxSizing: "border-box",
                   cursor: node.isCenter ? "default" : "pointer",
+                  transition: "box-shadow 0.15s, background 0.15s",
                   background: node.isCenter
-                    ? "#000000"
+                    ? "#1e2d4a"
                     : hoveredId === node.id
-                      ? "#e6e6e6"
+                      ? "#e8eef7"
                       : "#ffffff",
-                  color: node.isCenter
-                    ? "#ffffff"
+                  color: node.isCenter ? "#ffffff" : "#1e2d4a",
+                  border: node.isCenter
+                    ? "none"
                     : hoveredId === node.id
-                      ? "#000000"
-                      : "#1a1a1a",
+                      ? "1px solid #7fa8d4"
+                      : "1px solid #dce3ed",
+                  fontFamily: "Times New Roman",
+                  fontWeight: node.isCenter ? "600" : "400",
                 }}
               >
                 <div>{trimTitle(node.title, node.isCenter ? 55 : 28)}</div>
@@ -266,8 +262,8 @@ export default function CitationGraph({ pub, projects = [] }) {
                   <div
                     style={{
                       marginTop: "4px",
-                      fontSize: "11px",
-                      color: "#000000",
+                      fontSize: "10px",
+                      color: hoveredId === node.id ? "#5a7090" : "#7a90aa",
                     }}
                   >
                     {`${node.year || "—"} · ${node.citations} cit.`}

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
+import ConfirmModal from "./confirmModal";
 import { getPublicationDetail } from "../services/openalexApi";
 import { useLanguage } from "./language";
 import CreateProjectModal from "./projectsModal";
@@ -57,9 +58,33 @@ function ProjectView({
   const [editProjectOpen, setEditProjectOpen] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef(null);
+
+  const [confirm, setConfirm] = useState({
+    open: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+  });
+
+  useEffect(() => {
+    if (!exportOpen) return;
+    const handler = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target))
+        setExportOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [exportOpen]);
 
   const { t } = useLanguage();
   const { showToast } = useToast();
+
+  const openConfirm = (title, message, onConfirm) =>
+    setConfirm({ open: true, title, message, onConfirm });
+  const closeConfirm = () =>
+    setConfirm({ open: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     if (!project) return;
@@ -124,53 +149,78 @@ function ProjectView({
     }
   };
 
-  const handleDeleteFolder = async (folderId, folderName) => {
-    if (
-      !confirm(
-        `${t.delete_confirm_folder} "${folderName}"? ${t.delete_confirm_folder_note}`,
-      )
-    )
-      return;
-    try {
-      await deleteFolder(project.id, folderId);
-      setFolders((prev) => prev.filter((f) => f.id !== folderId));
-      setFolderPubs((prev) => {
-        const next = { ...prev };
-        delete next[folderId];
-        return next;
-      });
-      setExpandedFolders((prev) => {
-        const next = { ...prev };
-        delete next[folderId];
-        return next;
-      });
-    } catch {
-      showToast("Nepavyko ištrinti aplanko");
-    }
+  const handleDeleteFolder = (folderId, folderName) => {
+    openConfirm(
+      "Ištrinti aplanką?",
+      `Ar tikrai norite ištrinti aplanką "${folderName}"? Visos publikacijos bus pašalintos.`,
+      async () => {
+        try {
+          await deleteFolder(project.id, folderId);
+          setFolders((prev) => prev.filter((f) => f.id !== folderId));
+          setFolderPubs((prev) => {
+            const next = { ...prev };
+            delete next[folderId];
+            return next;
+          });
+          setExpandedFolders((prev) => {
+            const next = { ...prev };
+            delete next[folderId];
+            return next;
+          });
+        } catch {
+          showToast("Nepavyko ištrinti aplanko");
+        }
+      },
+    );
   };
 
-  const handleDeletePublication = async (folderId, pubId) => {
-    try {
-      await deletePublication(project.id, folderId, pubId);
-      setFolderPubs((prev) => ({
-        ...prev,
-        [folderId]: prev[folderId].filter((p) => p.id !== pubId),
-      }));
-    } catch {
-      showToast("Nepavyko ištrinti publikacijos");
-    }
+  const handleDeletePublication = (folderId, pubId, pubTitle) => {
+    openConfirm(
+      "Ištrinti publikaciją?",
+      `Ar tikrai norite ištrinti "${pubTitle}"?`,
+      async () => {
+        try {
+          await deletePublication(project.id, folderId, pubId);
+          setFolderPubs((prev) => ({
+            ...prev,
+            [folderId]: prev[folderId].filter((p) => p.id !== pubId),
+          }));
+        } catch {
+          showToast("Nepavyko ištrinti publikacijos");
+        }
+      },
+    );
   };
 
-  const handleDeleteProject = async () => {
-    if (!confirm(`${t.delete_confirm_project} "${currentProject.name}"?`))
-      return;
-    try {
-      await deleteProject(project.id);
-      onProjectDeleted(project.id);
-      onClose();
-    } catch {
-      showToast("Nepavyko ištrinti projekto");
-    }
+  const handleDeleteProject = () => {
+    openConfirm(
+      "Ištrinti projektą?",
+      `Ar tikrai norite ištrinti projektą "${currentProject.name}"? Šis veiksmas negrįžtamas.`,
+      async () => {
+        try {
+          await deleteProject(project.id);
+          onProjectDeleted(project.id);
+          onClose();
+        } catch {
+          showToast("Nepavyko ištrinti projekto");
+        }
+      },
+    );
+  };
+
+  const handleDeleteProjectPublication = (pubId, pubTitle) => {
+    openConfirm(
+      "Ištrinti publikaciją?",
+      `Ar tikrai norite ištrinti "${pubTitle}"?`,
+      async () => {
+        try {
+          await deleteProjectPublication(project.id, pubId);
+          setProjectPubs((prev) => prev.filter((p) => p.id !== pubId));
+        } catch {
+          showToast("Nepavyko ištrinti publikacijos");
+        }
+      },
+    );
   };
 
   const handleGetRecommendations = async () => {
@@ -269,22 +319,13 @@ function ProjectView({
     }
   };
 
-  const handleDeleteProjectPublication = async (pubId) => {
-    try {
-      await deleteProjectPublication(project.id, pubId);
-      setProjectPubs((prev) => prev.filter((p) => p.id !== pubId));
-    } catch {
-      showToast("Nepavyko ištrinti publikacijos");
-    }
-  };
-
   const handleUpdateProject = async (data) => {
     try {
       const updated = await updateProject(project.id, data);
       setCurrentProject(updated);
       setEditProjectOpen(false);
+      onProjectUpdated?.(updated);
       showToast("Projektas atnaujintas", "success");
-      if (onProjectUpdated) onProjectUpdated(updated);
     } catch {
       showToast("Nepavyko atnaujinti projekto");
     }
@@ -372,28 +413,148 @@ function ProjectView({
             `Authors: ${pub.authors.slice(0, 5).join(", ")}${pub.authors.length > 5 ? ` +${pub.authors.length - 5} more` : ""}`,
             10,
           );
-        if (pub.source_name) addText(`Source: ${pub.source_name}`, 10);
-        if (pub.pub_type) addText(`Type: ${pub.pub_type}`, 10);
-        if (pub.language)
-          addText(`Language: ${pub.language.toUpperCase()}`, 10);
-        if (pub.cited_by_count != null)
-          addText(`Citations: ${pub.cited_by_count}`, 10);
-        if (pub.is_oa != null)
-          addText(`Open access: ${pub.is_oa ? "Yes" : "No"}`, 10);
         if (pub.doi) addText(`DOI: ${pub.doi}`, 10);
-        if (pub.keywords?.length)
-          addText(`Keywords: ${pub.keywords.join(", ")}`, 10);
-        if (pub.abstract) {
-          const short =
-            pub.abstract.split(" ").slice(0, 60).join(" ") +
-            (pub.abstract.split(" ").length > 60 ? "..." : "");
-          addText(`Abstract: ${short}`, 9, false, [60, 60, 60]);
-        }
         y += 4;
       });
       y += 4;
     }
     doc.save(`${currentProject.name}.pdf`);
+  };
+
+  const typeToEntry = (pubType) => {
+    const map = {
+      "journal-article": "article",
+      "book-chapter": "incollection",
+      book: "book",
+      preprint: "misc",
+      "proceedings-article": "inproceedings",
+    };
+    return map[pubType] || "misc";
+  };
+
+  const makeBibtexKey = (pub) => {
+    const firstAuthor =
+      pub.authors?.[0]
+        ?.split(" ")
+        .pop()
+        ?.toLowerCase()
+        .replace(/[^a-z]/g, "") || "unknown";
+    return `${firstAuthor}${pub.year || ""}`;
+  };
+
+  const formatBibtexEntry = (pub, keySuffix = "") => {
+    const entryType = typeToEntry(pub.pub_type || pub.type);
+    const key = makeBibtexKey(pub) + keySuffix;
+    const fields = [];
+    if (pub.title) fields.push(`  title     = {${pub.title}}`);
+    if (pub.authors?.length)
+      fields.push(`  author    = {${pub.authors.join(" and ")}}`);
+    if (pub.year) fields.push(`  year      = {${pub.year}}`);
+    if (pub.source_name) {
+      const journalField =
+        entryType === "inproceedings" ? "booktitle" : "journal";
+      fields.push(`  ${journalField.padEnd(9)} = {${pub.source_name}}`);
+    }
+    if (pub.doi) fields.push(`  doi       = {${pub.doi}}`);
+    if (pub.abstract)
+      fields.push(`  abstract  = {${pub.abstract.replace(/[{}]/g, "")}}`);
+    if (pub.keywords?.length)
+      fields.push(`  keywords  = {${pub.keywords.join(", ")}}`);
+    if (pub.language) fields.push(`  language  = {${pub.language}}`);
+    return `@${entryType}{${key},\n${fields.join(",\n")}\n}`;
+  };
+
+  const formatRisEntry = (pub) => {
+    const typeMap = {
+      "journal-article": "JOUR",
+      "book-chapter": "CHAP",
+      book: "BOOK",
+      preprint: "RPRT",
+      "proceedings-article": "CONF",
+    };
+    const lines = [];
+    lines.push(`TY  - ${typeMap[pub.pub_type || pub.type] || "GEN"}`);
+    if (pub.title) lines.push(`TI  - ${pub.title}`);
+    (pub.authors || []).forEach((a) => lines.push(`AU  - ${a}`));
+    if (pub.year) lines.push(`PY  - ${pub.year}`);
+    if (pub.source_name) lines.push(`JO  - ${pub.source_name}`);
+    if (pub.doi) lines.push(`DO  - ${pub.doi}`);
+    if (pub.abstract) lines.push(`AB  - ${pub.abstract}`);
+    (pub.keywords || []).forEach((kw) => lines.push(`KW  - ${kw}`));
+    if (pub.language) lines.push(`LA  - ${pub.language}`);
+    lines.push("ER  -");
+    return lines.join("\n");
+  };
+
+  const downloadTextFile = (content, filename, mimeType) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const collectAllPubs = async () => {
+    const all = [];
+    for (const folder of folders) {
+      let pubs = folderPubs[folder.id];
+      if (!pubs) {
+        try {
+          pubs = await getPublications(project.id, folder.id);
+        } catch {
+          pubs = [];
+        }
+      }
+      all.push(...pubs);
+    }
+    all.push(...projectPubs);
+    return all;
+  };
+
+  const handleExportBibtex = async () => {
+    setExportOpen(false);
+    const all = await collectAllPubs();
+    const keyCounts = {};
+    const entries = all.map((pub) => {
+      const baseKey = makeBibtexKey(pub);
+      keyCounts[baseKey] = (keyCounts[baseKey] || 0) + 1;
+      const suffix =
+        keyCounts[baseKey] > 1
+          ? String.fromCharCode(96 + keyCounts[baseKey])
+          : "";
+      return formatBibtexEntry(pub, suffix);
+    });
+    downloadTextFile(
+      entries.join("\n\n"),
+      `${currentProject.name}.bib`,
+      "text/plain",
+    );
+  };
+
+  const handleExportRis = async () => {
+    setExportOpen(false);
+    const all = await collectAllPubs();
+    const entries = all.map(formatRisEntry);
+    downloadTextFile(
+      entries.join("\n\n"),
+      `${currentProject.name}.ris`,
+      "text/plain",
+    );
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      return new Date(dateStr).toLocaleDateString("lt-LT", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return null;
+    }
   };
 
   const renderPublicationCard = (pub, onDelete, context = "project") => (
@@ -428,7 +589,7 @@ function ProjectView({
         className="delete-btn"
         onClick={(e) => {
           e.stopPropagation();
-          onDelete(pub.id);
+          onDelete(pub.id, pub.title);
         }}
         style={{
           position: "absolute",
@@ -494,6 +655,11 @@ function ProjectView({
             </a>
           </span>
         )}
+        {pub.saved_at && (
+          <span style={{ color: "#7a90aa", fontSize: "11px" }}>
+            Išsaugota: {formatDate(pub.saved_at)}
+          </span>
+        )}
         <LabelBadge
           pubId={pub.id}
           currentLabel={pub.label}
@@ -503,18 +669,24 @@ function ProjectView({
     </div>
   );
 
-  const navBtn = (danger = false) => ({
-    padding: "6px 14px",
+  const ghostBtn = {
+    padding: "6px 13px",
     background: "none",
-    border: danger
-      ? "1px solid rgba(245,160,160,0.35)"
-      : "1px solid rgba(255,255,255,0.25)",
+    border: "1px solid #dce3ed",
     borderRadius: "6px",
     cursor: "pointer",
-    color: danger ? "#f5a0a0" : "rgba(255,255,255,0.85)",
+    color: "#1e2d4a",
     fontFamily: "Times New Roman",
     fontSize: "13px",
-  });
+  };
+  const ghostHover = (e) => {
+    e.currentTarget.style.background = "#f0f4fa";
+    e.currentTarget.style.borderColor = "#7fa8d4";
+  };
+  const ghostLeave = (e) => {
+    e.currentTarget.style.background = "none";
+    e.currentTarget.style.borderColor = "#dce3ed";
+  };
 
   return (
     <div
@@ -528,28 +700,33 @@ function ProjectView({
         background: "#ffffff",
       }}
     >
+      <ConfirmModal
+        open={confirm.open}
+        onClose={closeConfirm}
+        onConfirm={confirm.onConfirm ?? (() => {})}
+        title={confirm.title}
+        message={confirm.message}
+        confirmLabel="Ištrinti"
+        danger={true}
+      />
+
       <div
         style={{
-          background: "#1e2d4a",
+          background: "#ffffff",
           padding: "14px 20px",
           flexShrink: 0,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          borderBottom: "1px solid #dce3ed",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <button
             onClick={onClose}
-            style={navBtn()}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
-            }}
+            style={{ ...ghostBtn, color: "#5a7090" }}
+            onMouseEnter={ghostHover}
+            onMouseLeave={ghostLeave}
           >
             ← {t.back ?? "Back"}
           </button>
@@ -558,8 +735,8 @@ function ProjectView({
               style={{
                 margin: 0,
                 fontSize: "17px",
-                fontWeight: "600",
-                color: "#ffffff",
+                fontWeight: "700",
+                color: "#1e2d4a",
                 fontFamily: "Times New Roman",
               }}
             >
@@ -570,7 +747,7 @@ function ProjectView({
                 style={{
                   margin: "2px 0 0",
                   fontSize: "12px",
-                  color: "rgba(255,255,255,0.5)",
+                  color: "#7a90aa",
                   fontFamily: "Times New Roman",
                 }}
               >
@@ -579,45 +756,199 @@ function ProjectView({
             )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: "8px" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div style={{ position: "relative", display: "flex" }}>
+            <button
+              onClick={handleGetRecommendations}
+              disabled={
+                recLoading || (folders.length === 0 && projectPubs.length === 0)
+              }
+              style={{
+                padding: "6px 13px",
+                background: recLoading ? "#eef1f6" : "#1e2d4a",
+                color: recLoading ? "#7a90aa" : "#ffffff",
+                border: "1px solid",
+                borderColor: recLoading ? "#dce3ed" : "#1e2d4a",
+                borderRight: "none",
+                borderRadius: "6px 0 0 6px",
+                cursor: recLoading ? "not-allowed" : "pointer",
+                fontFamily: "Times New Roman",
+                fontSize: "13px",
+                fontWeight: "600",
+                opacity:
+                  folders.length === 0 && projectPubs.length === 0 ? 0.4 : 1,
+              }}
+              onMouseEnter={(e) => {
+                if (!recLoading) e.currentTarget.style.background = "#2a3f63";
+              }}
+              onMouseLeave={(e) => {
+                if (!recLoading)
+                  e.currentTarget.style.background = recLoading
+                    ? "#eef1f6"
+                    : "#1e2d4a";
+              }}
+            >
+              {recLoading ? t.searching : t.get_recommendations}
+            </button>
+            <select
+              value={selectedRecommendationFolder}
+              onChange={(e) => setSelectedRecommendationFolder(e.target.value)}
+              disabled={recLoading}
+              style={{
+                padding: "6px 24px 6px 8px",
+                background: recLoading ? "#eef1f6" : "#1e2d4a",
+                color: recLoading ? "#7a90aa" : "rgba(255,255,255,0.85)",
+                border: "1px solid",
+                borderColor: recLoading ? "#dce3ed" : "#1e2d4a",
+                borderLeft: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: "0 6px 6px 0",
+                cursor: recLoading ? "not-allowed" : "pointer",
+                fontFamily: "Times New Roman",
+                fontSize: "12px",
+                outline: "none",
+                appearance: "none",
+                WebkitAppearance: "none",
+                minWidth: "90px",
+              }}
+            >
+              <option value="">Visas projektas</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            <span
+              style={{
+                position: "absolute",
+                right: "8px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                pointerEvents: "none",
+                fontSize: "9px",
+                color: recLoading ? "#7a90aa" : "rgba(255,255,255,0.6)",
+              }}
+            >
+              ▼
+            </span>
+          </div>
+
+          <div
+            style={{
+              width: "1px",
+              height: "20px",
+              background: "#dce3ed",
+              margin: "0 2px",
+            }}
+          />
+
           <button
             onClick={() => setEditProjectOpen(true)}
-            style={navBtn()}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
-            }}
+            style={ghostBtn}
+            onMouseEnter={ghostHover}
+            onMouseLeave={ghostLeave}
           >
             Redaguoti
           </button>
-          <button
-            onClick={handleExport}
-            style={navBtn()}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)";
-            }}
-          >
-            {t.export}
-          </button>
+
+          <div style={{ position: "relative" }} ref={exportRef}>
+            <button
+              onClick={() => setExportOpen((p) => !p)}
+              style={ghostBtn}
+              onMouseEnter={ghostHover}
+              onMouseLeave={ghostLeave}
+            >
+              {t.export} ▾
+            </button>
+            {exportOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 6px)",
+                  right: 0,
+                  background: "#ffffff",
+                  border: "1px solid #dce3ed",
+                  borderRadius: "8px",
+                  boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
+                  minWidth: "160px",
+                  zIndex: 40,
+                  overflow: "hidden",
+                }}
+              >
+                {[
+                  {
+                    label: "PDF",
+                    sublabel: "Spausdinti / peržiūra",
+                    action: () => {
+                      setExportOpen(false);
+                      handleExport();
+                    },
+                  },
+                  {
+                    label: "BibTeX (.bib)",
+                    sublabel: "LaTeX, Overleaf",
+                    action: handleExportBibtex,
+                  },
+                  {
+                    label: "RIS (.ris)",
+                    sublabel: "Zotero, Mendeley",
+                    action: handleExportRis,
+                  },
+                ].map(({ label, sublabel, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#f0f4fa")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "none")
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "9px 14px",
+                      background: "none",
+                      border: "none",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      boxSizing: "border-box",
+                      borderBottom: "1px solid #eef1f6",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: "#1e2d4a",
+                        fontWeight: "600",
+                      }}
+                    >
+                      {label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#7a90aa",
+                        marginTop: "1px",
+                      }}
+                    >
+                      {sublabel}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={handleDeleteProject}
-            style={navBtn(true)}
+            style={{ ...ghostBtn, color: "#c0392b" }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(192,57,43,0.2)";
-              e.currentTarget.style.borderColor = "#f5a0a0";
+              e.currentTarget.style.background = "#fff0ee";
+              e.currentTarget.style.borderColor = "#c0392b";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = "none";
-              e.currentTarget.style.borderColor = "rgba(245,160,160,0.35)";
+              e.currentTarget.style.borderColor = "#dce3ed";
             }}
           >
             {t.delete_project}
@@ -755,6 +1086,8 @@ function ProjectView({
                   outline: "none",
                   color: "#1e2d4a",
                 }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
               />
               <button
                 onClick={handleCreateFolder}
@@ -788,6 +1121,7 @@ function ProjectView({
               const isOpen = expandedFolders[folder.id];
               const pubs = folderPubs[folder.id];
               const isEditing = editingFolderId === folder.id;
+
               return (
                 <div key={folder.id} style={{ marginBottom: "6px" }}>
                   {isEditing ? (
@@ -795,9 +1129,9 @@ function ProjectView({
                       style={{
                         display: "flex",
                         gap: "6px",
-                        alignItems: "center",
-                        padding: "4px 0",
+                        marginBottom: "2px",
                       }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <input
                         autoFocus
@@ -838,7 +1172,7 @@ function ProjectView({
                         style={{
                           padding: "5px 10px",
                           background: "none",
-                          border: "1px solid #c8d4e3",
+                          border: "1px solid #dce3ed",
                           borderRadius: "6px",
                           cursor: "pointer",
                           fontFamily: "Times New Roman",
@@ -846,7 +1180,7 @@ function ProjectView({
                           color: "#7a90aa",
                         }}
                       >
-                        Atšaukti
+                        ✕
                       </button>
                     </div>
                   ) : (
@@ -861,29 +1195,24 @@ function ProjectView({
                         background: isOpen ? "#eef1f6" : "#f7f9fc",
                         border: "1px solid #dce3ed",
                         cursor: "pointer",
-                        fontFamily: "Times New Roman",
                         transition: "background 0.1s",
                         position: "relative",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#e4eaf3";
-                        e.currentTarget.querySelector(
-                          ".folder-edit-btn",
-                        ).style.opacity = "1";
-                        e.currentTarget.querySelector(
-                          ".folder-delete-btn",
-                        ).style.opacity = "1";
+                        e.currentTarget.style.background = "#e8eef7";
+                        e.currentTarget.style.borderColor = "#7fa8d4";
+                        e.currentTarget
+                          .querySelectorAll(".folder-action-btn")
+                          .forEach((b) => (b.style.opacity = "1"));
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = isOpen
                           ? "#eef1f6"
                           : "#f7f9fc";
-                        e.currentTarget.querySelector(
-                          ".folder-edit-btn",
-                        ).style.opacity = "0";
-                        e.currentTarget.querySelector(
-                          ".folder-delete-btn",
-                        ).style.opacity = "0";
+                        e.currentTarget.style.borderColor = "#dce3ed";
+                        e.currentTarget
+                          .querySelectorAll(".folder-action-btn")
+                          .forEach((b) => (b.style.opacity = "0"));
                       }}
                     >
                       <div
@@ -913,17 +1242,17 @@ function ProjectView({
                       </div>
                       <div style={{ display: "flex", gap: "4px" }}>
                         <button
-                          className="folder-edit-btn"
+                          className="folder-action-btn"
                           onClick={(e) => startEditFolder(e, folder)}
                           style={{
                             padding: "2px 7px",
                             background: "none",
-                            border: "1px solid #c8d4e3",
+                            border: "1px solid #dce3ed",
                             borderRadius: "5px",
                             cursor: "pointer",
                             fontFamily: "Times New Roman",
                             fontSize: "11px",
-                            color: "#5a7090",
+                            color: "#7a90aa",
                             opacity: 0,
                             transition:
                               "opacity 0.15s, color 0.15s, border-color 0.15s",
@@ -933,14 +1262,14 @@ function ProjectView({
                             e.currentTarget.style.borderColor = "#1e2d4a";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "#5a7090";
-                            e.currentTarget.style.borderColor = "#c8d4e3";
+                            e.currentTarget.style.color = "#7a90aa";
+                            e.currentTarget.style.borderColor = "#dce3ed";
                           }}
                         >
                           Redaguoti
                         </button>
                         <button
-                          className="folder-delete-btn"
+                          className="folder-action-btn"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteFolder(folder.id, folder.name);
@@ -948,7 +1277,7 @@ function ProjectView({
                           style={{
                             padding: "2px 7px",
                             background: "none",
-                            border: "1px solid #c8d4e3",
+                            border: "1px solid #dce3ed",
                             borderRadius: "5px",
                             cursor: "pointer",
                             fontFamily: "Times New Roman",
@@ -964,7 +1293,7 @@ function ProjectView({
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.color = "#7a90aa";
-                            e.currentTarget.style.borderColor = "#c8d4e3";
+                            e.currentTarget.style.borderColor = "#dce3ed";
                           }}
                         >
                           {t.delete}
@@ -972,6 +1301,7 @@ function ProjectView({
                       </div>
                     </div>
                   )}
+
                   {isOpen && !isEditing && (
                     <div
                       style={{
@@ -996,7 +1326,8 @@ function ProjectView({
                         pubs.map((pub) =>
                           renderPublicationCard(
                             pub,
-                            (id) => handleDeletePublication(folder.id, id),
+                            (id, title) =>
+                              handleDeletePublication(folder.id, id, title),
                             folder.id,
                           ),
                         )}
@@ -1030,88 +1361,13 @@ function ProjectView({
                 {projectPubs.map((pub) =>
                   renderPublicationCard(
                     pub,
-                    handleDeleteProjectPublication,
+                    (id, title) => handleDeleteProjectPublication(id, title),
                     "project",
                   ),
                 )}
               </div>
             </div>
           )}
-
-          {!loadingFolders &&
-            (folders.length > 0 || projectPubs.length > 0) && (
-              <div
-                style={{
-                  marginTop: "20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "#7a90aa",
-                  }}
-                >
-                  Rekomendacijos pagal
-                </label>
-                <select
-                  value={selectedRecommendationFolder}
-                  onChange={(e) =>
-                    setSelectedRecommendationFolder(e.target.value)
-                  }
-                  disabled={recLoading}
-                  style={{
-                    width: "100%",
-                    padding: "7px 10px",
-                    borderRadius: "7px",
-                    border: "1px solid #c8d4e3",
-                    background: "#ffffff",
-                    color: "#1e2d4a",
-                    fontFamily: "Times New Roman",
-                    fontSize: "13px",
-                    outline: "none",
-                  }}
-                >
-                  <option value="">Visą projektą</option>
-                  {folders.map((folder) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleGetRecommendations}
-                  disabled={recLoading}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    background: recLoading ? "#eef1f6" : "#1e2d4a",
-                    color: recLoading ? "#7a90aa" : "#ffffff",
-                    border: "1px solid",
-                    borderColor: recLoading ? "#dce3ed" : "#1e2d4a",
-                    borderRadius: "8px",
-                    cursor: recLoading ? "not-allowed" : "pointer",
-                    fontFamily: "Times New Roman",
-                    fontSize: "14px",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!recLoading)
-                      e.currentTarget.style.background = "#2a3f63";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!recLoading)
-                      e.currentTarget.style.background = "#1e2d4a";
-                  }}
-                >
-                  {recLoading ? t.searching : t.get_recommendations}
-                </button>
-              </div>
-            )}
         </div>
 
         <div style={{ width: "1px", background: "#dce3ed", flexShrink: 0 }} />
@@ -1164,6 +1420,7 @@ function ProjectView({
                     cursor: savingRecommendations ? "not-allowed" : "pointer",
                     fontFamily: "Times New Roman",
                     fontSize: "13px",
+                    fontWeight: "600",
                     opacity: savingRecommendations ? 0.5 : 1,
                   }}
                 >
@@ -1317,20 +1574,17 @@ function ProjectView({
             <div
               style={{
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
                 height: "260px",
                 color: "#7a90aa",
                 fontFamily: "Times New Roman",
                 fontSize: "13px",
-                textAlign: "center",
                 border: "1px dashed #c8d4e3",
                 borderRadius: "10px",
               }}
             >
-              {t.get_recommendations ??
-                "Get recommendations to see suggestions"}
+              {t.get_recommendations ?? "Gauti rekomendacijas"}
             </div>
           )}
           {recLoading && (
@@ -1361,11 +1615,11 @@ function ProjectView({
                     key={rec.openalex_id ?? i}
                     onClick={() => handleOpenPublication(rec)}
                     style={{
-                      background: isSelected ? "#e4eaf3" : "#ffffff",
+                      background: isSelected ? "#eef1f6" : "#ffffff",
                       padding: "14px 16px",
                       borderRadius: "8px",
                       border: isSelected
-                        ? "1px solid #7fa8d4"
+                        ? "1.5px solid #7fa8d4"
                         : "1px solid #dce3ed",
                       cursor: "pointer",
                       fontFamily: "Times New Roman",
@@ -1405,7 +1659,6 @@ function ProjectView({
                         alignItems: "center",
                         justifyContent: "center",
                         cursor: "pointer",
-                        flexShrink: 0,
                         zIndex: 2,
                       }}
                     >
@@ -1471,7 +1724,7 @@ function ProjectView({
                           style={{
                             display: "inline-block",
                             marginTop: "5px",
-                            padding: "2px 8px",
+                            padding: "2px 9px",
                             borderRadius: "20px",
                             fontSize: "11px",
                             fontFamily: "sans-serif",

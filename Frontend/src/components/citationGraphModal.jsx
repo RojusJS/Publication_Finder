@@ -22,26 +22,13 @@ function CitationGraphModal({ open, onClose, pub, projects = [] }) {
           fontFamily: "Times New Roman",
         }}
       >
-        <p
-          style={{
-            margin: 0,
-            fontSize: "14px",
-            color: "#666",
-          }}
-        >
+        <p style={{ margin: 0, fontSize: "13px", color: "#7a90aa" }}>
           {t.citation_graph_desc}
         </p>
-
         {pub.openalex_id ? (
           <CitationGraph pub={pub} projects={projects} />
         ) : (
-          <p
-            style={{
-              fontSize: "14px",
-              color: "#888",
-              margin: 0,
-            }}
-          >
+          <p style={{ fontSize: "13px", color: "#7a90aa", margin: 0 }}>
             {t.citation_graph_unavailable}
           </p>
         )}

@@ -24,16 +24,35 @@ function CreateProjectModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
     if (!name.trim()) {
       showToast("Įveskite projekto pavadinimą.");
       return;
     }
+    onCreate({ name: name.trim(), description: description.trim() });
+  };
 
-    onCreate({
-      name: name.trim(),
-      description: description.trim(),
-    });
+  const inputStyle = {
+    width: "100%",
+    padding: "8px 12px",
+    borderRadius: "7px",
+    border: "1px solid #c8d4e3",
+    boxSizing: "border-box",
+    fontFamily: "Times New Roman",
+    fontSize: "14px",
+    color: "#1e2d4a",
+    outline: "none",
+    transition: "border-color 0.15s",
+  };
+
+  const labelStyle = {
+    display: "block",
+    marginBottom: "5px",
+    fontSize: "11px",
+    fontWeight: "700",
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: "#7a90aa",
+    fontFamily: "Times New Roman",
   };
 
   return (
@@ -44,83 +63,79 @@ function CreateProjectModal({
     >
       <form
         onSubmit={handleSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+        style={{ display: "flex", flexDirection: "column", gap: "14px" }}
       >
         <div>
-          <label style={{ display: "block", marginBottom: "6px" }}>
-            {t.project_name_label}
-          </label>
+          <label style={labelStyle}>{t.project_name_label}</label>
           <input
             type="text"
             placeholder={t.project_name_placeholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "10px",
-              border: "1.2px solid #000000",
-              boxSizing: "border-box",
-              fontFamily: "Times New Roman",
-            }}
+            style={inputStyle}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
           />
         </div>
-
         <div>
-          <label style={{ display: "block", marginBottom: "6px" }}>
-            {t.project_desc_label}
-          </label>
+          <label style={labelStyle}>{t.project_desc_label}</label>
           <textarea
             placeholder={t.project_desc_placeholder}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={5}
-            style={{
-              width: "100%",
-              padding: "10px",
-              borderRadius: "10px",
-              border: "1.2px solid #000000",
-              boxSizing: "border-box",
-              resize: "vertical",
-              fontFamily: "Times New Roman",
-            }}
+            rows={4}
+            style={{ ...inputStyle, resize: "vertical" }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
           />
         </div>
-
         <div
           style={{
             display: "flex",
             justifyContent: "flex-end",
-            gap: "10px",
-            marginTop: "8px",
+            gap: "8px",
+            marginTop: "4px",
           }}
         >
           <button
             type="button"
             onClick={onClose}
             style={{
-              padding: "8px 14px",
-              borderRadius: "10px",
-              border: "1px solid #000000",
-              background: "#ffffff",
+              padding: "7px 16px",
+              background: "none",
+              border: "1px solid #dce3ed",
+              borderRadius: "6px",
               cursor: "pointer",
               fontFamily: "Times New Roman",
+              fontSize: "13px",
+              color: "#5a7090",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f0f4fa";
+              e.currentTarget.style.borderColor = "#7fa8d4";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+              e.currentTarget.style.borderColor = "#dce3ed";
             }}
           >
             {t.cancel}
           </button>
-
           <button
             type="submit"
             style={{
-              padding: "8px 14px",
-              borderRadius: "10px",
-              border: "1px solid #000000",
-              background: "#000000",
+              padding: "7px 16px",
+              background: "#1e2d4a",
+              border: "none",
+              borderRadius: "6px",
               cursor: "pointer",
               fontFamily: "Times New Roman",
-              color: "#fff",
+              fontSize: "13px",
+              color: "#ffffff",
+              fontWeight: "600",
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#2a3f63")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#1e2d4a")}
           >
             {mode === "edit" ? "Išsaugoti" : t.create}
           </button>

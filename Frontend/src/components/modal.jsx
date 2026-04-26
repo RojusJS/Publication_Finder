@@ -10,7 +10,7 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0, 0, 0, 0.61)",
+        background: "rgba(15,25,45,0.55)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -25,14 +25,15 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
           maxWidth: maxWidth,
           maxHeight: "90vh",
           background: "#ffffff",
-          boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
-          padding: "20px",
+          boxShadow: "0 20px 60px rgba(30,45,74,0.2)",
+          borderRadius: "12px",
+          padding: "24px",
           position: "relative",
           zIndex: 10000,
           fontFamily: "Times New Roman",
           boxSizing: "border-box",
           overflowY: "auto",
-          border: "2px solid #000000",
+          border: "1px solid #dce3ed",
         }}
       >
         {(title || onClose) && (
@@ -42,15 +43,21 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
               alignItems: "flex-start",
               justifyContent: "space-between",
               gap: "16px",
-              marginBottom: title ? "18px" : 0,
+              marginBottom: title ? "20px" : 0,
+              paddingBottom: title ? "16px" : 0,
+              borderBottom: title ? "1px solid #eef1f6" : "none",
             }}
           >
             {title ? (
               <h2
                 style={{
                   margin: 0,
+                  fontSize: "17px",
+                  fontWeight: "700",
                   lineHeight: "1.3",
                   flex: 1,
+                  color: "#1e2d4a",
+                  fontFamily: "Times New Roman",
                 }}
               >
                 {title}
@@ -58,33 +65,40 @@ function Modal({ open, onClose, title, children, maxWidth = "520px" }) {
             ) : (
               <div />
             )}
-
             <button
               onClick={onClose}
               type="button"
               style={{
-                width: "34px",
-                height: "34px",
-                minWidth: "34px",
-                borderRadius: "10px",
-                border: "1px solid #000000",
-                background: "#000000f1",
+                width: "28px",
+                height: "28px",
+                minWidth: "28px",
+                borderRadius: "6px",
+                border: "1px solid #dce3ed",
+                background: "none",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 padding: 0,
-                lineHeight: 1,
-                fontSize: "18px",
+                fontSize: "14px",
                 flexShrink: 0,
-                color: "#fff"
+                color: "#7a90aa",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f0f4fa";
+                e.currentTarget.style.borderColor = "#7fa8d4";
+                e.currentTarget.style.color = "#1e2d4a";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "none";
+                e.currentTarget.style.borderColor = "#dce3ed";
+                e.currentTarget.style.color = "#7a90aa";
               }}
             >
               ✕
             </button>
           </div>
         )}
-
         {children}
       </div>
     </div>,

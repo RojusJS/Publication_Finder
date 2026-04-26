@@ -17,14 +17,21 @@ export function ToastProvider({ children }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const icons = {
-    error: "✕",
-    success: "✓",
-  };
-
-  const colors = {
-    error: { bg: "#1a1a1a", accent: "#e05252", label: "Klaida" },
-    success: { bg: "#1a1a1a", accent: "#4caf7d" },
+  const config = {
+    error: {
+      accent: "#c0392b",
+      bg: "#ffffff",
+      iconBg: "#fff0ee",
+      icon: "✕",
+      label: "Klaida",
+    },
+    success: {
+      accent: "#27744f",
+      bg: "#ffffff",
+      iconBg: "#e8f5ec",
+      icon: "✓",
+      label: "Atlikta",
+    },
   };
 
   return (
@@ -33,93 +40,111 @@ export function ToastProvider({ children }) {
       <div
         style={{
           position: "fixed",
-          bottom: "28px",
-          right: "28px",
+          bottom: "24px",
+          right: "24px",
           display: "flex",
           flexDirection: "column",
-          gap: "12px",
-          zIndex: 9999,
+          gap: "10px",
+          zIndex: 99999,
         }}
       >
         {toasts.map((toast) => {
-          const { bg, accent, label } = colors[toast.type] || colors.error;
+          const { accent, bg, iconBg, icon, label } =
+            config[toast.type] || config.error;
           return (
             <div
               key={toast.id}
               style={{
-                width: "320px",
+                width: "300px",
                 background: bg,
-                borderRadius: "12px",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                borderRadius: "10px",
+                border: "1px solid #dce3ed",
+                borderLeft: `3px solid ${accent}`,
+                boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
                 overflow: "hidden",
-                animation: "slideIn 0.25s ease",
+                animation: "toastIn 0.2s ease",
                 fontFamily: "Times New Roman",
               }}
             >
               <div
                 style={{
-                  height: "3px",
-                  background: accent,
-                  width: "100%",
-                }}
-              />
-              <div
-                style={{
-                  padding: "14px 16px",
+                  padding: "12px 14px",
                   display: "flex",
                   alignItems: "flex-start",
-                  gap: "12px",
+                  gap: "10px",
                 }}
               >
                 <div
                   style={{
-                    width: "28px",
-                    height: "28px",
+                    width: "26px",
+                    height: "26px",
                     borderRadius: "50%",
-                    background: accent,
+                    background: iconBg,
+                    border: `1px solid ${accent}`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "13px",
-                    color: "#fff",
+                    fontSize: "12px",
+                    color: accent,
                     flexShrink: 0,
-                    marginTop: "1px",
+                    fontWeight: "700",
                   }}
                 >
-                  {icons[toast.type]}
+                  {icon}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: "12px",
-                      fontWeight: "bold",
+                      fontSize: "10px",
+                      fontWeight: "700",
                       color: accent,
-                      marginBottom: "3px",
+                      marginBottom: "2px",
                       textTransform: "uppercase",
-                      letterSpacing: "0.05em",
+                      letterSpacing: "0.08em",
                     }}
                   >
                     {label}
                   </div>
                   <div
                     style={{
-                      fontSize: "14px",
-                      color: "#e8e8e8",
+                      fontSize: "13px",
+                      color: "#1e2d4a",
                       lineHeight: "1.45",
                     }}
                   >
                     {toast.message}
                   </div>
                 </div>
+                <button
+                  onClick={() => removeToast(toast.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#7a90aa",
+                    fontSize: "13px",
+                    padding: "0",
+                    lineHeight: 1,
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.color = "#1e2d4a")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.color = "#7a90aa")
+                  }
+                >
+                  ✕
+                </button>
               </div>
             </div>
           );
         })}
       </div>
       <style>{`
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(20px); }
-          to   { opacity: 1; transform: translateX(0); }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </ToastContext.Provider>

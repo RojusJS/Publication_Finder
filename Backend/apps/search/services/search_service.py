@@ -3,6 +3,7 @@ from apps.search.integrations.openalex_client import OpenAlexClient
 
 CURRENT_YEAR = datetime.now().year
 
+
 def reconstruct_abstract(inverted_index: dict | None) -> str | None:
     if not inverted_index:
         return None
@@ -12,6 +13,7 @@ def reconstruct_abstract(inverted_index: dict | None) -> str | None:
             positions.append((idx, word))
     positions.sort(key=lambda x: x[0])
     return " ".join(word for _, word in positions)
+
 
 class SearchService:
     def _map_publication(self, publication: dict) -> dict | None:
@@ -56,15 +58,31 @@ class SearchService:
             "keywords": [kw.get("display_name") for kw in keywords if kw.get("display_name")],
         }
 
+    def _map_citation_node(self, work: dict) -> dict:
+        return {
+            "id": work.get("id"),
+            "title": work.get("title") or "Be pavadinimo",
+            "year": work.get("publication_year"),
+            "cited_by_count": work.get("cited_by_count", 0),
+        }
+
     def get_publication_detail(self, openalex_id: str) -> dict:
         client = OpenAlexClient()
         publication = client.get_publication_by_id(openalex_id)
         mapped = self._map_publication(publication)
-
         if mapped is None:
             raise ValueError("Publication is invalid")
-
         return mapped
+
+    def get_citing_works(self, openalex_id: str) -> list:
+        client = OpenAlexClient()
+        works = client.get_citing_works(openalex_id)
+        return [self._map_citation_node(w) for w in works]
+
+    def get_referenced_works(self, openalex_id: str) -> list:
+        client = OpenAlexClient()
+        works = client.get_referenced_works(openalex_id)
+        return [self._map_citation_node(w) for w in works]
 
     def search(
             self,
