@@ -164,3 +164,8 @@ export const getProjectAnalytics = async (projectId) => {
   const response = await apiClient.get(`/projects/${projectId}/analytics/`);
   return response.data;
 };
+
+export const semanticSearch = async (projectId, query) => {
+  const response = await apiClient.post(`/projects/${projectId}/semantic-search/`, { query });
+  return response.data;
+};

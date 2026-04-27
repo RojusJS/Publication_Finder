@@ -51,6 +51,7 @@ class SavedPublication(models.Model):
     is_oa = models.BooleanField(null=True, blank=True)
     pub_type = models.CharField(null=True, blank=True, max_length=100)
     saved_at = models.DateTimeField(auto_now_add=True)
+    embedding = models.JSONField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -78,6 +79,5 @@ class PublicationNote(models.Model):
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
     def __str__(self):
         return f"Note for {self.publication.title[:40]}"

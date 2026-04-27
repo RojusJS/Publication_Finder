@@ -19,6 +19,7 @@ import {
   getProjectAnalytics,
   updateProject,
   updateFolder,
+  semanticSearch,
 } from "../services/projectApi";
 import { useToast } from "./toastContext";
 import LabelBadge from "./labelBadge";
@@ -60,6 +61,10 @@ function ProjectView({
   const [editingFolderName, setEditingFolderName] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef(null);
+  const [rightPanelMode, setRightPanelMode] = useState("recommendations");
+  const [semanticQuery, setSemanticQuery] = useState("");
+  const [semanticResults, setSemanticResults] = useState([]);
+  const [semanticLoading, setSemanticLoading] = useState(false);
 
   const [confirm, setConfirm] = useState({
     open: false,
@@ -85,6 +90,19 @@ function ProjectView({
     setConfirm({ open: true, title, message, onConfirm });
   const closeConfirm = () =>
     setConfirm({ open: false, title: "", message: "", onConfirm: null });
+
+  const handleSemanticSearch = async () => {
+    if (!semanticQuery.trim()) return;
+    setSemanticLoading(true);
+    try {
+      const data = await semanticSearch(project.id, semanticQuery.trim());
+      setSemanticResults(data.results || []);
+    } catch {
+      showToast("Nepavyko atlikti paieškos");
+    } finally {
+      setSemanticLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!project) return;
@@ -1387,207 +1405,450 @@ function ProjectView({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "12px",
+              marginBottom: "14px",
               gap: "12px",
             }}
           >
-            <span
+            <div
               style={{
-                fontSize: "10px",
-                fontWeight: "700",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "#7a90aa",
+                display: "flex",
+                gap: "4px",
+                background: "#eef1f6",
+                borderRadius: "8px",
+                padding: "3px",
               }}
             >
-              {t.recommended}
-            </span>
-            {selectedRecs.length > 0 && (
-              <div style={{ position: "relative" }}>
+              {[
+                {
+                  key: "recommendations",
+                  label: t.recommended ?? "Rekomendacijos",
+                },
+                { key: "semantic", label: "Semantinė paieška" },
+              ].map(({ key, label }) => (
                 <button
+                  key={key}
                   onClick={() => {
-                    setSaveOpen((p) => !p);
-                    setSelectedSaveProject(null);
-                    setSaveFolders([]);
+                    setRightPanelMode(key);
+                    setSemanticResults([]);
+                    setSemanticQuery("");
                   }}
-                  disabled={savingRecommendations}
                   style={{
-                    padding: "6px 12px",
-                    background: "#1e2d4a",
-                    color: "#ffffff",
-                    border: "none",
+                    padding: "4px 12px",
                     borderRadius: "6px",
-                    cursor: savingRecommendations ? "not-allowed" : "pointer",
+                    border: "none",
+                    background: rightPanelMode === key ? "#ffffff" : "none",
+                    boxShadow:
+                      rightPanelMode === key
+                        ? "0 1px 4px rgba(30,45,74,0.1)"
+                        : "none",
+                    cursor: "pointer",
                     fontFamily: "Times New Roman",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    opacity: savingRecommendations ? 0.5 : 1,
+                    fontSize: "12px",
+                    fontWeight: rightPanelMode === key ? "600" : "400",
+                    color: rightPanelMode === key ? "#1e2d4a" : "#7a90aa",
+                    transition: "all 0.15s",
                   }}
                 >
-                  {savingRecommendations
-                    ? t.saving
-                    : `${t.save} (${selectedRecs.length})`}
+                  {label}
                 </button>
-                {saveOpen && (
-                  <div
+              ))}
+            </div>
+
+            {rightPanelMode === "recommendations" &&
+              selectedRecs.length > 0 && (
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() => {
+                      setSaveOpen((p) => !p);
+                      setSelectedSaveProject(null);
+                      setSaveFolders([]);
+                    }}
+                    disabled={savingRecommendations}
                     style={{
-                      position: "absolute",
-                      top: "calc(100% + 6px)",
-                      right: 0,
-                      background: "#ffffff",
-                      border: "1px solid #dce3ed",
-                      borderRadius: "8px",
-                      boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
-                      minWidth: "200px",
-                      zIndex: 40,
-                      overflow: "hidden",
+                      padding: "6px 12px",
+                      background: "#1e2d4a",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "6px",
+                      cursor: savingRecommendations ? "not-allowed" : "pointer",
+                      fontFamily: "Times New Roman",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      opacity: savingRecommendations ? 0.5 : 1,
                     }}
                   >
-                    {!selectedSaveProject &&
-                      (projects.length === 0 ? (
-                        <div
-                          style={{
-                            padding: "10px 14px",
-                            fontFamily: "Times New Roman",
-                            color: "#7a90aa",
-                            fontSize: "13px",
-                          }}
-                        >
-                          {t.no_projects_dropdown}
-                        </div>
-                      ) : (
-                        projects.map((projectItem) => (
-                          <div
-                            key={projectItem.id}
-                            onMouseEnter={() =>
-                              handleSelectSaveProject(projectItem)
-                            }
-                            style={{ position: "relative" }}
-                          >
-                            <div
-                              style={{
-                                padding: "9px 14px",
-                                cursor: "pointer",
-                                fontFamily: "Times New Roman",
-                                fontSize: "13px",
-                                color: "#1e2d4a",
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                background:
-                                  selectedSaveProject?.id === projectItem.id
-                                    ? "#eef1f6"
-                                    : "none",
-                              }}
-                            >
-                              {projectItem.name}
-                              <span
-                                style={{ color: "#c8d4e3", fontSize: "11px" }}
-                              >
-                                ▸
-                              </span>
-                            </div>
-                          </div>
-                        ))
-                      ))}
-                    {selectedSaveProject && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setSelectedSaveProject(null);
-                            setSaveFolders([]);
-                          }}
-                          style={{
-                            width: "100%",
-                            padding: "8px 14px",
-                            background: "#eef1f6",
-                            border: "none",
-                            borderBottom: "1px solid #dce3ed",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            fontFamily: "Times New Roman",
-                            fontSize: "12px",
-                            color: "#7a90aa",
-                          }}
-                        >
-                          ← {selectedSaveProject.name}
-                        </button>
-                        {saveFoldersLoading ? (
+                    {savingRecommendations
+                      ? t.saving
+                      : `${t.save} (${selectedRecs.length})`}
+                  </button>
+                  {saveOpen && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "calc(100% + 6px)",
+                        right: 0,
+                        background: "#ffffff",
+                        border: "1px solid #dce3ed",
+                        borderRadius: "8px",
+                        boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
+                        minWidth: "200px",
+                        zIndex: 40,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {!selectedSaveProject &&
+                        (projects.length === 0 ? (
                           <div
                             style={{
                               padding: "10px 14px",
+                              fontFamily: "Times New Roman",
                               color: "#7a90aa",
                               fontSize: "13px",
                             }}
                           >
-                            {t.loading}
-                          </div>
-                        ) : saveFolders.length === 0 ? (
-                          <div
-                            style={{
-                              padding: "10px 14px",
-                              color: "#7a90aa",
-                              fontSize: "13px",
-                            }}
-                          >
-                            {t.no_folders_dropdown}
+                            {t.no_projects_dropdown}
                           </div>
                         ) : (
-                          saveFolders.map((folder) => (
-                            <button
-                              key={folder.id}
-                              onClick={() =>
-                                handleSaveSelectedRecommendations(folder.id)
+                          projects.map((projectItem) => (
+                            <div
+                              key={projectItem.id}
+                              onMouseEnter={() =>
+                                handleSelectSaveProject(projectItem)
                               }
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.background = "#eef1f6")
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.background = "none")
-                              }
+                              style={{ position: "relative" }}
+                            >
+                              <div
+                                style={{
+                                  padding: "9px 14px",
+                                  cursor: "pointer",
+                                  fontFamily: "Times New Roman",
+                                  fontSize: "13px",
+                                  color: "#1e2d4a",
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  background:
+                                    selectedSaveProject?.id === projectItem.id
+                                      ? "#eef1f6"
+                                      : "none",
+                                }}
+                              >
+                                {projectItem.name}
+                                <span
+                                  style={{ color: "#c8d4e3", fontSize: "11px" }}
+                                >
+                                  ▸
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        ))}
+                      {selectedSaveProject && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedSaveProject(null);
+                              setSaveFolders([]);
+                            }}
+                            style={{
+                              width: "100%",
+                              padding: "8px 14px",
+                              background: "#eef1f6",
+                              border: "none",
+                              borderBottom: "1px solid #dce3ed",
+                              textAlign: "left",
+                              cursor: "pointer",
+                              fontFamily: "Times New Roman",
+                              fontSize: "12px",
+                              color: "#7a90aa",
+                            }}
+                          >
+                            ← {selectedSaveProject.name}
+                          </button>
+                          {saveFoldersLoading ? (
+                            <div
                               style={{
-                                width: "100%",
-                                padding: "9px 14px",
-                                background: "none",
-                                border: "none",
-                                textAlign: "left",
-                                cursor: "pointer",
-                                fontFamily: "Times New Roman",
+                                padding: "10px 14px",
+                                color: "#7a90aa",
                                 fontSize: "13px",
-                                color: "#1e2d4a",
-                                boxSizing: "border-box",
                               }}
                             >
-                              {folder.name}
-                            </button>
-                          ))
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                              {t.loading}
+                            </div>
+                          ) : saveFolders.length === 0 ? (
+                            <div
+                              style={{
+                                padding: "10px 14px",
+                                color: "#7a90aa",
+                                fontSize: "13px",
+                              }}
+                            >
+                              {t.no_folders_dropdown}
+                            </div>
+                          ) : (
+                            saveFolders.map((folder) => (
+                              <button
+                                key={folder.id}
+                                onClick={() =>
+                                  handleSaveSelectedRecommendations(folder.id)
+                                }
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.background = "#eef1f6")
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background = "none")
+                                }
+                                style={{
+                                  width: "100%",
+                                  padding: "9px 14px",
+                                  background: "none",
+                                  border: "none",
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                  fontFamily: "Times New Roman",
+                                  fontSize: "13px",
+                                  color: "#1e2d4a",
+                                  boxSizing: "border-box",
+                                }}
+                              >
+                                {folder.name}
+                              </button>
+                            ))
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
           </div>
 
-          {!recLoading && recommendations.length === 0 && (
+          {rightPanelMode === "semantic" && (
+            <div style={{ marginBottom: "16px", display: "flex", gap: "8px" }}>
+              <input
+                type="text"
+                value={semanticQuery}
+                onChange={(e) => setSemanticQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSemanticSearch()}
+                placeholder="pvz. machine learning in healthcare..."
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: "7px",
+                  border: "1px solid #c8d4e3",
+                  fontFamily: "Times New Roman",
+                  fontSize: "13px",
+                  color: "#1e2d4a",
+                  outline: "none",
+                  background: "#ffffff",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
+              />
+              <button
+                onClick={handleSemanticSearch}
+                disabled={semanticLoading || !semanticQuery.trim()}
+                style={{
+                  padding: "8px 16px",
+                  background:
+                    semanticLoading || !semanticQuery.trim()
+                      ? "#eef1f6"
+                      : "#1e2d4a",
+                  color:
+                    semanticLoading || !semanticQuery.trim()
+                      ? "#7a90aa"
+                      : "#ffffff",
+                  border: "none",
+                  borderRadius: "7px",
+                  cursor:
+                    semanticLoading || !semanticQuery.trim()
+                      ? "not-allowed"
+                      : "pointer",
+                  fontFamily: "Times New Roman",
+                  fontSize: "13px",
+                  fontWeight: "600",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => {
+                  if (!semanticLoading && semanticQuery.trim())
+                    e.currentTarget.style.background = "#2a3f63";
+                }}
+                onMouseLeave={(e) => {
+                  if (!semanticLoading && semanticQuery.trim())
+                    e.currentTarget.style.background = "#1e2d4a";
+                }}
+              >
+                {semanticLoading ? "Ieškoma..." : "Ieškoti"}
+              </button>
+            </div>
+          )}
+
+          {rightPanelMode === "semantic" &&
+            !semanticLoading &&
+            semanticResults.length === 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "220px",
+                  color: "#7a90aa",
+                  fontFamily: "Times New Roman",
+                  fontSize: "13px",
+                  border: "1px dashed #c8d4e3",
+                  borderRadius: "10px",
+                  textAlign: "center",
+                  padding: "20px",
+                }}
+              >
+                Įveskite užklausą ir raskite semantiškai artimas publikacijas iš
+                šio projekto
+              </div>
+            )}
+
+          {rightPanelMode === "semantic" && semanticLoading && (
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                height: "260px",
+                height: "200px",
                 color: "#7a90aa",
                 fontFamily: "Times New Roman",
                 fontSize: "13px",
-                border: "1px dashed #c8d4e3",
-                borderRadius: "10px",
               }}
             >
-              {t.get_recommendations ?? "Gauti rekomendacijas"}
+              {t.loading}
             </div>
           )}
-          {recLoading && (
+
+          {rightPanelMode === "semantic" &&
+            !semanticLoading &&
+            semanticResults.length > 0 && (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
+                <p
+                  style={{
+                    margin: "0 0 8px",
+                    fontSize: "11px",
+                    color: "#7a90aa",
+                    fontFamily: "Times New Roman",
+                  }}
+                >
+                  Rasta {semanticResults.length} publikacijų pagal semantinį
+                  artimumą
+                </p>
+                {semanticResults.map((pub) => (
+                  <div
+                    key={pub.id}
+                    onClick={() => handleOpenPublication(pub)}
+                    style={{
+                      background: "#ffffff",
+                      padding: "14px 16px",
+                      borderRadius: "8px",
+                      border: "1px solid #dce3ed",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      transition: "border-color 0.15s, box-shadow 0.15s",
+                      boxSizing: "border-box",
+                      position: "relative",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#7fa8d4";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(30,45,74,0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#dce3ed";
+                      e.currentTarget.style.boxShadow = "none";
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: "0 0 6px",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        lineHeight: "1.45",
+                        color: "#1e2d4a",
+                      }}
+                    >
+                      {pub.title}
+                    </p>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#5a7090",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                      }}
+                    >
+                      <span>
+                        {t.year} {pub.year ?? "—"}
+                      </span>
+                      {pub.authors?.length > 0 && (
+                        <span>
+                          {pub.authors.slice(0, 3).join(", ")}
+                          {pub.authors.length > 3 &&
+                            ` +${pub.authors.length - 3}`}
+                        </span>
+                      )}
+                      {pub.similarity != null && (
+                        <span
+                          style={{
+                            display: "inline-block",
+                            marginTop: "5px",
+                            padding: "2px 9px",
+                            borderRadius: "20px",
+                            fontSize: "11px",
+                            fontFamily: "sans-serif",
+                            background:
+                              pub.similarity >= 70
+                                ? "#e8f5ec"
+                                : pub.similarity >= 40
+                                  ? "#fef9e7"
+                                  : "#eef1f6",
+                            color:
+                              pub.similarity >= 70
+                                ? "#1e6640"
+                                : pub.similarity >= 40
+                                  ? "#6b5200"
+                                  : "#5a7090",
+                            width: "fit-content",
+                            fontWeight: "600",
+                          }}
+                        >
+                          {pub.similarity}% atitikimas
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          {rightPanelMode === "recommendations" &&
+            !recLoading &&
+            recommendations.length === 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "260px",
+                  color: "#7a90aa",
+                  fontFamily: "Times New Roman",
+                  fontSize: "13px",
+                  border: "1px dashed #c8d4e3",
+                  borderRadius: "10px",
+                }}
+              >
+                {t.get_recommendations ?? "Gauti rekomendacijas"}
+              </div>
+            )}
+          {rightPanelMode === "recommendations" && recLoading && (
             <div
               style={{
                 display: "flex",
@@ -1602,157 +1863,159 @@ function ProjectView({
               {t.loading}
             </div>
           )}
-          {!recLoading && recommendations.length > 0 && (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
-            >
-              {recommendations.map((rec, i) => {
-                const isSelected = selectedRecs.some(
-                  (p) => p.openalex_id === rec.openalex_id,
-                );
-                return (
-                  <div
-                    key={rec.openalex_id ?? i}
-                    onClick={() => handleOpenPublication(rec)}
-                    style={{
-                      background: isSelected ? "#eef1f6" : "#ffffff",
-                      padding: "14px 16px",
-                      borderRadius: "8px",
-                      border: isSelected
-                        ? "1.5px solid #7fa8d4"
-                        : "1px solid #dce3ed",
-                      cursor: "pointer",
-                      fontFamily: "Times New Roman",
-                      transition: "border-color 0.15s, box-shadow 0.15s",
-                      boxSizing: "border-box",
-                      position: "relative",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#7fa8d4";
-                      e.currentTarget.style.boxShadow =
-                        "0 2px 8px rgba(30,45,74,0.08)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = isSelected
-                        ? "#7fa8d4"
-                        : "#dce3ed";
-                      e.currentTarget.style.boxShadow = "none";
-                    }}
-                  >
+          {rightPanelMode === "recommendations" &&
+            !recLoading &&
+            recommendations.length > 0 && (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
+                {recommendations.map((rec, i) => {
+                  const isSelected = selectedRecs.some(
+                    (p) => p.openalex_id === rec.openalex_id,
+                  );
+                  return (
                     <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleRecommendation(rec);
-                      }}
+                      key={rec.openalex_id ?? i}
+                      onClick={() => handleOpenPublication(rec)}
                       style={{
-                        position: "absolute",
-                        top: "12px",
-                        right: "12px",
-                        width: "16px",
-                        height: "16px",
-                        borderRadius: "4px",
+                        background: isSelected ? "#eef1f6" : "#ffffff",
+                        padding: "14px 16px",
+                        borderRadius: "8px",
                         border: isSelected
-                          ? "2px solid #1e2d4a"
-                          : "1.5px solid #c8d4e3",
-                        background: isSelected ? "#1e2d4a" : "#ffffff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                          ? "1.5px solid #7fa8d4"
+                          : "1px solid #dce3ed",
                         cursor: "pointer",
-                        zIndex: 2,
+                        fontFamily: "Times New Roman",
+                        transition: "border-color 0.15s, box-shadow 0.15s",
+                        boxSizing: "border-box",
+                        position: "relative",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#7fa8d4";
+                        e.currentTarget.style.boxShadow =
+                          "0 2px 8px rgba(30,45,74,0.08)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = isSelected
+                          ? "#7fa8d4"
+                          : "#dce3ed";
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
-                      {isSelected && (
-                        <span
-                          style={{
-                            color: "#ffffff",
-                            fontSize: "10px",
-                            lineHeight: 1,
-                          }}
-                        >
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                    <p
-                      style={{
-                        margin: "0 28px 0 0",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        lineHeight: "1.45",
-                        color: "#1e2d4a",
-                      }}
-                    >
-                      {rec.title}
-                    </p>
-                    <div
-                      style={{
-                        marginTop: "6px",
-                        fontSize: "12px",
-                        color: "#5a7090",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2px",
-                      }}
-                    >
-                      <span>
-                        {t.year} {rec.year ?? "—"}
-                      </span>
-                      {rec.authors?.length > 0 && (
-                        <span>
-                          {rec.authors.slice(0, 3).join(", ")}
-                          {rec.authors.length > 3 &&
-                            ` +${rec.authors.length - 3}`}
-                        </span>
-                      )}
-                      {rec.doi && (
-                        <span>
-                          DOI:{" "}
-                          <a
-                            href={rec.doi}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ color: "#2a5db0" }}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleRecommendation(rec);
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: "12px",
+                          right: "12px",
+                          width: "16px",
+                          height: "16px",
+                          borderRadius: "4px",
+                          border: isSelected
+                            ? "2px solid #1e2d4a"
+                            : "1.5px solid #c8d4e3",
+                          background: isSelected ? "#1e2d4a" : "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          zIndex: 2,
+                        }}
+                      >
+                        {isSelected && (
+                          <span
+                            style={{
+                              color: "#ffffff",
+                              fontSize: "10px",
+                              lineHeight: 1,
+                            }}
                           >
-                            {rec.doi}
-                          </a>
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <p
+                        style={{
+                          margin: "0 28px 0 0",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          lineHeight: "1.45",
+                          color: "#1e2d4a",
+                        }}
+                      >
+                        {rec.title}
+                      </p>
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          fontSize: "12px",
+                          color: "#5a7090",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "2px",
+                        }}
+                      >
+                        <span>
+                          {t.year} {rec.year ?? "—"}
                         </span>
-                      )}
-                      {rec.similarity != null && (
-                        <span
-                          style={{
-                            display: "inline-block",
-                            marginTop: "5px",
-                            padding: "2px 9px",
-                            borderRadius: "20px",
-                            fontSize: "11px",
-                            fontFamily: "sans-serif",
-                            background:
-                              rec.similarity >= 55
-                                ? "#e8f5ec"
-                                : rec.similarity >= 35
-                                  ? "#fef9e7"
-                                  : "#fdecea",
-                            color:
-                              rec.similarity >= 55
-                                ? "#1e6640"
-                                : rec.similarity >= 35
-                                  ? "#6b5200"
-                                  : "#922b21",
-                            width: "fit-content",
-                            fontWeight: "600",
-                          }}
-                        >
-                          {rec.similarity}% atitikimas
-                        </span>
-                      )}
+                        {rec.authors?.length > 0 && (
+                          <span>
+                            {rec.authors.slice(0, 3).join(", ")}
+                            {rec.authors.length > 3 &&
+                              ` +${rec.authors.length - 3}`}
+                          </span>
+                        )}
+                        {rec.doi && (
+                          <span>
+                            DOI:{" "}
+                            <a
+                              href={rec.doi}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ color: "#2a5db0" }}
+                            >
+                              {rec.doi}
+                            </a>
+                          </span>
+                        )}
+                        {rec.similarity != null && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              marginTop: "5px",
+                              padding: "2px 9px",
+                              borderRadius: "20px",
+                              fontSize: "11px",
+                              fontFamily: "sans-serif",
+                              background:
+                                rec.similarity >= 55
+                                  ? "#e8f5ec"
+                                  : rec.similarity >= 35
+                                    ? "#fef9e7"
+                                    : "#fdecea",
+                              color:
+                                rec.similarity >= 55
+                                  ? "#1e6640"
+                                  : rec.similarity >= 35
+                                    ? "#6b5200"
+                                    : "#922b21",
+                              width: "fit-content",
+                              fontWeight: "600",
+                            }}
+                          >
+                            {rec.similarity}% atitikimas
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
         </div>
       </div>
 
