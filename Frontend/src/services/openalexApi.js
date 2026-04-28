@@ -1,3 +1,5 @@
+import apiClient from "./apiClient";
+
 const API_BASE = "http://127.0.0.1:8000";
 
 export async function searchPublications(query, filters = {}) {
@@ -47,3 +49,13 @@ export async function getPublicationDetail(openalexId) {
 
   return await response.json();
 }
+
+export const searchAuthors = async (query) => {
+  const response = await apiClient.get("/search/authors/", { params: { q: query } });
+  return response.data;
+};
+ 
+export const getAuthorDetail = async (authorId) => {
+  const response = await apiClient.get("/search/authors/detail/", { params: { id: authorId } });
+  return response.data;
+};

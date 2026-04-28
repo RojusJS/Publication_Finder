@@ -83,6 +83,8 @@ function SearchBar({
     transition: "border-color 0.15s, box-shadow 0.15s",
   };
 
+  const isAuthorMode = searchBy === "author";
+
   return (
     <div
       style={{
@@ -94,6 +96,19 @@ function SearchBar({
         gap: "12px",
       }}
     >
+      {isAuthorMode && (
+        <p
+          style={{
+            margin: "0 0 2px",
+            fontSize: "12px",
+            color: "#7a90aa",
+            fontFamily: "Times New Roman",
+            letterSpacing: "0.02em",
+          }}
+        >
+          Ieškote autorių — rodomi autorių profiliai
+        </p>
+      )}
 
       <div
         ref={containerRef}
@@ -152,8 +167,8 @@ function SearchBar({
             <input
               type="text"
               placeholder={
-                searchBy === "author"
-                  ? t.search_placeholder_author
+                isAuthorMode
+                  ? "Įveskite autoriaus vardą..."
                   : searchBy === "institution"
                     ? t.search_placeholder_institution
                     : t.search_placeholder_title
@@ -178,7 +193,7 @@ function SearchBar({
             />
           )}
 
-          {dropdownOpen && history.length > 0 && (
+          {dropdownOpen && history.length > 0 && !isAuthorMode && (
             <div
               style={{
                 position: "absolute",
@@ -228,7 +243,6 @@ function SearchBar({
                   {t.clear_all}
                 </button>
               </div>
-
               {history.map((entry, i) => (
                 <div
                   key={i}
@@ -262,7 +276,9 @@ function SearchBar({
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.color = "#1e2d4a")
                     }
-                    onMouseLeave={(e) => (e.currentTarget.style.color = "#bbbbbb")}
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.color = "#bbbbbb")
+                    }
                     style={{
                       background: "none",
                       border: "none",

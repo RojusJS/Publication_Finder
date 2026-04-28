@@ -14,8 +14,11 @@ export const deleteProject = async (projectId) => {
   await apiClient.delete(`/projects/${projectId}/`);
 };
 
-export const getFolders = async (projectId) => {
-  const response = await apiClient.get(`/projects/${projectId}/folders/`);
+export const getFolders = async (projectId, parentId = null) => {
+  const params = parentId ? { parent: parentId } : { parent: "root" };
+  const response = await apiClient.get(`/projects/${projectId}/folders/`, {
+    params,
+  });
   return response.data;
 };
 
@@ -148,7 +151,10 @@ export const updateLabel = async (publicationId, label) => {
 };
 
 export const updateProject = async (projectId, projectData) => {
-  const response = await apiClient.patch(`/projects/${projectId}/`, projectData);
+  const response = await apiClient.patch(
+    `/projects/${projectId}/`,
+    projectData,
+  );
   return response.data;
 };
 
@@ -166,6 +172,95 @@ export const getProjectAnalytics = async (projectId) => {
 };
 
 export const semanticSearch = async (projectId, query) => {
-  const response = await apiClient.post(`/projects/${projectId}/semantic-search/`, { query });
+  const response = await apiClient.post(
+    `/projects/${projectId}/semantic-search/`,
+    { query },
+  );
   return response.data;
+};
+
+export const getCollaborators = async (projectId) => {
+  const response = await apiClient.get(`/projects/${projectId}/collaborators/`);
+  return response.data;
+};
+
+export const inviteCollaborator = async (
+  projectId,
+  username,
+  role = "editor",
+) => {
+  const response = await apiClient.post(
+    `/projects/${projectId}/collaborators/invite/`,
+    { username, role },
+  );
+  return response.data;
+};
+
+export const removeCollaborator = async (projectId, collabId) => {
+  await apiClient.delete(`/projects/${projectId}/collaborators/${collabId}/`);
+};
+
+export const getPendingInvitations = async () => {
+  const response = await apiClient.get("/projects/invitations/pending/");
+  return response.data;
+};
+
+export const respondInvitation = async (collabId, action) => {
+  const response = await apiClient.post(
+    `/projects/invitations/${collabId}/respond/`,
+    { action },
+  );
+  return response.data;
+};
+
+export const submitRecommendationFeedback = async (
+  projectId,
+  openalex_id,
+  title,
+  feedback,
+) => {
+  const response = await apiClient.post(
+    `/projects/${projectId}/recommendation-feedback/`,
+    {
+      openalex_id,
+      title,
+      feedback,
+    },
+  );
+  return response.data;
+};
+
+export const getRecommendationFeedback = async (projectId) => {
+  const response = await apiClient.get(
+    `/projects/${projectId}/recommendation-feedback/`,
+  );
+  return response.data;
+};
+
+export const getSearchHistory = async () => {
+  const response = await apiClient.get("/projects/search-history/");
+  return response.data;
+};
+
+export const addSearchHistory = async (
+  query,
+  search_by,
+  filters,
+  result_count,
+) => {
+  const response = await apiClient.post("/projects/search-history/add/", {
+    query,
+    search_by,
+    filters,
+    result_count,
+  });
+  return response.data;
+};
+
+export const deleteSearchHistoryEntry = async (entryId) => {
+  await apiClient.delete(`/projects/search-history/${entryId}/`);
+};
+
+export const clearSearchHistory = async () => {
+  await apiClient.delete("/projects/search-history/");
 };

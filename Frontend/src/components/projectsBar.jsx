@@ -10,6 +10,7 @@ function ProjectsBar({
   activeProjectId,
 }) {
   const { t } = useLanguage();
+  const currentUsername = localStorage.getItem("username") || "";
 
   return (
     <div
@@ -121,6 +122,8 @@ function ProjectsBar({
         ) : (
           projects.map((project) => {
             const isActive = project.id === activeProjectId;
+            const isShared = project.owner && project.owner !== currentUsername;
+
             return (
               <div
                 key={project.id}
@@ -128,9 +131,7 @@ function ProjectsBar({
                 style={{
                   padding: "9px 10px 9px 12px",
                   borderRadius: "7px",
-                  background: isActive
-                    ? "rgba(255,255,255,0.12)"
-                    : "#899eb452",
+                  background: isActive ? "rgba(255,255,255,0.12)" : "#899eb452",
                   cursor: "pointer",
                   transition: "background 0.1s",
                   borderLeft: isActive
@@ -143,25 +144,66 @@ function ProjectsBar({
                     e.currentTarget.style.background = "rgba(255,255,255,0.07)";
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive)
-                    e.currentTarget.style.background = "#899eb452";
+                  if (!isActive) e.currentTarget.style.background = "#899eb452";
                 }}
               >
-                <p
+                <div
                   style={{
-                    margin: 0,
-                    fontSize: "13px",
-                    fontWeight: isActive ? "600" : "400",
-                    color: isActive ? "#ffffff" : "rgba(255,255,255,0.75)",
-                    fontFamily: "Times New Roman",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    justifyContent: "space-between",
                   }}
                 >
-                  {project.name}
-                </p>
-                {project.description && (
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: "13px",
+                      fontWeight: isActive ? "600" : "400",
+                      color: isActive ? "#ffffff" : "rgba(255,255,255,0.75)",
+                      fontFamily: "Times New Roman",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    {project.name}
+                  </p>
+                  {isShared && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        fontWeight: "700",
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        color: "#7fa8d4",
+                        background: "rgba(127,168,212,0.15)",
+                        border: "1px solid rgba(127,168,212,0.3)",
+                        borderRadius: "4px",
+                        padding: "1px 5px",
+                        flexShrink: 0,
+                        fontFamily: "sans-serif",
+                      }}
+                    >
+                      Bendras
+                    </span>
+                  )}
+                </div>
+                {isShared && project.owner && (
+                  <p
+                    style={{
+                      margin: "3px 0 0",
+                      fontSize: "10px",
+                      color: "rgba(255,255,255,0.35)",
+                      fontFamily: "sans-serif",
+                    }}
+                  >
+                    {project.owner}
+                  </p>
+                )}
+                {!isShared && project.description && (
                   <p
                     style={{
                       margin: "2px 0 0",

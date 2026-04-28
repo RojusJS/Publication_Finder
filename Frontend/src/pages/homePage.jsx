@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import SearchBar from "../components/searchBar";
 import PublicationCard from "../components/publicationCard";
-import { searchPublications } from "../services/openalexApi";
+import AuthorCard from "../components/AuthorCard";
+import { searchPublications, searchAuthors } from "../services/openalexApi";
 import FiltersBar from "../components/filterBar";
 import HeaderBar from "../components/topHeaderBar";
 import AuthModal from "../components/AuthModal";
@@ -16,6 +17,7 @@ function HomePage() {
   const { t } = useLanguage();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [authorResults, setAuthorResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [yearFrom, setYearFrom] = useState("");
@@ -88,25 +90,36 @@ function HomePage() {
     if (!q.trim() && !institution) return;
     setLoading(true);
     setError(null);
+    setAuthorResults([]);
+    setResults([]);
     try {
-      const data = await searchPublications(institution ? institution.id : q, {
-        yearFrom,
-        yearTo,
-        author: author || undefined,
-        oa: oaOnly ? true : undefined,
-        type: type || undefined,
-        sort: sort || undefined,
-        searchBy: institution ? "institution" : by,
-        page: p,
-      });
-      setResults(data.results || []);
-      const total = Math.min(
-        Math.ceil((data.total_count || 0) / 10),
-        TOTAL_PAGES,
-      );
-      setTotalPages(total);
+      if (by === "author" && !institution) {
+        const data = await searchAuthors(q);
+        setAuthorResults(data.results || []);
+        setTotalPages(1);
+      } else {
+        const data = await searchPublications(
+          institution ? institution.id : q,
+          {
+            yearFrom,
+            yearTo,
+            author: author || undefined,
+            oa: oaOnly ? true : undefined,
+            type: type || undefined,
+            sort: sort || undefined,
+            searchBy: institution ? "institution" : by,
+            page: p,
+          },
+        );
+        setResults(data.results || []);
+        const total = Math.min(
+          Math.ceil((data.total_count || 0) / 10),
+          TOTAL_PAGES,
+        );
+        setTotalPages(total);
+      }
     } catch (err) {
-      setError(err.message || "Nepavyko gauti publikacijų");
+      setError(err.message || "Nepavyko gauti rezultatų");
     } finally {
       setLoading(false);
     }
@@ -171,6 +184,7 @@ function HomePage() {
         onLogin={handleLoginClick}
         onRegister={handleRegisterClick}
         onLogout={handleLogout}
+        onInvitationAccepted={fetchProjects}
       />
       <AuthModal
         mode={authMode === "register" ? "register" : "login"}
@@ -213,14 +227,14 @@ function HomePage() {
               ? {
                   flex: 1,
                   minWidth: 0,
-                  padding: "20px",
+                  padding: 0,
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "flex-start",
                   boxSizing: "border-box",
                   height: "100%",
                   overflow: "hidden",
-                  background: "#fff",
+                  background: "#ffffff",
                 }
               : {
                   position: "absolute",
@@ -300,6 +314,27 @@ function HomePage() {
                   flex: 1,
                 }}
               >
+                {authorResults.length > 0 && (
+                  <>
+                    <p
+                      style={{
+                        margin: "0 0 10px",
+                        fontSize: "12px",
+                        color: "#7a90aa",
+                        fontFamily: "Times New Roman",
+                      }}
+                    >
+                      Rasta {authorResults.length} autorių
+                    </p>
+                    {authorResults.map((a, index) => (
+                      <AuthorCard
+                        key={a.id ?? index}
+                        author={a}
+                        projects={projects}
+                      />
+                    ))}
+                  </>
+                )}
                 {results.map((pub, index) => (
                   <PublicationCard
                     key={pub.openalex_id ?? index}
@@ -357,7 +392,7 @@ function HomePage() {
             </>
           )}
         </div>
-        
+
         {!activeProject && (
           <div style={{ marginLeft: "auto" }}>
             <FiltersBar

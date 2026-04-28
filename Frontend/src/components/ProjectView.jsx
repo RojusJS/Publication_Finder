@@ -20,6 +20,11 @@ import {
   updateProject,
   updateFolder,
   semanticSearch,
+  getCollaborators,
+  inviteCollaborator,
+  removeCollaborator,
+  submitRecommendationFeedback,
+  getRecommendationFeedback,
 } from "../services/projectApi";
 import { useToast } from "./toastContext";
 import LabelBadge from "./labelBadge";
@@ -33,15 +38,16 @@ function ProjectView({
   projects,
   institutionName,
 }) {
-  const [folders, setFolders] = useState([]);
-  const [folderPubs, setFolderPubs] = useState({});
-  const [expandedFolders, setExpandedFolders] = useState({});
-  const [loadingFolders, setLoadingFolders] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [creatingFolder, setCreatingFolder] = useState(false);
-  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [folderStack, setFolderStack] = useState([]);
+  const [subfolders, setSubfolders] = useState([]);
+  const [publications, setPublications] = useState([]);
+  const [loadingContent, setLoadingContent] = useState(false);
+
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
+  const [feedback, setFeedback] = useState({});
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPub, setSelectedPub] = useState(null);
   const [selectedRecs, setSelectedRecs] = useState([]);
@@ -50,28 +56,47 @@ function ProjectView({
   const [saveFolders, setSaveFolders] = useState([]);
   const [saveFoldersLoading, setSaveFoldersLoading] = useState(false);
   const [savingRecommendations, setSavingRecommendations] = useState(false);
-  const [projectPubs, setProjectPubs] = useState([]);
-  const [selectedRecommendationFolder, setSelectedRecommendationFolder] =
-    useState("");
+
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [currentProject, setCurrentProject] = useState(project);
   const [editProjectOpen, setEditProjectOpen] = useState(false);
+
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState("");
-  const [exportOpen, setExportOpen] = useState(false);
-  const exportRef = useRef(null);
+
   const [rightPanelMode, setRightPanelMode] = useState("recommendations");
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticResults, setSemanticResults] = useState([]);
   const [semanticLoading, setSemanticLoading] = useState(false);
+  const [selectedRecommendationFolder, setSelectedRecommendationFolder] =
+    useState("");
 
+  const [collaborators, setCollaborators] = useState([]);
+  const [showCollabPanel, setShowCollabPanel] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState("");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [inviting, setInviting] = useState(false);
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef(null);
   const [confirm, setConfirm] = useState({
     open: false,
     title: "",
     message: "",
     onConfirm: null,
   });
+
+  const { t } = useLanguage();
+  const { showToast } = useToast();
+
+  const openConfirm = (title, message, onConfirm) =>
+    setConfirm({ open: true, title, message, onConfirm });
+  const closeConfirm = () =>
+    setConfirm({ open: false, title: "", message: "", onConfirm: null });
 
   useEffect(() => {
     if (!exportOpen) return;
@@ -83,72 +108,89 @@ function ProjectView({
     return () => document.removeEventListener("mousedown", handler);
   }, [exportOpen]);
 
-  const { t } = useLanguage();
-  const { showToast } = useToast();
-
-  const openConfirm = (title, message, onConfirm) =>
-    setConfirm({ open: true, title, message, onConfirm });
-  const closeConfirm = () =>
-    setConfirm({ open: false, title: "", message: "", onConfirm: null });
-
-  const handleSemanticSearch = async () => {
-    if (!semanticQuery.trim()) return;
-    setSemanticLoading(true);
-    try {
-      const data = await semanticSearch(project.id, semanticQuery.trim());
-      setSemanticResults(data.results || []);
-    } catch {
-      showToast("Nepavyko atlikti paieškos");
-    } finally {
-      setSemanticLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (!project) return;
     setCurrentProject(project);
-    setLoadingFolders(true);
-    setAnalyticsLoading(true);
+    setCurrentFolder(null);
+    setFolderStack([]);
     setRecommendations([]);
-    setExpandedFolders({});
-    setFolderPubs({});
     setSelectedRecs([]);
-    setSaveOpen(false);
-    setSelectedSaveProject(null);
-    setSaveFolders([]);
-    setProjectPubs([]);
+    setSemanticResults([]);
+    setSemanticQuery("");
     setSelectedRecommendationFolder("");
     setAnalytics(null);
-    Promise.all([
-      getFolders(project.id).catch(() => []),
-      getProjectPublications(project.id).catch(() => []),
-      getProjectAnalytics(project.id).catch(() => null),
-    ])
-      .then(([foldersData, projectPubsData, analyticsData]) => {
-        setFolders(foldersData);
-        setProjectPubs(projectPubsData);
-        setAnalytics(analyticsData);
+    setAnalyticsLoading(true);
+    setFeedback({});
+    loadContent(null);
+    getProjectAnalytics(project.id)
+      .then(setAnalytics)
+      .catch(() => {})
+      .finally(() => setAnalyticsLoading(false));
+    getRecommendationFeedback(project.id)
+      .then((data) => {
+        const map = {};
+        data.forEach((f) => {
+          map[f.openalex_id] = f.feedback;
+        });
+        setFeedback(map);
       })
-      .finally(() => {
-        setLoadingFolders(false);
-        setAnalyticsLoading(false);
-      });
+      .catch(() => {});
+    getCollaborators(project.id)
+      .then(setCollaborators)
+      .catch(() => {});
   }, [project]);
 
-  if (!project) return null;
-
-  const handleToggleFolder = async (folderId) => {
-    const isOpen = expandedFolders[folderId];
-    setExpandedFolders((prev) => ({ ...prev, [folderId]: !isOpen }));
-    if (!isOpen && !folderPubs[folderId]) {
-      try {
-        const pubs = await getPublications(project.id, folderId);
-        setFolderPubs((prev) => ({ ...prev, [folderId]: pubs }));
-      } catch {
-        setFolderPubs((prev) => ({ ...prev, [folderId]: [] }));
-      }
+  const loadContent = async (folderId) => {
+    setLoadingContent(true);
+    try {
+      const [folders, pubs] = await Promise.all([
+        getFolders(project.id, folderId || null),
+        folderId
+          ? getPublications(project.id, folderId)
+          : getProjectPublications(project.id),
+      ]);
+      setSubfolders(folders);
+      setPublications(pubs);
+    } catch {
+      showToast("Nepavyko įkelti turinio");
+    } finally {
+      setLoadingContent(false);
     }
   };
+
+  const navigateInto = (folder) => {
+    setFolderStack((prev) => [...prev, currentFolder]);
+    setCurrentFolder(folder);
+    setShowNewFolderInput(false);
+    setNewFolderName("");
+    loadContent(folder.id);
+  };
+
+  const navigateBack = () => {
+    const prev = folderStack[folderStack.length - 1];
+    setFolderStack((s) => s.slice(0, -1));
+    setCurrentFolder(prev);
+    loadContent(prev ? prev.id : null);
+  };
+
+  const navigateToCrumb = (index) => {
+    if (index === -1) {
+      setFolderStack([]);
+      setCurrentFolder(null);
+      loadContent(null);
+      return;
+    }
+    const target = folderStack[index];
+    setFolderStack((s) => s.slice(0, index));
+    setCurrentFolder(target);
+    loadContent(target ? target.id : null);
+  };
+
+  const breadcrumb = [null, ...folderStack, currentFolder].filter(
+    (_, i, arr) => i < arr.length,
+  );
+
+  if (!project) return null;
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
@@ -156,8 +198,9 @@ function ProjectView({
     try {
       const folder = await createFolder(project.id, {
         name: newFolderName.trim(),
+        parent: currentFolder?.id || null,
       });
-      setFolders((prev) => [...prev, folder]);
+      setSubfolders((prev) => [...prev, folder]);
       setNewFolderName("");
       setShowNewFolderInput(false);
     } catch {
@@ -167,24 +210,14 @@ function ProjectView({
     }
   };
 
-  const handleDeleteFolder = (folderId, folderName) => {
+  const handleDeleteFolder = (folder) => {
     openConfirm(
       "Ištrinti aplanką?",
-      `Ar tikrai norite ištrinti aplanką "${folderName}"? Visos publikacijos bus pašalintos.`,
+      `Ar tikrai norite ištrinti aplanką "${folder.name}"? Visi poaplankiai ir publikacijos bus pašalinti.`,
       async () => {
         try {
-          await deleteFolder(project.id, folderId);
-          setFolders((prev) => prev.filter((f) => f.id !== folderId));
-          setFolderPubs((prev) => {
-            const next = { ...prev };
-            delete next[folderId];
-            return next;
-          });
-          setExpandedFolders((prev) => {
-            const next = { ...prev };
-            delete next[folderId];
-            return next;
-          });
+          await deleteFolder(project.id, folder.id);
+          setSubfolders((prev) => prev.filter((f) => f.id !== folder.id));
         } catch {
           showToast("Nepavyko ištrinti aplanko");
         }
@@ -192,17 +225,35 @@ function ProjectView({
     );
   };
 
-  const handleDeletePublication = (folderId, pubId, pubTitle) => {
+  const handleUpdateFolder = async (folderId) => {
+    if (!editingFolderName.trim()) return;
+    try {
+      const updated = await updateFolder(project.id, folderId, {
+        name: editingFolderName.trim(),
+      });
+      setSubfolders((prev) =>
+        prev.map((f) => (f.id === folderId ? updated : f)),
+      );
+      setEditingFolderId(null);
+      setEditingFolderName("");
+      showToast("Aplankas atnaujintas", "success");
+    } catch {
+      showToast("Nepavyko atnaujinti aplanko");
+    }
+  };
+
+  const handleDeletePublication = (pub) => {
     openConfirm(
       "Ištrinti publikaciją?",
-      `Ar tikrai norite ištrinti "${pubTitle}"?`,
+      `Ar tikrai norite ištrinti "${pub.title}"?`,
       async () => {
         try {
-          await deletePublication(project.id, folderId, pubId);
-          setFolderPubs((prev) => ({
-            ...prev,
-            [folderId]: prev[folderId].filter((p) => p.id !== pubId),
-          }));
+          if (currentFolder) {
+            await deletePublication(project.id, currentFolder.id, pub.id);
+          } else {
+            await deleteProjectPublication(project.id, pub.id);
+          }
+          setPublications((prev) => prev.filter((p) => p.id !== pub.id));
         } catch {
           showToast("Nepavyko ištrinti publikacijos");
         }
@@ -226,40 +277,6 @@ function ProjectView({
     );
   };
 
-  const handleDeleteProjectPublication = (pubId, pubTitle) => {
-    openConfirm(
-      "Ištrinti publikaciją?",
-      `Ar tikrai norite ištrinti "${pubTitle}"?`,
-      async () => {
-        try {
-          await deleteProjectPublication(project.id, pubId);
-          setProjectPubs((prev) => prev.filter((p) => p.id !== pubId));
-        } catch {
-          showToast("Nepavyko ištrinti publikacijos");
-        }
-      },
-    );
-  };
-
-  const handleGetRecommendations = async () => {
-    setRecLoading(true);
-    try {
-      const folderId = selectedRecommendationFolder
-        ? Number(selectedRecommendationFolder)
-        : null;
-      const data = await getRecommendations(project.id, folderId);
-      setRecommendations(data.recommendations || []);
-      setSelectedRecs([]);
-      setSaveOpen(false);
-      setSelectedSaveProject(null);
-      setSaveFolders([]);
-    } catch {
-      showToast("Nepavyko gauti rekomendacijų");
-    } finally {
-      setRecLoading(false);
-    }
-  };
-
   const handleOpenPublication = async (pub) => {
     if (pub.openalex_id && !pub.abstract) {
       try {
@@ -278,12 +295,48 @@ function ProjectView({
     setModalOpen(true);
   };
 
+  const handleGetRecommendations = async () => {
+    setRecLoading(true);
+    try {
+      const folderId = selectedRecommendationFolder
+        ? Number(selectedRecommendationFolder)
+        : null;
+      const data = await getRecommendations(project.id, folderId);
+      setRecommendations(data.recommendations || []);
+      setSelectedRecs([]);
+    } catch {
+      showToast("Nepavyko gauti rekomendacijų");
+    } finally {
+      setRecLoading(false);
+    }
+  };
+
   const handleToggleRecommendation = (rec) => {
     setSelectedRecs((prev) =>
       prev.some((p) => p.openalex_id === rec.openalex_id)
         ? prev.filter((p) => p.openalex_id !== rec.openalex_id)
         : [...prev, rec],
     );
+  };
+
+  const handleFeedback = async (rec, value) => {
+    try {
+      await submitRecommendationFeedback(
+        project.id,
+        rec.openalex_id,
+        rec.title,
+        value,
+      );
+      setFeedback((prev) => ({ ...prev, [rec.openalex_id]: value }));
+      showToast(
+        value === "positive"
+          ? "Ačiū už teigiamą įvertinimą"
+          : "Ačiū už įvertinimą",
+        "success",
+      );
+    } catch {
+      showToast("Nepavyko išsaugoti įvertinimo");
+    }
   };
 
   const handleSelectSaveProject = async (projectItem) => {
@@ -322,21 +375,6 @@ function ProjectView({
     }
   };
 
-  const handleLabelChange = (pubId, newLabel, context) => {
-    if (context === "project") {
-      setProjectPubs((prev) =>
-        prev.map((p) => (p.id === pubId ? { ...p, label: newLabel } : p)),
-      );
-    } else {
-      setFolderPubs((prev) => ({
-        ...prev,
-        [context]: prev[context].map((p) =>
-          p.id === pubId ? { ...p, label: newLabel } : p,
-        ),
-      }));
-    }
-  };
-
   const handleUpdateProject = async (data) => {
     try {
       const updated = await updateProject(project.id, data);
@@ -349,216 +387,56 @@ function ProjectView({
     }
   };
 
-  const startEditFolder = (e, folder) => {
-    e.stopPropagation();
-    setEditingFolderId(folder.id);
-    setEditingFolderName(folder.name);
-  };
-
-  const cancelEditFolder = () => {
-    setEditingFolderId(null);
-    setEditingFolderName("");
-  };
-
-  const handleUpdateFolder = async (folderId) => {
-    if (!editingFolderName.trim()) return;
+  const handleSemanticSearch = async () => {
+    if (!semanticQuery.trim()) return;
+    setSemanticLoading(true);
     try {
-      const updated = await updateFolder(project.id, folderId, {
-        name: editingFolderName.trim(),
-      });
-      setFolders((prev) => prev.map((f) => (f.id === folderId ? updated : f)));
-      setEditingFolderId(null);
-      setEditingFolderName("");
-      showToast("Aplankas atnaujintas", "success");
+      const data = await semanticSearch(project.id, semanticQuery.trim());
+      setSemanticResults(data.results || []);
     } catch {
-      showToast("Nepavyko atnaujinti aplanko");
+      showToast("Nepavyko atlikti paieškos");
+    } finally {
+      setSemanticLoading(false);
     }
   };
 
-  const handleExport = async () => {
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 18;
-    const maxWidth = pageWidth - margin * 2;
-    let y = 20;
-    const addText = (text, size, isBold = false, color = [0, 0, 0]) => {
-      doc.setFontSize(size);
-      doc.setFont("Times New Roman", isBold ? "bold" : "normal");
-      doc.setTextColor(...color);
-      const lines = doc.splitTextToSize(String(text ?? ""), maxWidth);
-      lines.forEach((line) => {
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(line, margin, y);
-        y += size * 0.45;
-      });
-      y += 2;
-    };
-    addText(currentProject.name, 20, true);
-    if (currentProject.description)
-      addText(currentProject.description, 11, false, [80, 80, 80]);
-    y += 4;
-    for (const folder of folders) {
-      let pubs = folderPubs[folder.id];
-      if (!pubs) {
+  const handleInvite = async () => {
+    if (!inviteUsername.trim()) return;
+    setInviting(true);
+    try {
+      const collab = await inviteCollaborator(
+        project.id,
+        inviteUsername.trim(),
+        inviteRole,
+      );
+      setCollaborators((prev) => [...prev, collab]);
+      setInviteUsername("");
+      showToast("Pakvietimas išsiųstas", "success");
+    } catch {
+      showToast("Nepavyko pakviesti vartotojo");
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleRemoveCollaborator = (collabId, username) => {
+    openConfirm(
+      "Pašalinti bendradarbį?",
+      `Ar tikrai norite pašalinti ${username} iš šio projekto?`,
+      async () => {
         try {
-          pubs = await getPublications(project.id, folder.id);
+          await removeCollaborator(project.id, collabId);
+          setCollaborators((prev) => prev.filter((c) => c.id !== collabId));
         } catch {
-          pubs = [];
+          showToast("Nepavyko pašalinti bendradarbio");
         }
-      }
-      if (y > 260) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.setDrawColor(180, 180, 180);
-      doc.line(margin, y, pageWidth - margin, y);
-      y += 5;
-      addText(folder.name, 14, true);
-      if (pubs.length === 0)
-        addText("No publications", 10, false, [150, 150, 150]);
-      pubs.forEach((pub, i) => {
-        if (y > 255) {
-          doc.addPage();
-          y = 20;
-        }
-        addText(`${i + 1}. ${pub.title}`, 11, true);
-        if (pub.year) addText(`Year: ${pub.year}`, 10);
-        if (pub.authors?.length)
-          addText(
-            `Authors: ${pub.authors.slice(0, 5).join(", ")}${pub.authors.length > 5 ? ` +${pub.authors.length - 5} more` : ""}`,
-            10,
-          );
-        if (pub.doi) addText(`DOI: ${pub.doi}`, 10);
-        y += 4;
-      });
-      y += 4;
-    }
-    doc.save(`${currentProject.name}.pdf`);
-  };
-
-  const typeToEntry = (pubType) => {
-    const map = {
-      "journal-article": "article",
-      "book-chapter": "incollection",
-      book: "book",
-      preprint: "misc",
-      "proceedings-article": "inproceedings",
-    };
-    return map[pubType] || "misc";
-  };
-
-  const makeBibtexKey = (pub) => {
-    const firstAuthor =
-      pub.authors?.[0]
-        ?.split(" ")
-        .pop()
-        ?.toLowerCase()
-        .replace(/[^a-z]/g, "") || "unknown";
-    return `${firstAuthor}${pub.year || ""}`;
-  };
-
-  const formatBibtexEntry = (pub, keySuffix = "") => {
-    const entryType = typeToEntry(pub.pub_type || pub.type);
-    const key = makeBibtexKey(pub) + keySuffix;
-    const fields = [];
-    if (pub.title) fields.push(`  title     = {${pub.title}}`);
-    if (pub.authors?.length)
-      fields.push(`  author    = {${pub.authors.join(" and ")}}`);
-    if (pub.year) fields.push(`  year      = {${pub.year}}`);
-    if (pub.source_name) {
-      const journalField =
-        entryType === "inproceedings" ? "booktitle" : "journal";
-      fields.push(`  ${journalField.padEnd(9)} = {${pub.source_name}}`);
-    }
-    if (pub.doi) fields.push(`  doi       = {${pub.doi}}`);
-    if (pub.abstract)
-      fields.push(`  abstract  = {${pub.abstract.replace(/[{}]/g, "")}}`);
-    if (pub.keywords?.length)
-      fields.push(`  keywords  = {${pub.keywords.join(", ")}}`);
-    if (pub.language) fields.push(`  language  = {${pub.language}}`);
-    return `@${entryType}{${key},\n${fields.join(",\n")}\n}`;
-  };
-
-  const formatRisEntry = (pub) => {
-    const typeMap = {
-      "journal-article": "JOUR",
-      "book-chapter": "CHAP",
-      book: "BOOK",
-      preprint: "RPRT",
-      "proceedings-article": "CONF",
-    };
-    const lines = [];
-    lines.push(`TY  - ${typeMap[pub.pub_type || pub.type] || "GEN"}`);
-    if (pub.title) lines.push(`TI  - ${pub.title}`);
-    (pub.authors || []).forEach((a) => lines.push(`AU  - ${a}`));
-    if (pub.year) lines.push(`PY  - ${pub.year}`);
-    if (pub.source_name) lines.push(`JO  - ${pub.source_name}`);
-    if (pub.doi) lines.push(`DO  - ${pub.doi}`);
-    if (pub.abstract) lines.push(`AB  - ${pub.abstract}`);
-    (pub.keywords || []).forEach((kw) => lines.push(`KW  - ${kw}`));
-    if (pub.language) lines.push(`LA  - ${pub.language}`);
-    lines.push("ER  -");
-    return lines.join("\n");
-  };
-
-  const downloadTextFile = (content, filename, mimeType) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const collectAllPubs = async () => {
-    const all = [];
-    for (const folder of folders) {
-      let pubs = folderPubs[folder.id];
-      if (!pubs) {
-        try {
-          pubs = await getPublications(project.id, folder.id);
-        } catch {
-          pubs = [];
-        }
-      }
-      all.push(...pubs);
-    }
-    all.push(...projectPubs);
-    return all;
-  };
-
-  const handleExportBibtex = async () => {
-    setExportOpen(false);
-    const all = await collectAllPubs();
-    const keyCounts = {};
-    const entries = all.map((pub) => {
-      const baseKey = makeBibtexKey(pub);
-      keyCounts[baseKey] = (keyCounts[baseKey] || 0) + 1;
-      const suffix =
-        keyCounts[baseKey] > 1
-          ? String.fromCharCode(96 + keyCounts[baseKey])
-          : "";
-      return formatBibtexEntry(pub, suffix);
-    });
-    downloadTextFile(
-      entries.join("\n\n"),
-      `${currentProject.name}.bib`,
-      "text/plain",
+      },
     );
   };
 
-  const handleExportRis = async () => {
-    setExportOpen(false);
-    const all = await collectAllPubs();
-    const entries = all.map(formatRisEntry);
-    downloadTextFile(
-      entries.join("\n\n"),
-      `${currentProject.name}.ris`,
-      "text/plain",
+  const handleLabelChange = (pubId, newLabel) => {
+    setPublications((prev) =>
+      prev.map((p) => (p.id === pubId ? { ...p, label: newLabel } : p)),
     );
   };
 
@@ -575,117 +453,139 @@ function ProjectView({
     }
   };
 
-  const renderPublicationCard = (pub, onDelete, context = "project") => (
-    <div
-      key={pub.id}
-      onClick={() => handleOpenPublication(pub)}
-      style={{
-        background: "#ffffff",
-        padding: "12px 14px",
-        borderRadius: "8px",
-        border: "1px solid #dce3ed",
-        cursor: "pointer",
-        fontFamily: "Times New Roman",
-        transition: "border-color 0.15s, box-shadow 0.15s",
-        boxSizing: "border-box",
-        position: "relative",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = "#7fa8d4";
-        e.currentTarget.style.boxShadow = "0 2px 8px rgba(30,45,74,0.08)";
-        const btn = e.currentTarget.querySelector(".delete-btn");
-        if (btn) btn.style.opacity = "1";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = "#dce3ed";
-        e.currentTarget.style.boxShadow = "none";
-        const btn = e.currentTarget.querySelector(".delete-btn");
-        if (btn) btn.style.opacity = "0";
-      }}
-    >
-      <button
-        className="delete-btn"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDelete(pub.id, pub.title);
-        }}
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          padding: "2px 8px",
-          background: "none",
-          border: "1px solid #dce3ed",
-          borderRadius: "5px",
-          cursor: "pointer",
-          fontFamily: "Times New Roman",
-          fontSize: "11px",
-          color: "#7a90aa",
-          opacity: 0,
-          transition: "opacity 0.15s, color 0.15s, border-color 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = "#c0392b";
-          e.currentTarget.style.borderColor = "#c0392b";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = "#7a90aa";
-          e.currentTarget.style.borderColor = "#dce3ed";
-        }}
-      >
-        {t.delete}
-      </button>
-      <p
-        style={{
-          margin: "0 32px 0 0",
-          fontSize: "13px",
-          fontWeight: "600",
-          lineHeight: "1.45",
-          color: "#1e2d4a",
-        }}
-      >
-        {pub.title}
-      </p>
-      <div
-        style={{
-          marginTop: "6px",
-          fontSize: "12px",
-          color: "#5a7090",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px",
-        }}
-      >
-        <span>
-          {t.year} {pub.year ?? "—"}
-        </span>
-        {pub.doi && (
-          <span>
-            DOI:{" "}
-            <a
-              href={pub.doi}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              style={{ color: "#2a5db0" }}
-            >
-              {pub.doi}
-            </a>
-          </span>
-        )}
-        {pub.saved_at && (
-          <span style={{ color: "#7a90aa", fontSize: "11px" }}>
-            Išsaugota: {formatDate(pub.saved_at)}
-          </span>
-        )}
-        <LabelBadge
-          pubId={pub.id}
-          currentLabel={pub.label}
-          onChange={(newLabel) => handleLabelChange(pub.id, newLabel, context)}
-        />
-      </div>
-    </div>
-  );
+  const typeToEntry = (pubType) =>
+    ({
+      "journal-article": "article",
+      "book-chapter": "incollection",
+      book: "book",
+      preprint: "misc",
+      "proceedings-article": "inproceedings",
+    })[pubType] || "misc";
+  const makeBibtexKey = (pub) =>
+    `${
+      pub.authors?.[0]
+        ?.split(" ")
+        .pop()
+        ?.toLowerCase()
+        .replace(/[^a-z]/g, "") || "unknown"
+    }${pub.year || ""}`;
+
+  const formatBibtexEntry = (pub, suffix = "") => {
+    const type = typeToEntry(pub.pub_type || pub.type);
+    const key = makeBibtexKey(pub) + suffix;
+    const fields = [];
+    if (pub.title) fields.push(`  title     = {${pub.title}}`);
+    if (pub.authors?.length)
+      fields.push(`  author    = {${pub.authors.join(" and ")}}`);
+    if (pub.year) fields.push(`  year      = {${pub.year}}`);
+    if (pub.source_name)
+      fields.push(
+        `  ${type === "inproceedings" ? "booktitle" : "journal"} = {${pub.source_name}}`,
+      );
+    if (pub.doi) fields.push(`  doi       = {${pub.doi}}`);
+    return `@${type}{${key},\n${fields.join(",\n")}\n}`;
+  };
+
+  const formatRisEntry = (pub) => {
+    const typeMap = {
+      "journal-article": "JOUR",
+      "book-chapter": "CHAP",
+      book: "BOOK",
+      preprint: "RPRT",
+      "proceedings-article": "CONF",
+    };
+    const lines = [`TY  - ${typeMap[pub.pub_type || pub.type] || "GEN"}`];
+    if (pub.title) lines.push(`TI  - ${pub.title}`);
+    (pub.authors || []).forEach((a) => lines.push(`AU  - ${a}`));
+    if (pub.year) lines.push(`PY  - ${pub.year}`);
+    if (pub.source_name) lines.push(`JO  - ${pub.source_name}`);
+    if (pub.doi) lines.push(`DO  - ${pub.doi}`);
+    lines.push("ER  -");
+    return lines.join("\n");
+  };
+
+  const downloadFile = (content, filename, mime) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const collectAllPubs = async () => {
+    return publications;
+  };
+
+  const handleExportBibtex = async () => {
+    setExportOpen(false);
+    const all = await collectAllPubs();
+    const counts = {};
+    const entries = all.map((pub) => {
+      const base = makeBibtexKey(pub);
+      counts[base] = (counts[base] || 0) + 1;
+      return formatBibtexEntry(
+        pub,
+        counts[base] > 1 ? String.fromCharCode(96 + counts[base]) : "",
+      );
+    });
+    downloadFile(
+      entries.join("\n\n"),
+      `${currentProject.name}.bib`,
+      "text/plain",
+    );
+  };
+
+  const handleExportRis = async () => {
+    setExportOpen(false);
+    const all = await collectAllPubs();
+    downloadFile(
+      all.map(formatRisEntry).join("\n\n"),
+      `${currentProject.name}.ris`,
+      "text/plain",
+    );
+  };
+
+  const handleExportPdf = async () => {
+    setExportOpen(false);
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 18;
+    const maxWidth = pageWidth - margin * 2;
+    let y = 20;
+    const addText = (text, size, isBold = false, color = [0, 0, 0]) => {
+      doc.setFontSize(size);
+      doc.setFont("Times New Roman", isBold ? "bold" : "normal");
+      doc.setTextColor(...color);
+      doc.splitTextToSize(String(text ?? ""), maxWidth).forEach((line) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(line, margin, y);
+        y += size * 0.45;
+      });
+      y += 2;
+    };
+    addText(currentProject.name, 20, true);
+    if (currentProject.description)
+      addText(currentProject.description, 11, false, [80, 80, 80]);
+    y += 4;
+    publications.forEach((pub, i) => {
+      if (y > 255) {
+        doc.addPage();
+        y = 20;
+      }
+      addText(`${i + 1}. ${pub.title}`, 11, true);
+      if (pub.year) addText(`Year: ${pub.year}`, 10);
+      if (pub.authors?.length)
+        addText(`Authors: ${pub.authors.slice(0, 5).join(", ")}`, 10);
+      if (pub.doi) addText(`DOI: ${pub.doi}`, 10);
+      y += 3;
+    });
+    doc.save(`${currentProject.name}.pdf`);
+  };
 
   const ghostBtn = {
     padding: "6px 13px",
@@ -706,6 +606,8 @@ function ProjectView({
     e.currentTarget.style.borderColor = "#dce3ed";
   };
 
+  const isOwner = project.user === undefined || true;
+
   return (
     <div
       style={{
@@ -725,13 +627,13 @@ function ProjectView({
         title={confirm.title}
         message={confirm.message}
         confirmLabel="Ištrinti"
-        danger={true}
+        danger
       />
 
       <div
         style={{
           background: "#ffffff",
-          padding: "14px 20px",
+          padding: "10px 20px",
           flexShrink: 0,
           display: "flex",
           justifyContent: "space-between",
@@ -739,7 +641,7 @@ function ProjectView({
           borderBottom: "1px solid #dce3ed",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button
             onClick={onClose}
             style={{ ...ghostBtn, color: "#5a7090" }}
@@ -755,7 +657,6 @@ function ProjectView({
                 fontSize: "17px",
                 fontWeight: "700",
                 color: "#1e2d4a",
-                fontFamily: "Times New Roman",
               }}
             >
               {currentProject.name}
@@ -763,10 +664,9 @@ function ProjectView({
             {currentProject.description && (
               <p
                 style={{
-                  margin: "2px 0 0",
+                  margin: "1px 0 0",
                   fontSize: "12px",
                   color: "#7a90aa",
-                  fontFamily: "Times New Roman",
                 }}
               >
                 {currentProject.description}
@@ -778,9 +678,7 @@ function ProjectView({
           <div style={{ position: "relative", display: "flex" }}>
             <button
               onClick={handleGetRecommendations}
-              disabled={
-                recLoading || (folders.length === 0 && projectPubs.length === 0)
-              }
+              disabled={recLoading}
               style={{
                 padding: "6px 13px",
                 background: recLoading ? "#eef1f6" : "#1e2d4a",
@@ -793,8 +691,6 @@ function ProjectView({
                 fontFamily: "Times New Roman",
                 fontSize: "13px",
                 fontWeight: "600",
-                opacity:
-                  folders.length === 0 && projectPubs.length === 0 ? 0.4 : 1,
               }}
               onMouseEnter={(e) => {
                 if (!recLoading) e.currentTarget.style.background = "#2a3f63";
@@ -830,7 +726,7 @@ function ProjectView({
               }}
             >
               <option value="">Visas projektas</option>
-              {folders.map((f) => (
+              {subfolders.map((f) => (
                 <option key={f.id} value={f.id}>
                   {f.name}
                 </option>
@@ -852,14 +748,23 @@ function ProjectView({
           </div>
 
           <div
-            style={{
-              width: "1px",
-              height: "20px",
-              background: "#dce3ed",
-              margin: "0 2px",
-            }}
+            style={{ width: "1px", height: "20px", background: "#dce3ed" }}
           />
 
+          <button
+            onClick={() => setShowCollabPanel((p) => !p)}
+            style={{
+              ...ghostBtn,
+              color: showCollabPanel ? "#1e2d4a" : "#5a7090",
+              background: showCollabPanel ? "#eef1f6" : "none",
+            }}
+            onMouseEnter={ghostHover}
+            onMouseLeave={ghostLeave}
+          >
+            Bendradarbiai{" "}
+            {collaborators.filter((c) => c.status === "accepted").length > 0 &&
+              `(${collaborators.filter((c) => c.status === "accepted").length})`}
+          </button>
           <button
             onClick={() => setEditProjectOpen(true)}
             style={ghostBtn}
@@ -897,10 +802,7 @@ function ProjectView({
                   {
                     label: "PDF",
                     sublabel: "Spausdinti / peržiūra",
-                    action: () => {
-                      setExportOpen(false);
-                      handleExport();
-                    },
+                    action: handleExportPdf,
                   },
                   {
                     label: "BibTeX (.bib)",
@@ -927,11 +829,11 @@ function ProjectView({
                       padding: "9px 14px",
                       background: "none",
                       border: "none",
+                      borderBottom: "1px solid #eef1f6",
                       textAlign: "left",
                       cursor: "pointer",
                       fontFamily: "Times New Roman",
                       boxSizing: "border-box",
-                      borderBottom: "1px solid #eef1f6",
                     }}
                   >
                     <div
@@ -957,6 +859,7 @@ function ProjectView({
               </div>
             )}
           </div>
+
           <button
             onClick={handleDeleteProject}
             style={{ ...ghostBtn, color: "#c0392b" }}
@@ -978,64 +881,285 @@ function ProjectView({
         style={{
           background: "#eef1f6",
           borderBottom: "1px solid #dce3ed",
-          padding: "8px 20px",
+          padding: "7px 20px",
           display: "flex",
-          gap: "20px",
+          alignItems: "center",
+          gap: "6px",
           flexShrink: 0,
           flexWrap: "wrap",
         }}
       >
-        {[
-          {
-            label: "Publikacijos",
-            value: analyticsLoading
-              ? "..."
-              : (analytics?.total_publications ?? 0),
-          },
-          {
-            label: "Vid. metai",
-            value: analyticsLoading ? "..." : (analytics?.average_year ?? "—"),
-          },
-          {
-            label: "Citavimai",
-            value: analyticsLoading ? "..." : (analytics?.total_citations ?? 0),
-          },
-          {
-            label: "Raktažodžiai",
-            value: analyticsLoading
-              ? "..."
-              : analytics?.top_keywords?.length
-                ? analytics.top_keywords.slice(0, 3).join(", ")
-                : "—",
-          },
-        ].map((item) => (
+        <span
+          onClick={() => navigateToCrumb(-1)}
+          style={{
+            fontSize: "12px",
+            color: currentFolder ? "#2a5db0" : "#1e2d4a",
+            fontWeight: currentFolder ? "400" : "600",
+            cursor: currentFolder ? "pointer" : "default",
+          }}
+        >
+          {currentProject.name}
+        </span>
+        {folderStack.filter(Boolean).map((f, i) => (
           <span
-            key={item.label}
-            style={{
-              display: "flex",
-              gap: "5px",
-              alignItems: "center",
-              fontSize: "12px",
-              whiteSpace: "nowrap",
-            }}
+            key={f.id}
+            style={{ display: "flex", alignItems: "center", gap: "6px" }}
           >
+            <span style={{ color: "#7a90aa", fontSize: "11px" }}>›</span>
             <span
-              style={{
-                color: "#7a90aa",
-                fontWeight: "700",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                fontSize: "10px",
-              }}
+              onClick={() => navigateToCrumb(i)}
+              style={{ fontSize: "12px", color: "#2a5db0", cursor: "pointer" }}
             >
-              {item.label}
-            </span>
-            <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
-              {item.value}
+              {f.name}
             </span>
           </span>
         ))}
+        {currentFolder && (
+          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ color: "#7a90aa", fontSize: "11px" }}>›</span>
+            <span
+              style={{ fontSize: "12px", color: "#1e2d4a", fontWeight: "600" }}
+            >
+              {currentFolder.name}
+            </span>
+          </span>
+        )}
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: "16px" }}>
+          {[
+            {
+              label: "Publikacijos",
+              value: analyticsLoading
+                ? "..."
+                : (analytics?.total_publications ?? 0),
+            },
+            {
+              label: "Citavimai",
+              value: analyticsLoading
+                ? "..."
+                : (analytics?.total_citations ?? 0),
+            },
+            {
+              label: "Vid. metai",
+              value: analyticsLoading
+                ? "..."
+                : (analytics?.average_year ?? "—"),
+            },
+          ].map((item) => (
+            <span
+              key={item.label}
+              style={{
+                display: "flex",
+                gap: "4px",
+                alignItems: "center",
+                fontSize: "11px",
+              }}
+            >
+              <span
+                style={{
+                  color: "#7a90aa",
+                  fontWeight: "700",
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  fontSize: "9px",
+                }}
+              >
+                {item.label}
+              </span>
+              <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
+                {item.value}
+              </span>
+            </span>
+          ))}
+        </div>
       </div>
+
+      {showCollabPanel && (
+        <div
+          style={{
+            background: "#f7f9fc",
+            borderBottom: "1px solid #dce3ed",
+            padding: "14px 20px",
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: "20px",
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: "260px" }}>
+              <p
+                style={{
+                  margin: "0 0 10px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "#7a90aa",
+                }}
+              >
+                Pakviesti bendradarbį
+              </p>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  value={inviteUsername}
+                  onChange={(e) => setInviteUsername(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleInvite()}
+                  placeholder="Vartotojo vardas"
+                  style={{
+                    flex: 1,
+                    padding: "6px 10px",
+                    borderRadius: "6px",
+                    border: "1px solid #c8d4e3",
+                    fontFamily: "Times New Roman",
+                    fontSize: "13px",
+                    outline: "none",
+                    color: "#1e2d4a",
+                  }}
+                  onFocus={(e) =>
+                    (e.currentTarget.style.borderColor = "#1e2d4a")
+                  }
+                  onBlur={(e) =>
+                    (e.currentTarget.style.borderColor = "#c8d4e3")
+                  }
+                />
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  style={{
+                    padding: "6px 8px",
+                    borderRadius: "6px",
+                    border: "1px solid #c8d4e3",
+                    fontFamily: "Times New Roman",
+                    fontSize: "12px",
+                    color: "#1e2d4a",
+                    outline: "none",
+                    background: "#ffffff",
+                  }}
+                >
+                  <option value="editor">Redaktorius</option>
+                  <option value="viewer">Stebėtojas</option>
+                </select>
+                <button
+                  onClick={handleInvite}
+                  disabled={inviting || !inviteUsername.trim()}
+                  style={{
+                    padding: "6px 14px",
+                    background:
+                      inviting || !inviteUsername.trim()
+                        ? "#eef1f6"
+                        : "#1e2d4a",
+                    color:
+                      inviting || !inviteUsername.trim()
+                        ? "#7a90aa"
+                        : "#ffffff",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontFamily: "Times New Roman",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                  }}
+                >
+                  {inviting ? "..." : "Pakviesti"}
+                </button>
+              </div>
+            </div>
+            {collaborators.length > 0 && (
+              <div style={{ flex: 2, minWidth: "300px" }}>
+                <p
+                  style={{
+                    margin: "0 0 10px",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    letterSpacing: "0.1em",
+                    textTransform: "uppercase",
+                    color: "#7a90aa",
+                  }}
+                >
+                  Bendradarbiai
+                </p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {collaborators.map((c) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "4px 10px",
+                        background: "#ffffff",
+                        border: "1px solid #dce3ed",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                      }}
+                    >
+                      <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
+                        {c.user.username}
+                      </span>
+                      <span style={{ color: "#7a90aa" }}>
+                        {c.role === "editor" ? "Redaktorius" : "Stebėtojas"}
+                      </span>
+                      <span
+                        style={{
+                          padding: "1px 6px",
+                          borderRadius: "10px",
+                          fontSize: "10px",
+                          fontWeight: "600",
+                          background:
+                            c.status === "accepted"
+                              ? "#e8f5ec"
+                              : c.status === "pending"
+                                ? "#fef9e7"
+                                : "#fdecea",
+                          color:
+                            c.status === "accepted"
+                              ? "#1e6640"
+                              : c.status === "pending"
+                                ? "#6b5200"
+                                : "#922b21",
+                        }}
+                      >
+                        {c.status === "accepted"
+                          ? "Aktyvus"
+                          : c.status === "pending"
+                            ? "Laukiama"
+                            : "Atmesta"}
+                      </span>
+                      <button
+                        onClick={() =>
+                          handleRemoveCollaborator(c.id, c.user.username)
+                        }
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#7a90aa",
+                          fontSize: "12px",
+                          padding: "0",
+                          lineHeight: 1,
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.color = "#c0392b")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.color = "#7a90aa")
+                        }
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <div
@@ -1054,17 +1178,34 @@ function ProjectView({
               marginBottom: "12px",
             }}
           >
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: "700",
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "#7a90aa",
-              }}
-            >
-              {t.folders}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {currentFolder && (
+                <button
+                  onClick={navigateBack}
+                  style={{
+                    ...ghostBtn,
+                    padding: "4px 8px",
+                    fontSize: "12px",
+                    color: "#5a7090",
+                  }}
+                  onMouseEnter={ghostHover}
+                  onMouseLeave={ghostLeave}
+                >
+                  ← Atgal
+                </button>
+              )}
+              <span
+                style={{
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "#7a90aa",
+                }}
+              >
+                {currentFolder ? currentFolder.name : t.folders}
+              </span>
+            </div>
             <button
               onClick={() => setShowNewFolderInput((p) => !p)}
               style={{
@@ -1127,28 +1268,26 @@ function ProjectView({
             </div>
           )}
 
-          {loadingFolders && (
+          {loadingContent && (
             <p style={{ color: "#7a90aa", fontSize: "13px" }}>{t.loading}</p>
           )}
-          {!loadingFolders && folders.length === 0 && (
-            <p style={{ color: "#7a90aa", fontSize: "13px" }}>{t.no_folders}</p>
-          )}
 
-          {!loadingFolders &&
-            folders.map((folder) => {
-              const isOpen = expandedFolders[folder.id];
-              const pubs = folderPubs[folder.id];
+          {!loadingContent &&
+            subfolders.length === 0 &&
+            publications.length === 0 && (
+              <p style={{ color: "#7a90aa", fontSize: "13px" }}>
+                {currentFolder ? t.folder_empty : t.no_folders}
+              </p>
+            )}
+
+          {!loadingContent &&
+            subfolders.map((folder) => {
               const isEditing = editingFolderId === folder.id;
-
               return (
                 <div key={folder.id} style={{ marginBottom: "6px" }}>
                   {isEditing ? (
                     <div
-                      style={{
-                        display: "flex",
-                        gap: "6px",
-                        marginBottom: "2px",
-                      }}
+                      style={{ display: "flex", gap: "6px" }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <input
@@ -1157,7 +1296,10 @@ function ProjectView({
                         onChange={(e) => setEditingFolderName(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") handleUpdateFolder(folder.id);
-                          if (e.key === "Escape") cancelEditFolder();
+                          if (e.key === "Escape") {
+                            setEditingFolderId(null);
+                            setEditingFolderName("");
+                          }
                         }}
                         style={{
                           flex: 1,
@@ -1186,7 +1328,10 @@ function ProjectView({
                         Išsaugoti
                       </button>
                       <button
-                        onClick={cancelEditFolder}
+                        onClick={() => {
+                          setEditingFolderId(null);
+                          setEditingFolderName("");
+                        }}
                         style={{
                           padding: "5px 10px",
                           background: "none",
@@ -1203,18 +1348,17 @@ function ProjectView({
                     </div>
                   ) : (
                     <div
-                      onClick={() => handleToggleFolder(folder.id)}
+                      onClick={() => navigateInto(folder)}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        padding: "9px 12px",
+                        padding: "10px 12px",
                         borderRadius: "7px",
-                        background: isOpen ? "#eef1f6" : "#f7f9fc",
+                        background: "#f7f9fc",
                         border: "1px solid #dce3ed",
                         cursor: "pointer",
-                        transition: "background 0.1s",
-                        position: "relative",
+                        transition: "all 0.1s",
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = "#e8eef7";
@@ -1224,9 +1368,7 @@ function ProjectView({
                           .forEach((b) => (b.style.opacity = "1"));
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = isOpen
-                          ? "#eef1f6"
-                          : "#f7f9fc";
+                        e.currentTarget.style.background = "#f7f9fc";
                         e.currentTarget.style.borderColor = "#dce3ed";
                         e.currentTarget
                           .querySelectorAll(".folder-action-btn")
@@ -1237,31 +1379,47 @@ function ProjectView({
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: "8px",
+                          gap: "10px",
                         }}
                       >
-                        <span style={{ fontSize: "10px", color: "#7a90aa" }}>
-                          {isOpen ? "▾" : "▸"}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: "600",
-                            color: "#1e2d4a",
-                          }}
-                        >
-                          {folder.name}
-                        </span>
-                        {pubs && (
-                          <span style={{ fontSize: "11px", color: "#7a90aa" }}>
-                            {pubs.length}
+                        <span style={{ fontSize: "16px" }}>📁</span>
+                        <div>
+                          <span
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: "600",
+                              color: "#1e2d4a",
+                            }}
+                          >
+                            {folder.name}
                           </span>
-                        )}
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              color: "#7a90aa",
+                              marginLeft: "8px",
+                            }}
+                          >
+                            {folder.subfolder_count > 0 &&
+                              `${folder.subfolder_count} aplankai · `}
+                            {folder.publication_count} pub.
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ display: "flex", gap: "4px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "4px",
+                          alignItems: "center",
+                        }}
+                      >
                         <button
                           className="folder-action-btn"
-                          onClick={(e) => startEditFolder(e, folder)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingFolderId(folder.id);
+                            setEditingFolderName(folder.name);
+                          }}
                           style={{
                             padding: "2px 7px",
                             background: "none",
@@ -1272,8 +1430,7 @@ function ProjectView({
                             fontSize: "11px",
                             color: "#7a90aa",
                             opacity: 0,
-                            transition:
-                              "opacity 0.15s, color 0.15s, border-color 0.15s",
+                            transition: "opacity 0.15s",
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.color = "#1e2d4a";
@@ -1290,7 +1447,7 @@ function ProjectView({
                           className="folder-action-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteFolder(folder.id, folder.name);
+                            handleDeleteFolder(folder);
                           }}
                           style={{
                             padding: "2px 7px",
@@ -1302,8 +1459,7 @@ function ProjectView({
                             fontSize: "11px",
                             color: "#7a90aa",
                             opacity: 0,
-                            transition:
-                              "opacity 0.15s, color 0.15s, border-color 0.15s",
+                            transition: "opacity 0.15s",
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.color = "#c0392b";
@@ -1316,73 +1472,148 @@ function ProjectView({
                         >
                           {t.delete}
                         </button>
+                        <span style={{ color: "#c8d4e3", fontSize: "12px" }}>
+                          ›
+                        </span>
                       </div>
-                    </div>
-                  )}
-
-                  {isOpen && !isEditing && (
-                    <div
-                      style={{
-                        marginTop: "4px",
-                        marginLeft: "14px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                      }}
-                    >
-                      {!pubs && (
-                        <p style={{ color: "#7a90aa", fontSize: "12px" }}>
-                          {t.loading}
-                        </p>
-                      )}
-                      {pubs && pubs.length === 0 && (
-                        <p style={{ color: "#7a90aa", fontSize: "12px" }}>
-                          {t.folder_empty}
-                        </p>
-                      )}
-                      {pubs &&
-                        pubs.map((pub) =>
-                          renderPublicationCard(
-                            pub,
-                            (id, title) =>
-                              handleDeletePublication(folder.id, id, title),
-                            folder.id,
-                          ),
-                        )}
                     </div>
                   )}
                 </div>
               );
             })}
 
-          {!loadingFolders && projectPubs.length > 0 && (
-            <div style={{ marginTop: "20px" }}>
-              <span
-                style={{
-                  fontSize: "10px",
-                  fontWeight: "700",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: "#7a90aa",
-                }}
-              >
-                Publikacijos projekte
-              </span>
+          {!loadingContent && publications.length > 0 && (
+            <div style={{ marginTop: subfolders.length > 0 ? "16px" : "0" }}>
+              {subfolders.length > 0 && (
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: "#7a90aa",
+                    display: "block",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Publikacijos
+                </span>
+              )}
               <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "4px",
-                  marginTop: "10px",
-                }}
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
               >
-                {projectPubs.map((pub) =>
-                  renderPublicationCard(
-                    pub,
-                    (id, title) => handleDeleteProjectPublication(id, title),
-                    "project",
-                  ),
-                )}
+                {publications.map((pub) => (
+                  <div
+                    key={pub.id}
+                    onClick={() => handleOpenPublication(pub)}
+                    style={{
+                      background: "#ffffff",
+                      padding: "12px 14px",
+                      borderRadius: "8px",
+                      border: "1px solid #dce3ed",
+                      cursor: "pointer",
+                      transition: "border-color 0.15s, box-shadow 0.15s",
+                      position: "relative",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#7fa8d4";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(30,45,74,0.08)";
+                      const btn = e.currentTarget.querySelector(".delete-btn");
+                      if (btn) btn.style.opacity = "1";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#dce3ed";
+                      e.currentTarget.style.boxShadow = "none";
+                      const btn = e.currentTarget.querySelector(".delete-btn");
+                      if (btn) btn.style.opacity = "0";
+                    }}
+                  >
+                    <button
+                      className="delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePublication(pub);
+                      }}
+                      style={{
+                        position: "absolute",
+                        top: "10px",
+                        right: "10px",
+                        padding: "2px 8px",
+                        background: "none",
+                        border: "1px solid #dce3ed",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "11px",
+                        color: "#7a90aa",
+                        opacity: 0,
+                        transition: "opacity 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "#c0392b";
+                        e.currentTarget.style.borderColor = "#c0392b";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "#7a90aa";
+                        e.currentTarget.style.borderColor = "#dce3ed";
+                      }}
+                    >
+                      {t.delete}
+                    </button>
+                    <p
+                      style={{
+                        margin: "0 32px 0 0",
+                        fontSize: "13px",
+                        fontWeight: "600",
+                        lineHeight: "1.45",
+                        color: "#1e2d4a",
+                      }}
+                    >
+                      {pub.title}
+                    </p>
+                    <div
+                      style={{
+                        marginTop: "5px",
+                        fontSize: "12px",
+                        color: "#5a7090",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                      }}
+                    >
+                      <span>
+                        {t.year} {pub.year ?? "—"}
+                      </span>
+                      {pub.doi && (
+                        <span>
+                          DOI:{" "}
+                          <a
+                            href={pub.doi}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ color: "#2a5db0" }}
+                          >
+                            {pub.doi}
+                          </a>
+                        </span>
+                      )}
+                      {pub.saved_at && (
+                        <span style={{ color: "#7a90aa", fontSize: "11px" }}>
+                          Išsaugota: {formatDate(pub.saved_at)}
+                        </span>
+                      )}
+                      <LabelBadge
+                        pubId={pub.id}
+                        currentLabel={pub.label}
+                        onChange={(newLabel) =>
+                          handleLabelChange(pub.id, newLabel)
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -1470,7 +1701,7 @@ function ProjectView({
                       color: "#ffffff",
                       border: "none",
                       borderRadius: "6px",
-                      cursor: savingRecommendations ? "not-allowed" : "pointer",
+                      cursor: "pointer",
                       fontFamily: "Times New Roman",
                       fontSize: "13px",
                       fontWeight: "600",
@@ -1496,54 +1727,35 @@ function ProjectView({
                         overflow: "hidden",
                       }}
                     >
-                      {!selectedSaveProject &&
-                        (projects.length === 0 ? (
+                      {!selectedSaveProject ? (
+                        projects.map((projectItem) => (
                           <div
-                            style={{
-                              padding: "10px 14px",
-                              fontFamily: "Times New Roman",
-                              color: "#7a90aa",
-                              fontSize: "13px",
-                            }}
+                            key={projectItem.id}
+                            onMouseEnter={() =>
+                              handleSelectSaveProject(projectItem)
+                            }
                           >
-                            {t.no_projects_dropdown}
-                          </div>
-                        ) : (
-                          projects.map((projectItem) => (
                             <div
-                              key={projectItem.id}
-                              onMouseEnter={() =>
-                                handleSelectSaveProject(projectItem)
-                              }
-                              style={{ position: "relative" }}
+                              style={{
+                                padding: "9px 14px",
+                                cursor: "pointer",
+                                fontFamily: "Times New Roman",
+                                fontSize: "13px",
+                                color: "#1e2d4a",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                background:
+                                  selectedSaveProject?.id === projectItem.id
+                                    ? "#eef1f6"
+                                    : "none",
+                              }}
                             >
-                              <div
-                                style={{
-                                  padding: "9px 14px",
-                                  cursor: "pointer",
-                                  fontFamily: "Times New Roman",
-                                  fontSize: "13px",
-                                  color: "#1e2d4a",
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  background:
-                                    selectedSaveProject?.id === projectItem.id
-                                      ? "#eef1f6"
-                                      : "none",
-                                }}
-                              >
-                                {projectItem.name}
-                                <span
-                                  style={{ color: "#c8d4e3", fontSize: "11px" }}
-                                >
-                                  ▸
-                                </span>
-                              </div>
+                              {projectItem.name}
+                              <span style={{ color: "#c8d4e3" }}>▸</span>
                             </div>
-                          ))
-                        ))}
-                      {selectedSaveProject && (
+                          </div>
+                        ))
+                      ) : (
                         <>
                           <button
                             onClick={() => {
@@ -1574,16 +1786,6 @@ function ProjectView({
                               }}
                             >
                               {t.loading}
-                            </div>
-                          ) : saveFolders.length === 0 ? (
-                            <div
-                              style={{
-                                padding: "10px 14px",
-                                color: "#7a90aa",
-                                fontSize: "13px",
-                              }}
-                            >
-                              {t.no_folders_dropdown}
                             </div>
                           ) : (
                             saveFolders.map((folder) => (
@@ -1624,7 +1826,7 @@ function ProjectView({
           </div>
 
           {rightPanelMode === "semantic" && (
-            <div style={{ marginBottom: "16px", display: "flex", gap: "8px" }}>
+            <div style={{ marginBottom: "14px", display: "flex", gap: "8px" }}>
               <input
                 type="text"
                 value={semanticQuery}
@@ -1660,14 +1862,10 @@ function ProjectView({
                       : "#ffffff",
                   border: "none",
                   borderRadius: "7px",
-                  cursor:
-                    semanticLoading || !semanticQuery.trim()
-                      ? "not-allowed"
-                      : "pointer",
+                  cursor: "pointer",
                   fontFamily: "Times New Roman",
                   fontSize: "13px",
                   fontWeight: "600",
-                  whiteSpace: "nowrap",
                 }}
                 onMouseEnter={(e) => {
                   if (!semanticLoading && semanticQuery.trim())
@@ -1689,10 +1887,9 @@ function ProjectView({
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  height: "220px",
+                  height: "200px",
                   color: "#7a90aa",
                   fontFamily: "Times New Roman",
                   fontSize: "13px",
@@ -1707,22 +1904,6 @@ function ProjectView({
               </div>
             )}
 
-          {rightPanelMode === "semantic" && semanticLoading && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "200px",
-                color: "#7a90aa",
-                fontFamily: "Times New Roman",
-                fontSize: "13px",
-              }}
-            >
-              {t.loading}
-            </div>
-          )}
-
           {rightPanelMode === "semantic" &&
             !semanticLoading &&
             semanticResults.length > 0 && (
@@ -1731,14 +1912,12 @@ function ProjectView({
               >
                 <p
                   style={{
-                    margin: "0 0 8px",
+                    margin: "0 0 6px",
                     fontSize: "11px",
                     color: "#7a90aa",
-                    fontFamily: "Times New Roman",
                   }}
                 >
-                  Rasta {semanticResults.length} publikacijų pagal semantinį
-                  artimumą
+                  Rasta {semanticResults.length} rezultatų
                 </p>
                 {semanticResults.map((pub) => (
                   <div
@@ -1746,14 +1925,11 @@ function ProjectView({
                     onClick={() => handleOpenPublication(pub)}
                     style={{
                       background: "#ffffff",
-                      padding: "14px 16px",
+                      padding: "12px 14px",
                       borderRadius: "8px",
                       border: "1px solid #dce3ed",
                       cursor: "pointer",
-                      fontFamily: "Times New Roman",
                       transition: "border-color 0.15s, box-shadow 0.15s",
-                      boxSizing: "border-box",
-                      position: "relative",
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = "#7fa8d4";
@@ -1767,43 +1943,25 @@ function ProjectView({
                   >
                     <p
                       style={{
-                        margin: "0 0 6px",
+                        margin: "0 0 5px",
                         fontSize: "13px",
                         fontWeight: "600",
-                        lineHeight: "1.45",
                         color: "#1e2d4a",
                       }}
                     >
                       {pub.title}
                     </p>
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "#5a7090",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2px",
-                      }}
-                    >
+                    <div style={{ fontSize: "12px", color: "#5a7090" }}>
                       <span>
                         {t.year} {pub.year ?? "—"}
                       </span>
-                      {pub.authors?.length > 0 && (
-                        <span>
-                          {pub.authors.slice(0, 3).join(", ")}
-                          {pub.authors.length > 3 &&
-                            ` +${pub.authors.length - 3}`}
-                        </span>
-                      )}
                       {pub.similarity != null && (
                         <span
                           style={{
-                            display: "inline-block",
-                            marginTop: "5px",
-                            padding: "2px 9px",
+                            marginLeft: "8px",
+                            padding: "1px 8px",
                             borderRadius: "20px",
                             fontSize: "11px",
-                            fontFamily: "sans-serif",
                             background:
                               pub.similarity >= 70
                                 ? "#e8f5ec"
@@ -1816,7 +1974,6 @@ function ProjectView({
                                 : pub.similarity >= 40
                                   ? "#6b5200"
                                   : "#5a7090",
-                            width: "fit-content",
                             fontWeight: "600",
                           }}
                         >
@@ -1863,6 +2020,7 @@ function ProjectView({
               {t.loading}
             </div>
           )}
+
           {rightPanelMode === "recommendations" &&
             !recLoading &&
             recommendations.length > 0 && (
@@ -1873,6 +2031,7 @@ function ProjectView({
                   const isSelected = selectedRecs.some(
                     (p) => p.openalex_id === rec.openalex_id,
                   );
+                  const myFeedback = feedback[rec.openalex_id];
                   return (
                     <div
                       key={rec.openalex_id ?? i}
@@ -1885,9 +2044,7 @@ function ProjectView({
                           ? "1.5px solid #7fa8d4"
                           : "1px solid #dce3ed",
                         cursor: "pointer",
-                        fontFamily: "Times New Roman",
                         transition: "border-color 0.15s, box-shadow 0.15s",
-                        boxSizing: "border-box",
                         position: "relative",
                       }}
                       onMouseEnter={(e) => {
@@ -1986,7 +2143,7 @@ function ProjectView({
                           <span
                             style={{
                               display: "inline-block",
-                              marginTop: "5px",
+                              marginTop: "4px",
                               padding: "2px 9px",
                               borderRadius: "20px",
                               fontSize: "11px",
@@ -2010,6 +2167,71 @@ function ProjectView({
                             {rec.similarity}% atitikimas
                           </span>
                         )}
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "6px",
+                          marginTop: "8px",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => handleFeedback(rec, "positive")}
+                          style={{
+                            padding: "2px 8px",
+                            background:
+                              myFeedback === "positive" ? "#e8f5ec" : "none",
+                            border: `1px solid ${myFeedback === "positive" ? "#27744f" : "#dce3ed"}`,
+                            borderRadius: "5px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            color:
+                              myFeedback === "positive" ? "#27744f" : "#7a90aa",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (myFeedback !== "positive") {
+                              e.currentTarget.style.borderColor = "#27744f";
+                              e.currentTarget.style.color = "#27744f";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (myFeedback !== "positive") {
+                              e.currentTarget.style.borderColor = "#dce3ed";
+                              e.currentTarget.style.color = "#7a90aa";
+                            }
+                          }}
+                        >
+                          👍
+                        </button>
+                        <button
+                          onClick={() => handleFeedback(rec, "negative")}
+                          style={{
+                            padding: "2px 8px",
+                            background:
+                              myFeedback === "negative" ? "#fdecea" : "none",
+                            border: `1px solid ${myFeedback === "negative" ? "#c0392b" : "#dce3ed"}`,
+                            borderRadius: "5px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            color:
+                              myFeedback === "negative" ? "#c0392b" : "#7a90aa",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (myFeedback !== "negative") {
+                              e.currentTarget.style.borderColor = "#c0392b";
+                              e.currentTarget.style.color = "#c0392b";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (myFeedback !== "negative") {
+                              e.currentTarget.style.borderColor = "#dce3ed";
+                              e.currentTarget.style.color = "#7a90aa";
+                            }
+                          }}
+                        >
+                          👎
+                        </button>
                       </div>
                     </div>
                   );

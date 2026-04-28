@@ -1,58 +1,49 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions
 from rest_framework.response import Response
-from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
 from datetime import datetime
 import math
 import re
-import nltk
-from nltk.corpus import stopwords
-nltk.download("stopwords", quiet=True)
-from apps.projects.models import Project, SavedPublication, Folder
+
+from apps.projects.models import Project, SavedPublication, Folder, RecommendationFeedback
+from apps.projects.embedding_service import get_model
 from apps.search.integrations.openalex_client import OpenAlexClient
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+
 class ProjectRecommendationsView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request, project_id):
         project = get_object_or_404(Project, id=project_id, user=request.user)
         folder_id = request.data.get("folder_id")
+
         if folder_id:
             folder = get_object_or_404(Folder, id=folder_id, project=project)
-            saved_publications = list(
-                SavedPublication.objects.filter(project=project, folder=folder)
-            )
+            saved_publications = list(SavedPublication.objects.filter(project=project, folder=folder))
         else:
-            saved_publications = list(
-                SavedPublication.objects.filter(project=project)
-            )
+            saved_publications = list(SavedPublication.objects.filter(project=project))
+
         if not saved_publications:
             return Response({"recommendations": []})
 
-        saved_ids = {
-            pub.openalex_id for pub in saved_publications if pub.openalex_id
-        }
-        saved_dois = {
-            pub.doi.lower().strip() for pub in saved_publications if pub.doi
-        }
-        saved_titles = {
-            self.normalize_title(pub.title) for pub in saved_publications if pub.title
-        }
+        negatively_rated_ids = set(
+            RecommendationFeedback.objects.filter(
+                user=request.user,
+                project=project,
+                feedback=RecommendationFeedback.Feedback.NEGATIVE,
+            ).values_list("openalex_id", flat=True)
+        )
+
+        saved_ids = {pub.openalex_id for pub in saved_publications if pub.openalex_id}
+        saved_dois = {pub.doi.lower().strip() for pub in saved_publications if pub.doi}
+        saved_titles = {self.normalize_title(pub.title) for pub in saved_publications if pub.title}
 
         current_year = datetime.now().year
+
         def publication_text(pub):
-            return " ".join(
-                filter(
-                    None,
-                    [
-                        pub.title,
-                        pub.abstract,
-                        " ".join(pub.keywords or []),
-                    ],
-                )
-            )
+            return " ".join(filter(None, [pub.title, pub.abstract, " ".join(pub.keywords or [])]))
 
         saved_texts = []
         for pub in saved_publications:
@@ -63,57 +54,44 @@ class ProjectRecommendationsView(generics.GenericAPIView):
             age = max(0, current_year - year)
             weight = 1 + max(0, 3 - age)
             saved_texts.extend([text] * weight)
+
         if not saved_texts:
             return Response({"recommendations": []})
 
         profile_text = " ".join(saved_texts)
-        queries = []
+        queries = [pub.title for pub in saved_publications[:5] if pub.title]
+        queries = [re.sub(r"\s+", " ", q).strip() for q in queries if q.strip()][:6]
 
-        for pub in saved_publications[:5]:
-            if pub.title:
-                queries.append(pub.title)
-
-        queries = [re.sub(r"\s+", " ", q).strip() for q in queries if q and q.strip()]
-        queries = queries[:6]
         top_authors = [
-            name
-            for name, _ in Counter(
-                author
-                for pub in saved_publications
-                for author in (pub.authors or [])
+            name for name, _ in Counter(
+                author for pub in saved_publications for author in (pub.authors or [])
             ).most_common(2)
         ]
+
         client = OpenAlexClient()
         primary_results = []
-
         for q in queries:
-            data = client.search_publications(
-                query=q,
-                per_page=15,
-            )
+            data = client.search_publications(query=q, per_page=15)
             primary_results.extend(data.get("results", []))
 
-        primary_data = {"results": primary_results}
         author_data = {"results": []}
         if top_authors:
-            author_query = " ".join(top_authors)
-            author_data = client.search_publications(
-                query=author_query,
-                per_page=25,
-            )
+            author_data = client.search_publications(query=" ".join(top_authors), per_page=25)
+
         seen_ids = set(saved_ids)
         candidates = []
-        for pub in primary_data.get("results", []) + author_data.get("results", []):
+
+        for pub in primary_results + author_data.get("results", []):
             openalex_id = pub.get("id")
             candidate_doi = (pub.get("doi") or "").lower().strip()
             candidate_title = self.normalize_title(pub.get("title"))
 
             if not openalex_id or openalex_id in seen_ids:
                 continue
-
+            if openalex_id in negatively_rated_ids:
+                continue
             if candidate_doi and candidate_doi in saved_dois:
                 continue
-
             if candidate_title and candidate_title in saved_titles:
                 continue
 
@@ -126,75 +104,51 @@ class ProjectRecommendationsView(generics.GenericAPIView):
                 for item in authorships
                 if item.get("author") and item["author"].get("display_name")
             ]
-            abstract = self.reconstruct_abstract(
-                pub.get("abstract_inverted_index")
-            )
+            abstract = self.reconstruct_abstract(pub.get("abstract_inverted_index"))
             keywords = [
-                keyword.get("display_name")
-                for keyword in pub.get("keywords") or []
-                if keyword.get("display_name")
+                kw.get("display_name")
+                for kw in (pub.get("keywords") or [])
+                if kw.get("display_name")
             ]
-            candidate_text = " ".join(
-                filter(
-                    None,
-                    [
-                        pub.get("title") or "",
-                        abstract,
-                        " ".join(keywords),
-                    ],
-                )
-            )
+            candidate_text = " ".join(filter(None, [pub.get("title") or "", abstract, " ".join(keywords)]))
             if not candidate_text.strip():
                 continue
-            candidates.append(
-                {
-                    "openalex_id": openalex_id,
-                    "title": pub.get("title") or "",
-                    "year": pub.get("publication_year"),
-                    "doi": pub.get("doi"),
-                    "pdf_url": primary_location.get("pdf_url"),
-                    "landing_page_url": primary_location.get("landing_page_url")
-                    or open_access.get("oa_url"),
-                    "authors": authors,
-                    "abstract": abstract,
-                    "keywords": keywords,
-                    "citation_count": pub.get("cited_by_count") or 0,
-                    "venue": (primary_location.get("source") or {}).get("display_name"),
-                    "is_oa": open_access.get("is_oa"),
-                    "pub_type": pub.get("type"),
-                    "_text": candidate_text,
-                }
-            )
+
+            candidates.append({
+                "openalex_id": openalex_id,
+                "title": pub.get("title") or "",
+                "year": pub.get("publication_year"),
+                "doi": pub.get("doi"),
+                "pdf_url": primary_location.get("pdf_url"),
+                "landing_page_url": primary_location.get("landing_page_url") or open_access.get("oa_url"),
+                "authors": authors,
+                "abstract": abstract,
+                "keywords": keywords,
+                "citation_count": pub.get("cited_by_count") or 0,
+                "venue": (primary_location.get("source") or {}).get("display_name"),
+                "is_oa": open_access.get("is_oa"),
+                "pub_type": pub.get("type"),
+                "_text": candidate_text,
+            })
 
         if not candidates:
             return Response({"recommendations": []})
+
+        model = get_model()
         profile_vector = model.encode([profile_text], normalize_embeddings=True)
-        candidate_vectors = model.encode(
-            [candidate["_text"] for candidate in candidates],
-            normalize_embeddings=True,
-        )
+        candidate_vectors = model.encode([c["_text"] for c in candidates], normalize_embeddings=True)
         similarity_scores = cosine_similarity(profile_vector, candidate_vectors)[0]
-        max_citations = max(
-            (candidate["citation_count"] for candidate in candidates),
-            default=1,
-        )
+        max_citations = max((c["citation_count"] for c in candidates), default=1)
+
         def combined_score(similarity, citation_count, year):
             citation_score = math.log1p(citation_count) / math.log1p(max_citations)
-            if year:
-                age = max(0, current_year - year)
-                recency_score = 1 / (1 + age)
-            else:
-                recency_score = 0
             return 0.90 * similarity + 0.10 * citation_score
 
-        for index, candidate in enumerate(candidates):
-            candidate["_score"] = combined_score(
-                similarity_scores[index],
-                candidate["citation_count"],
-                candidate["year"],
-            )
-            candidate["similarity"] = round(float(similarity_scores[index]) * 100)
-        ranked = sorted(candidates, key=lambda item: item["_score"], reverse=True)
+        for i, candidate in enumerate(candidates):
+            candidate["_score"] = combined_score(similarity_scores[i], candidate["citation_count"], candidate["year"])
+            candidate["similarity"] = round(float(similarity_scores[i]) * 100)
+
+        ranked = sorted(candidates, key=lambda c: c["_score"], reverse=True)
 
         top = []
         seen_venues = Counter()
@@ -212,6 +166,7 @@ class ProjectRecommendationsView(generics.GenericAPIView):
                 break
 
         return Response({"recommendations": top})
+
     def reconstruct_abstract(self, inverted_index):
         if not inverted_index:
             return ""
@@ -225,5 +180,4 @@ class ProjectRecommendationsView(generics.GenericAPIView):
     def normalize_title(self, title):
         title = (title or "").lower()
         title = re.sub(r"[^a-z0-9\s]", "", title)
-        title = re.sub(r"\s+", " ", title).strip()
-        return title
+        return re.sub(r"\s+", " ", title).strip()

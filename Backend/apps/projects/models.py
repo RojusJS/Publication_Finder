@@ -13,16 +13,51 @@ class Project(models.Model):
         return self.name
 
 
+class ProjectCollaborator(models.Model):
+    class Role(models.TextChoices):
+        VIEWER = "viewer", "Viewer"
+        EDITOR = "editor", "Editor"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="collaborators")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="collaborations")
+    invited_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_invitations")
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.EDITOR)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    invited_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("project", "user")
+
+    def __str__(self):
+        return f"{self.user.username} -> {self.project.name} ({self.status})"
+
+
 class Folder(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="folders")
+    parent = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="subfolders")
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("project", "name")
+        unique_together = ("project", "parent", "name")
 
     def __str__(self):
         return f"{self.project.name} / {self.name}"
+
+    def get_breadcrumb(self):
+        crumbs = []
+        node = self
+        while node is not None:
+            crumbs.append({"id": node.id, "name": node.name})
+            node = node.parent
+        crumbs.reverse()
+        return crumbs
 
 
 class SavedPublication(models.Model):
@@ -70,14 +105,46 @@ class SavedPublication(models.Model):
     def __str__(self):
         return self.title
 
+
 class PublicationNote(models.Model):
-    publication = models.ForeignKey(
-        SavedPublication,
-        on_delete=models.CASCADE,
-        related_name="notes"
-    )
+    publication = models.ForeignKey(SavedPublication, on_delete=models.CASCADE, related_name="notes")
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return f"Note for {self.publication.title[:40]}"
+
+
+class RecommendationFeedback(models.Model):
+    class Feedback(models.TextChoices):
+        POSITIVE = "positive", "Positive"
+        NEGATIVE = "negative", "Negative"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recommendation_feedback")
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="recommendation_feedback")
+    openalex_id = models.CharField(max_length=255)
+    title = models.TextField(blank=True)
+    feedback = models.CharField(max_length=20, choices=Feedback.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "project", "openalex_id")
+
+    def __str__(self):
+        return f"{self.user.username} / {self.feedback} / {self.openalex_id}"
+
+
+class SearchHistory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="search_history")
+    query = models.CharField(max_length=500)
+    search_by = models.CharField(max_length=50, default="title")
+    filters = models.JSONField(default=dict, blank=True)
+    result_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username}: {self.query}"
