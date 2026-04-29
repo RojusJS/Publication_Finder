@@ -136,7 +136,6 @@ function PublicationNotes({ pubId }) {
       <strong
         style={{
           fontFamily: "Times New Roman",
-          fontSize: "14px",
           color: "#1e2d4a",
           letterSpacing: "0.06em",
           textTransform: "uppercase",
@@ -266,14 +265,6 @@ function PublicationNotes({ pubId }) {
                         fontSize: "11px",
                         color: "#7a90aa",
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "#7fa8d4";
-                        e.currentTarget.style.color = "#1e2d4a";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "#dce3ed";
-                        e.currentTarget.style.color = "#7a90aa";
-                      }}
                     >
                       Redaguoti
                     </button>
@@ -288,14 +279,6 @@ function PublicationNotes({ pubId }) {
                         fontFamily: "Times New Roman",
                         fontSize: "11px",
                         color: "#7a90aa",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "#c0392b";
-                        e.currentTarget.style.color = "#c0392b";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "#dce3ed";
-                        e.currentTarget.style.color = "#7a90aa";
                       }}
                     >
                       Ištrinti
@@ -327,8 +310,9 @@ function PublicationNotes({ pubId }) {
               placeholder="Pridėti pastabą..."
               rows={2}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                   handleCreate();
+                }
               }}
               style={{
                 width: "100%",
@@ -343,8 +327,6 @@ function PublicationNotes({ pubId }) {
                 boxSizing: "border-box",
                 background: "#f7f9fc",
               }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#1e2d4a")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#c8d4e3")}
             />
             {newText.trim() && (
               <button
@@ -394,13 +376,22 @@ function PublicationCardModal({
       setSaveOpen(false);
       setSelectedProject(null);
       setFolders([]);
+      setFoldersLoading(false);
+      setSaving(false);
     }
   }, [open]);
 
   const handleSelectProject = async (project) => {
+    if (selectedProject?.id === project.id) {
+      setSelectedProject(null);
+      setFolders([]);
+      return;
+    }
+
     setSelectedProject(project);
     setFolders([]);
     setFoldersLoading(true);
+
     try {
       const data = await getFolders(project.id);
       setFolders(data);
@@ -412,13 +403,17 @@ function PublicationCardModal({
   };
 
   const handleSaveToFolder = async (folderId) => {
+    if (!selectedProject || !pub) return;
+
     try {
       setSaving(true);
+
       if (folderId === null) {
         await savePublicationToProject(selectedProject.id, pub);
       } else {
         await savePublication(selectedProject.id, folderId, pub);
       }
+
       showToast(t.saved, "success");
       setSaveOpen(false);
       setSelectedProject(null);
@@ -437,7 +432,11 @@ function PublicationCardModal({
     color: "#5a7090",
     fontFamily: "Times New Roman",
   };
-  const labelStyle = { fontWeight: "700", color: "#1e2d4a" };
+
+  const labelStyle = {
+    fontWeight: "700",
+    color: "#1e2d4a",
+  };
 
   return (
     <>
@@ -471,12 +470,6 @@ function PublicationCardModal({
                 color: "#ffffff",
                 fontWeight: "600",
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#2a3f63")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "#1e2d4a")
-              }
             >
               {t.show_citation_graph}
             </button>
@@ -500,14 +493,6 @@ function PublicationCardModal({
                   color: "#1e2d4a",
                   opacity: saving ? 0.7 : 1,
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f0f4fa";
-                  e.currentTarget.style.borderColor = "#7fa8d4";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "none";
-                  e.currentTarget.style.borderColor = "#dce3ed";
-                }}
               >
                 {saving ? t.saving : t.save_to_project}
               </button>
@@ -522,9 +507,10 @@ function PublicationCardModal({
                     border: "1px solid #dce3ed",
                     borderRadius: "8px",
                     boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
-                    minWidth: "220px",
-                    zIndex: 20,
-                    overflow: "hidden",
+                    minWidth: "260px",
+                    maxHeight: "360px",
+                    overflowY: "auto",
+                    zIndex: 100,
                   }}
                 >
                   {projects.length === 0 ? (
@@ -540,12 +526,9 @@ function PublicationCardModal({
                     </div>
                   ) : (
                     projects.map((project) => (
-                      <div
-                        key={project.id}
-                        onMouseEnter={() => handleSelectProject(project)}
-                        style={{ position: "relative" }}
-                      >
+                      <div key={project.id}>
                         <div
+                          onClick={() => handleSelectProject(project)}
                           style={{
                             padding: "9px 14px",
                             cursor: "pointer",
@@ -561,32 +544,35 @@ function PublicationCardModal({
                                 : "none",
                           }}
                         >
-                          {project.name}
+                          <span
+                            style={{
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              paddingRight: "12px",
+                            }}
+                          >
+                            {project.name}
+                          </span>
                           <span style={{ color: "#c8d4e3", fontSize: "11px" }}>
-                            ▸
+                            {selectedProject?.id === project.id ? "▾" : "▸"}
                           </span>
                         </div>
+
                         {selectedProject?.id === project.id && (
                           <div
                             style={{
-                              position: "absolute",
-                              top: 0,
-                              left: "calc(100% + 4px)",
-                              background: "#ffffff",
-                              border: "1px solid #dce3ed",
-                              borderRadius: "8px",
-                              boxShadow: "0 8px 24px rgba(30,45,74,0.12)",
-                              minWidth: "200px",
-                              zIndex: 21,
-                              overflow: "hidden",
+                              borderTop: "1px solid #eef1f6",
+                              background: "#fbfcfe",
                             }}
                           >
                             {foldersLoading ? (
                               <div
                                 style={{
-                                  padding: "10px 14px",
+                                  padding: "10px 18px",
                                   color: "#7a90aa",
                                   fontSize: "13px",
+                                  fontFamily: "Times New Roman",
                                 }}
                               >
                                 {t.loading}
@@ -595,16 +581,9 @@ function PublicationCardModal({
                               <>
                                 <button
                                   onClick={() => handleSaveToFolder(null)}
-                                  onMouseEnter={(e) =>
-                                    (e.currentTarget.style.background =
-                                      "#eef1f6")
-                                  }
-                                  onMouseLeave={(e) =>
-                                    (e.currentTarget.style.background = "none")
-                                  }
                                   style={{
                                     width: "100%",
-                                    padding: "9px 14px",
+                                    padding: "9px 18px",
                                     background: "none",
                                     border: "none",
                                     borderBottom: "1px solid #eef1f6",
@@ -613,18 +592,20 @@ function PublicationCardModal({
                                     fontFamily: "Times New Roman",
                                     fontSize: "13px",
                                     color: "#7a90aa",
-                                    boxSizing: "border-box",
                                     fontStyle: "italic",
+                                    boxSizing: "border-box",
                                   }}
                                 >
                                   Išsaugoti pačiame projekte
                                 </button>
+
                                 {folders.length === 0 ? (
                                   <div
                                     style={{
-                                      padding: "10px 14px",
+                                      padding: "10px 18px",
                                       color: "#7a90aa",
                                       fontSize: "13px",
+                                      fontFamily: "Times New Roman",
                                     }}
                                   >
                                     {t.no_folders_dropdown}
@@ -636,17 +617,9 @@ function PublicationCardModal({
                                       onClick={() =>
                                         handleSaveToFolder(folder.id)
                                       }
-                                      onMouseEnter={(e) =>
-                                        (e.currentTarget.style.background =
-                                          "#eef1f6")
-                                      }
-                                      onMouseLeave={(e) =>
-                                        (e.currentTarget.style.background =
-                                          "none")
-                                      }
                                       style={{
                                         width: "100%",
-                                        padding: "9px 14px",
+                                        padding: "9px 18px",
                                         background: "none",
                                         border: "none",
                                         textAlign: "left",
@@ -681,6 +654,7 @@ function PublicationCardModal({
               {pub.authors.join(", ")}
             </div>
           )}
+
           {pub.institutions?.length > 0 && (
             <div style={metaStyle}>
               <InstitutionsList
@@ -689,6 +663,7 @@ function PublicationCardModal({
               />
             </div>
           )}
+
           {pub.source_name && (
             <div style={metaStyle}>
               <span style={labelStyle}>{t.source}:</span> {pub.source_name}
@@ -701,23 +676,28 @@ function PublicationCardModal({
                 <span style={labelStyle}>{t.year}:</span> {pub.year}
               </div>
             )}
-            {pub.type && (
+
+            {(pub.type || pub.pub_type) && (
               <div style={metaStyle}>
-                <span style={labelStyle}>{t.type_label}:</span> {pub.type}
+                <span style={labelStyle}>{t.type_label}:</span>{" "}
+                {pub.type || pub.pub_type}
               </div>
             )}
+
             {pub.language && (
               <div style={metaStyle}>
                 <span style={labelStyle}>{t.language}:</span>{" "}
                 {pub.language.toUpperCase()}
               </div>
             )}
+
             {pub.cited_by_count != null && (
               <div style={metaStyle}>
                 <span style={labelStyle}>{t.citations}:</span>{" "}
                 {pub.cited_by_count}
               </div>
             )}
+
             {pub.is_oa != null && (
               <div style={metaStyle}>
                 <span style={labelStyle}>{t.open_access_label}:</span>{" "}
@@ -787,6 +767,7 @@ function PublicationCardModal({
                 </a>
               </div>
             )}
+
             {pub.pdf_url && (
               <a
                 href={pub.pdf_url}

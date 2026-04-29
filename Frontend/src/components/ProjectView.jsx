@@ -801,17 +801,14 @@ function ProjectView({
                 {[
                   {
                     label: "PDF",
-                    sublabel: "Spausdinti / peržiūra",
                     action: handleExportPdf,
                   },
                   {
                     label: "BibTeX (.bib)",
-                    sublabel: "LaTeX, Overleaf",
                     action: handleExportBibtex,
                   },
                   {
                     label: "RIS (.ris)",
-                    sublabel: "Zotero, Mendeley",
                     action: handleExportRis,
                   },
                 ].map(({ label, sublabel, action }) => (
@@ -881,7 +878,7 @@ function ProjectView({
         style={{
           background: "#eef1f6",
           borderBottom: "1px solid #dce3ed",
-          padding: "7px 20px",
+          padding: "4px 20px",
           display: "flex",
           alignItems: "center",
           gap: "6px",
@@ -1084,76 +1081,95 @@ function ProjectView({
                   Bendradarbiai
                 </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                  {collaborators.map((c) => (
-                    <div
-                      key={c.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "4px 10px",
-                        background: "#ffffff",
-                        border: "1px solid #dce3ed",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                      }}
-                    >
-                      <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
-                        {c.user.username}
-                      </span>
-                      <span style={{ color: "#7a90aa" }}>
-                        {c.role === "editor" ? "Redaktorius" : "Stebėtojas"}
-                      </span>
-                      <span
+                  {collaborators.map((c) => {
+                    const isOwner = c.role === "owner";
+                    const isMe =
+                      c.user.username ===
+                      (localStorage.getItem("username") || "");
+                    return (
+                      <div
+                        key={c.id ?? `owner-${c.user.id}`}
                         style={{
-                          padding: "1px 6px",
-                          borderRadius: "10px",
-                          fontSize: "10px",
-                          fontWeight: "600",
-                          background:
-                            c.status === "accepted"
-                              ? "#e8f5ec"
-                              : c.status === "pending"
-                                ? "#fef9e7"
-                                : "#fdecea",
-                          color:
-                            c.status === "accepted"
-                              ? "#1e6640"
-                              : c.status === "pending"
-                                ? "#6b5200"
-                                : "#922b21",
-                        }}
-                      >
-                        {c.status === "accepted"
-                          ? "Aktyvus"
-                          : c.status === "pending"
-                            ? "Laukiama"
-                            : "Atmesta"}
-                      </span>
-                      <button
-                        onClick={() =>
-                          handleRemoveCollaborator(c.id, c.user.username)
-                        }
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "#7a90aa",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 10px",
+                          background: "#ffffff",
+                          border: "1px solid #dce3ed",
+                          borderRadius: "20px",
                           fontSize: "12px",
-                          padding: "0",
-                          lineHeight: 1,
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.color = "#c0392b")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.color = "#7a90aa")
-                        }
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                        <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
+                          {c.user.username}
+                          {isMe ? " (aš)" : ""}
+                        </span>
+                        <span style={{ color: "#7a90aa" }}>
+                          {isOwner
+                            ? "Savininkas"
+                            : c.role === "editor"
+                              ? "Redaktorius"
+                              : "Stebėtojas"}
+                        </span>
+                        {!isOwner && (
+                          <span
+                            style={{
+                              padding: "1px 6px",
+                              borderRadius: "10px",
+                              fontSize: "10px",
+                              fontWeight: "600",
+                              background:
+                                c.status === "accepted"
+                                  ? "#e8f5ec"
+                                  : c.status === "pending"
+                                    ? "#fef9e7"
+                                    : "#fdecea",
+                              color:
+                                c.status === "accepted"
+                                  ? "#1e6640"
+                                  : c.status === "pending"
+                                    ? "#6b5200"
+                                    : "#922b21",
+                            }}
+                          >
+                            {c.status === "accepted"
+                              ? "Aktyvus"
+                              : c.status === "pending"
+                                ? "Laukiama"
+                                : "Atmesta"}
+                          </span>
+                        )}
+                        {(!isOwner && project.user === undefined) ||
+                        (!isOwner &&
+                          collaborators[0]?.role === "owner" &&
+                          collaborators[0]?.user?.username ===
+                            (localStorage.getItem("username") || "")) ? (
+                          <button
+                            onClick={() =>
+                              handleRemoveCollaborator(c.id, c.user.username)
+                            }
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "#7a90aa",
+                              fontSize: "12px",
+                              padding: "0",
+                              lineHeight: 1,
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.color = "#c0392b")
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.color = "#7a90aa")
+                            }
+                          >
+                            ✕
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1223,7 +1239,7 @@ function ProjectView({
               }
               onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
             >
-              + {t.new_folder}
+              {t.new_folder}
             </button>
           </div>
 
@@ -1382,7 +1398,6 @@ function ProjectView({
                           gap: "10px",
                         }}
                       >
-                        <span style={{ fontSize: "16px" }}>📁</span>
                         <div>
                           <span
                             style={{
@@ -2202,7 +2217,7 @@ function ProjectView({
                             }
                           }}
                         >
-                          👍
+                          Aktualu
                         </button>
                         <button
                           onClick={() => handleFeedback(rec, "negative")}
@@ -2230,7 +2245,7 @@ function ProjectView({
                             }
                           }}
                         >
-                          👎
+                          Neaktualu
                         </button>
                       </div>
                     </div>

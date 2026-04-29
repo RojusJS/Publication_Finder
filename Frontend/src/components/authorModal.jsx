@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import Modal from "./modal";
 import PublicationCard from "./publicationCard";
 import { getAuthorDetail } from "../services/openalexApi";
 import { useToast } from "./toastContext";
+
+const PUBS_PER_PAGE = 10;
 
 function StatBadge({ label, value }) {
   return (
@@ -50,12 +51,14 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
   const [author, setAuthor] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedPubs, setSelectedPubs] = useState([]);
+  const [pubPage, setPubPage] = useState(1);
   const { showToast } = useToast();
 
   useEffect(() => {
     if (!open || !authorId) return;
     setAuthor(null);
     setSelectedPubs([]);
+    setPubPage(1);
     setLoading(true);
     getAuthorDetail(authorId)
       .then(setAuthor)
@@ -72,6 +75,13 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
   };
 
   if (!open) return null;
+
+  const pubs = author?.publications || [];
+  const totalPubPages = Math.ceil(pubs.length / PUBS_PER_PAGE);
+  const pagedPubs = pubs.slice(
+    (pubPage - 1) * PUBS_PER_PAGE,
+    pubPage * PUBS_PER_PAGE,
+  );
 
   return (
     <Modal
@@ -97,7 +107,7 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
       )}
 
       {!loading && author && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
           {author.hint && (
             <p
               style={{
@@ -111,12 +121,41 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
             </p>
           )}
 
+          {author.orcid && (
+            <div>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#7a90aa",
+                  fontFamily: "Times New Roman",
+                }}
+              >
+                ORCID{" "}
+              </span>
+              <a
+                href={author.orcid}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  fontSize: "13px",
+                  color: "#2a5db0",
+                  fontFamily: "Times New Roman",
+                }}
+              >
+                {author.orcid}
+              </a>
+            </div>
+          )}
+
           {author.institutions?.length > 0 && (
             <div>
               <p
                 style={{
-                  margin: "0 0 6px",
-                  fontSize: "10px",
+                  margin: "0 0 5px",
+                  fontSize: "11px",
                   fontWeight: "700",
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
@@ -149,7 +188,7 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
               <p
                 style={{
                   margin: "0 0 8px",
-                  fontSize: "10px",
+                  fontSize: "11px",
                   fontWeight: "700",
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
@@ -191,65 +230,19 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
             </div>
           )}
 
-          {author.counts_by_year?.length > 0 && (
-            <div>
-              <p
-                style={{
-                  margin: "0 0 8px",
-                  fontSize: "10px",
-                  fontWeight: "700",
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "#7a90aa",
-                  fontFamily: "Times New Roman",
-                }}
-              >
-                Aktyvumas (paskutiniai metai)
-              </p>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {[...author.counts_by_year].reverse().map((y) => (
-                  <div
-                    key={y.year}
-                    style={{ textAlign: "center", minWidth: "50px" }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        color: "#1e2d4a",
-                        fontFamily: "Times New Roman",
-                      }}
-                    >
-                      {y.works_count}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        color: "#7a90aa",
-                        fontFamily: "Times New Roman",
-                      }}
-                    >
-                      {y.year}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {author.publications?.length > 0 && (
+          {pubs.length > 0 && (
             <div>
               <div
                 style={{
                   height: "1px",
                   background: "#eef1f6",
-                  marginBottom: "16px",
+                  marginBottom: "14px",
                 }}
               />
               <p
                 style={{
                   margin: "0 0 12px",
-                  fontSize: "10px",
+                  fontSize: "11px",
                   fontWeight: "700",
                   letterSpacing: "0.1em",
                   textTransform: "uppercase",
@@ -257,12 +250,10 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
                   fontFamily: "Times New Roman",
                 }}
               >
-                Publikacijos ({author.publications.length})
+                Publikacijos ({pubs.length})
               </p>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "0" }}
-              >
-                {author.publications.map((pub, i) => (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {pagedPubs.map((pub, i) => (
                   <PublicationCard
                     key={pub.openalex_id ?? i}
                     pub={pub}
@@ -275,10 +266,50 @@ function AuthorModal({ open, onClose, authorId, projects = [] }) {
                   />
                 ))}
               </div>
+              {totalPubPages > 1 && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "6px",
+                    justifyContent: "center",
+                    padding: "14px 0 0",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {Array.from({ length: totalPubPages }, (_, i) => i + 1).map(
+                    (p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPubPage(p)}
+                        style={{
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "7px",
+                          border:
+                            p === pubPage
+                              ? "2px solid #1e2d4a"
+                              : "1px solid #dce3ed",
+                          background: p === pubPage ? "#1e2d4a" : "#ffffff",
+                          color: p === pubPage ? "#ffffff" : "#5a7090",
+                          cursor: "pointer",
+                          fontFamily: "Times New Roman",
+                          fontSize: "13px",
+                          padding: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {!author.publications?.length && (
+          {pubs.length === 0 && (
             <p
               style={{
                 color: "#7a90aa",

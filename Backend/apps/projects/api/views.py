@@ -70,6 +70,12 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         return get_accessible_project(self.request.user, self.kwargs["project_id"])
 
+    def perform_update(self, serializer):
+        project = self.get_object()
+        if project.user != self.request.user:
+            self.permission_denied(self.request, message="Only the owner can edit this project.")
+        serializer.save()
+
     def perform_destroy(self, instance):
         if instance.user != self.request.user:
             self.permission_denied(self.request, message="Only the owner can delete this project.")
@@ -81,9 +87,18 @@ class CollaboratorListView(APIView):
 
     def get(self, request, project_id):
         project = get_accessible_project(request.user, project_id)
+        owner_entry = {
+            "id": None,
+            "user": {"id": project.user.id, "username": project.user.username, "email": project.user.email},
+            "invited_by": None,
+            "role": "owner",
+            "status": "accepted",
+            "invited_at": None,
+            "accepted_at": None,
+        }
         collaborators = ProjectCollaborator.objects.filter(project=project).select_related("user", "invited_by")
-        serializer = ProjectCollaboratorSerializer(collaborators, many=True)
-        return Response(serializer.data)
+        collab_data = ProjectCollaboratorSerializer(collaborators, many=True).data
+        return Response([owner_entry] + list(collab_data))
 
 
 class InviteCollaboratorView(APIView):
@@ -173,9 +188,12 @@ class FolderListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         project = self.get_project()
         parent_id = self.request.query_params.get("parent")
-        if parent_id == "root" or parent_id is None:
+        if parent_id is None or parent_id == "root":
             return Folder.objects.filter(project=project, parent__isnull=True).order_by("created_at")
-        return Folder.objects.filter(project=project, parent_id=parent_id).order_by("created_at")
+        try:
+            return Folder.objects.filter(project=project, parent_id=int(parent_id)).order_by("created_at")
+        except (ValueError, TypeError):
+            return Folder.objects.filter(project=project, parent__isnull=True).order_by("created_at")
 
     def perform_create(self, serializer):
         project = self.get_project()
@@ -301,11 +319,9 @@ class PublicationNoteListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_publication(self):
-        return get_object_or_404(
-            SavedPublication,
-            id=self.kwargs["publication_id"],
-            project__user=self.request.user,
-        )
+        pub = get_object_or_404(SavedPublication, id=self.kwargs["publication_id"])
+        get_accessible_project(self.request.user, pub.project_id)
+        return pub
 
     def get_queryset(self):
         return self.get_publication().notes.order_by("created_at")
@@ -319,12 +335,9 @@ class PublicationNoteDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        return get_object_or_404(
-            PublicationNote,
-            id=self.kwargs["note_id"],
-            publication__id=self.kwargs["publication_id"],
-            publication__project__user=self.request.user,
-        )
+        pub = get_object_or_404(SavedPublication, id=self.kwargs["publication_id"])
+        get_accessible_project(self.request.user, pub.project_id)
+        return get_object_or_404(PublicationNote, id=self.kwargs["note_id"], publication=pub)
 
 
 class PublicationLabelUpdateView(generics.UpdateAPIView):
@@ -333,11 +346,9 @@ class PublicationLabelUpdateView(generics.UpdateAPIView):
     http_method_names = ["patch"]
 
     def get_object(self):
-        return get_object_or_404(
-            SavedPublication,
-            id=self.kwargs["publication_id"],
-            project__user=self.request.user,
-        )
+        pub = get_object_or_404(SavedPublication, id=self.kwargs["publication_id"])
+        get_accessible_project(self.request.user, pub.project_id)
+        return pub
 
 
 class ProjectAnalyticsView(APIView):

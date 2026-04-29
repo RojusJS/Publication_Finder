@@ -11,6 +11,7 @@ function SearchBar({
   disabled,
   searchBy,
   setSearchBy,
+  activeFilters = {},
 }) {
   const [history, setHistory] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -34,7 +35,7 @@ function SearchBar({
 
   const saveToHistory = (q, by) => {
     if (!q.trim()) return;
-    const entry = { query: q.trim(), searchBy: by };
+    const entry = { query: q.trim(), searchBy: by, filters: activeFilters };
     const updated = [
       entry,
       ...JSON.parse(localStorage.getItem("searchHistory") || "[]").filter(
@@ -256,21 +257,93 @@ function SearchBar({
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     padding: "9px 14px",
                     cursor: "pointer",
                     borderBottom: "1px solid #f4f6f9",
                   }}
                 >
-                  <span
-                    style={{
-                      fontFamily: "Times New Roman",
-                      fontSize: "14px",
-                      color: "#1e2d4a",
-                    }}
-                  >
-                    {entry.query}
-                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontFamily: "Times New Roman",
+                        fontSize: "14px",
+                        color: "#1e2d4a",
+                      }}
+                    >
+                      {entry.query}
+                    </span>
+                    {entry.filters &&
+                      Object.keys(entry.filters).some(
+                        (k) => entry.filters[k],
+                      ) && (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "4px",
+                            flexWrap: "wrap",
+                            marginTop: "4px",
+                          }}
+                        >
+                          {entry.filters.yearFrom && (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                padding: "1px 6px",
+                                borderRadius: "10px",
+                                background: "#eef1f6",
+                                color: "#5a7090",
+                                border: "1px solid #dce3ed",
+                              }}
+                            >
+                              nuo {entry.filters.yearFrom}
+                            </span>
+                          )}
+                          {entry.filters.yearTo && (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                padding: "1px 6px",
+                                borderRadius: "10px",
+                                background: "#eef1f6",
+                                color: "#5a7090",
+                                border: "1px solid #dce3ed",
+                              }}
+                            >
+                              iki {entry.filters.yearTo}
+                            </span>
+                          )}
+                          {entry.filters.type && (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                padding: "1px 6px",
+                                borderRadius: "10px",
+                                background: "#eef1f6",
+                                color: "#5a7090",
+                                border: "1px solid #dce3ed",
+                              }}
+                            >
+                              {entry.filters.type}
+                            </span>
+                          )}
+                          {entry.filters.oaOnly && (
+                            <span
+                              style={{
+                                fontSize: "10px",
+                                padding: "1px 6px",
+                                borderRadius: "10px",
+                                background: "#e8f5ec",
+                                color: "#1e6640",
+                                border: "1px solid #b8dfc8",
+                              }}
+                            >
+                              Open Access
+                            </span>
+                          )}
+                        </div>
+                      )}
+                  </div>
                   <button
                     onClick={(e) => handleDeleteEntry(e, i)}
                     onMouseEnter={(e) =>

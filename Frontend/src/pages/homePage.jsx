@@ -18,6 +18,8 @@ function HomePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [authorResults, setAuthorResults] = useState([]);
+  const [authorPage, setAuthorPage] = useState(1);
+  const [authorTotalPages, setAuthorTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [yearFrom, setYearFrom] = useState("");
@@ -79,11 +81,7 @@ function HomePage() {
     }
   };
 
-  const handleSearch = async (
-    overrideQuery,
-    overrideSearchBy,
-    overridePage,
-  ) => {
+  const handleSearch = async (overrideQuery, overrideSearchBy, overridePage) => {
     const q = overrideQuery ?? query;
     const by = overrideSearchBy ?? searchBy;
     const p = overridePage ?? page;
@@ -96,30 +94,40 @@ function HomePage() {
       if (by === "author" && !institution) {
         const data = await searchAuthors(q);
         setAuthorResults(data.results || []);
-        setTotalPages(1);
+        setAuthorTotalPages(Math.min(Math.ceil((data.total_count || 0) / 10), 10));
+        setAuthorPage(1);
       } else {
-        const data = await searchPublications(
-          institution ? institution.id : q,
-          {
-            yearFrom,
-            yearTo,
-            author: author || undefined,
-            oa: oaOnly ? true : undefined,
-            type: type || undefined,
-            sort: sort || undefined,
-            searchBy: institution ? "institution" : by,
-            page: p,
-          },
-        );
+        const data = await searchPublications(institution ? institution.id : q, {
+          yearFrom,
+          yearTo,
+          author: author || undefined,
+          oa: oaOnly ? true : undefined,
+          type: type || undefined,
+          sort: sort || undefined,
+          searchBy: institution ? "institution" : by,
+          page: p,
+        });
         setResults(data.results || []);
-        const total = Math.min(
-          Math.ceil((data.total_count || 0) / 10),
-          TOTAL_PAGES,
-        );
+        const total = Math.min(Math.ceil((data.total_count || 0) / 10), TOTAL_PAGES);
         setTotalPages(total);
       }
     } catch (err) {
       setError(err.message || "Nepavyko gauti rezultatų");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAuthorPageChange = async (newPage) => {
+    setAuthorPage(newPage);
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await searchAuthors(query, newPage);
+      setAuthorResults(data.results || []);
+      if (resultsRef.current) resultsRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err.message || "Nepavyko gauti autorių");
     } finally {
       setLoading(false);
     }
@@ -260,9 +268,7 @@ function HomePage() {
                 setActiveProject(null);
               }}
               onProjectUpdated={(updated) => {
-                setProjects((prev) =>
-                  prev.map((p) => (p.id === updated.id ? updated : p)),
-                );
+                setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
                 setActiveProject(updated);
               }}
               projects={projects}
@@ -280,30 +286,11 @@ function HomePage() {
                 disabled={loading}
                 searchBy={searchBy}
                 setSearchBy={setSearchBy}
+                activeFilters={{ yearFrom, yearTo, type, oaOnly }}
               />
 
-              {loading && (
-                <p
-                  style={{
-                    color: "#7a90aa",
-                    fontFamily: "Times New Roman",
-                    fontSize: "14px",
-                  }}
-                >
-                  {t.loading}
-                </p>
-              )}
-              {error && (
-                <p
-                  style={{
-                    color: "#c0392b",
-                    fontFamily: "Times New Roman",
-                    fontSize: "14px",
-                  }}
-                >
-                  {error}
-                </p>
-              )}
+              {loading && <p style={{ color: "#7a90aa", fontFamily: "Times New Roman", fontSize: "14px" }}>{t.loading}</p>}
+              {error && <p style={{ color: "#c0392b", fontFamily: "Times New Roman", fontSize: "14px" }}>{error}</p>}
 
               <div
                 ref={resultsRef}
@@ -316,23 +303,32 @@ function HomePage() {
               >
                 {authorResults.length > 0 && (
                   <>
-                    <p
-                      style={{
-                        margin: "0 0 10px",
-                        fontSize: "12px",
-                        color: "#7a90aa",
-                        fontFamily: "Times New Roman",
-                      }}
-                    >
-                      Rasta {authorResults.length} autorių
+                    <p style={{ margin: "0 0 10px", fontSize: "12px", color: "#7a90aa", fontFamily: "Times New Roman" }}>
+                      Rasta autorių
                     </p>
                     {authorResults.map((a, index) => (
-                      <AuthorCard
-                        key={a.id ?? index}
-                        author={a}
-                        projects={projects}
-                      />
+                      <AuthorCard key={a.id ?? index} author={a} projects={projects} />
                     ))}
+                    {authorTotalPages > 1 && (
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "center", padding: "16px 0", flexWrap: "wrap" }}>
+                        {Array.from({ length: authorTotalPages }, (_, i) => i + 1).map((p) => (
+                          <button
+                            key={p}
+                            onClick={() => handleAuthorPageChange(p)}
+                            style={{
+                              width: "34px", height: "34px", borderRadius: "8px",
+                              border: p === authorPage ? "2px solid #1e2d4a" : "1px solid #dce3ed",
+                              background: p === authorPage ? "#1e2d4a" : "#ffffff",
+                              color: p === authorPage ? "#ffffff" : "#5a7090",
+                              cursor: "pointer", fontFamily: "Times New Roman", fontSize: "14px",
+                              padding: 0, display: "flex", alignItems: "center", justifyContent: "center",
+                            }}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
                 {results.map((pub, index) => (
@@ -341,13 +337,11 @@ function HomePage() {
                     pub={pub}
                     projects={projects}
                     institutionName={institution?.display_name}
-                    isSelected={selectedPubs.some(
-                      (p) => p.openalex_id === pub.openalex_id,
-                    )}
+                    isSelected={selectedPubs.some((p) => p.openalex_id === pub.openalex_id)}
                     onToggleSelect={handleToggleSelect}
                   />
                 ))}
-                {totalPages > 1 && (
+                {authorResults.length === 0 && totalPages > 1 && (
                   <div
                     style={{
                       display: "flex",
@@ -357,35 +351,30 @@ function HomePage() {
                       flexWrap: "wrap",
                     }}
                   >
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (p) => (
-                        <button
-                          key={p}
-                          onClick={() => handlePageChange(p)}
-                          style={{
-                            width: "34px",
-                            height: "34px",
-                            borderRadius: "8px",
-                            border:
-                              p === page
-                                ? "2px solid #1e2d4a"
-                                : "1px solid #dce3ed",
-                            background: p === page ? "#1e2d4a" : "#fff",
-                            color: p === page ? "#fff" : "#5a7090",
-                            cursor: "pointer",
-                            fontFamily: "Times New Roman",
-                            fontSize: "14px",
-                            padding: 0,
-                            lineHeight: "1",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          {p}
-                        </button>
-                      ),
-                    )}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        style={{
+                          width: "34px",
+                          height: "34px",
+                          borderRadius: "8px",
+                          border: p === page ? "2px solid #1e2d4a" : "1px solid #dce3ed",
+                          background: p === page ? "#1e2d4a" : "#fff",
+                          color: p === page ? "#fff" : "#5a7090",
+                          cursor: "pointer",
+                          fontFamily: "Times New Roman",
+                          fontSize: "14px",
+                          padding: 0,
+                          lineHeight: "1",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>

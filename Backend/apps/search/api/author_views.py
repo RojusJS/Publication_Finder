@@ -1,8 +1,10 @@
 from django.http import JsonResponse
 import requests
+import os
 
 from apps.search.services.search_service import SearchService
 
+OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
 def author_search(request):
     q = request.GET.get("q", "").strip()
@@ -11,9 +13,12 @@ def author_search(request):
 
     try:
         url = "https://api.openalex.org/authors"
+        page = int(request.GET.get("page", 1))
         params = {
             "search": q,
             "per-page": 10,
+            "page": page,
+            "api_key": OPENALEX_API_KEY,
         }
         resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
@@ -27,7 +32,6 @@ def author_search(request):
                     institutions.append(inst["display_name"])
 
             concepts = []
-
             counts_by_year = a.get("counts_by_year") or []
 
             authors.append({
@@ -57,7 +61,11 @@ def author_detail(request):
     try:
         short_id = author_id.replace("https://openalex.org/", "")
         url = f"https://api.openalex.org/authors/{short_id}"
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(
+            url,
+            params={"api_key": OPENALEX_API_KEY},
+            timeout=15
+        )
         resp.raise_for_status()
         a = resp.json()
 
@@ -75,10 +83,11 @@ def author_detail(request):
         works_params = {
             "filter": f"author.id:{short_id}",
             "sort": "cited_by_count:desc",
-            "per-page": 20,
+            "per-page": 200,
             "select": "id,title,publication_year,doi,cited_by_count,open_access,primary_location,type,authorships,abstract_inverted_index,keywords",
+            "api_key": OPENALEX_API_KEY,
         }
-        works_resp = requests.get(works_url, params=works_params, timeout=15)
+        works_resp = requests.get(works_url, params=works_params, timeout=20)
         works_resp.raise_for_status()
         works_data = works_resp.json()
 
@@ -89,15 +98,20 @@ def author_detail(request):
             if mapped:
                 publications.append(mapped)
 
+        summary_stats = a.get("summary_stats") or {}
+
         return JsonResponse({
             "id": a.get("id"),
             "display_name": a.get("display_name"),
             "hint": a.get("hint"),
+            "orcid": a.get("orcid"),
             "cited_by_count": a.get("cited_by_count", 0),
             "works_count": a.get("works_count", 0),
+            "two_yr_mean_citedness": summary_stats.get("2yr_mean_citedness"),
+            "h_index": summary_stats.get("h_index"),
+            "i10_index": summary_stats.get("i10_index"),
             "institutions": institutions,
             "concepts": concepts,
-            "counts_by_year": (a.get("counts_by_year") or [])[:6],
             "publications": publications,
         })
 

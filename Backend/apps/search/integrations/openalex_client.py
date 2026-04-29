@@ -1,6 +1,8 @@
 from datetime import datetime
-
 import requests
+import os
+
+OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 
 SELECTED_FIELDS = ",".join([
     "id",
@@ -26,7 +28,10 @@ class OpenAlexClient:
     def get_publication_by_id(self, openalex_id: str) -> dict:
         short_id = openalex_id.replace("https://openalex.org/", "")
         url = f"https://api.openalex.org/works/{short_id}"
-        params = {"select": SELECTED_FIELDS_WITH_ABSTRACT}
+        params = {
+            "select": SELECTED_FIELDS_WITH_ABSTRACT,
+            "api_key": OPENALEX_API_KEY,
+        }
         resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
         return resp.json()
@@ -38,6 +43,7 @@ class OpenAlexClient:
             "filter": f"cites:{short_id}",
             "select": CITATION_GRAPH_FIELDS,
             "per-page": per_page,
+            "api_key": OPENALEX_API_KEY,
         }
         resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
@@ -46,7 +52,14 @@ class OpenAlexClient:
     def get_referenced_works(self, openalex_id: str, per_page: int = 16) -> list:
         short_id = openalex_id.replace("https://openalex.org/", "")
         meta_url = f"https://api.openalex.org/works/{short_id}"
-        meta_resp = requests.get(meta_url, params={"select": "referenced_works"}, timeout=15)
+        meta_resp = requests.get(
+            meta_url,
+            params={
+                "select": "referenced_works",
+                "api_key": OPENALEX_API_KEY,
+            },
+            timeout=15
+        )
         meta_resp.raise_for_status()
         refs = meta_resp.json().get("referenced_works", [])
         if not refs:
@@ -60,6 +73,7 @@ class OpenAlexClient:
             "filter": f"openalex_id:{ids}",
             "select": CITATION_GRAPH_FIELDS,
             "per-page": per_page,
+            "api_key": OPENALEX_API_KEY,
         }
         resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
@@ -105,6 +119,7 @@ class OpenAlexClient:
             "per-page": per_page,
             "page": page,
             "select": SELECTED_FIELDS if search_by in ("author", "institution") else SELECTED_FIELDS_WITH_ABSTRACT,
+            "api_key": OPENALEX_API_KEY,
         }
 
         if search_by in ("author", "institution"):

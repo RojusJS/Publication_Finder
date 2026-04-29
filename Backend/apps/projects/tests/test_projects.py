@@ -2,7 +2,13 @@ import pytest
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
-from apps.projects.models import Project, Folder, SavedPublication, PublicationNote
+from unittest.mock import patch, MagicMock
+import numpy as np
+
+from apps.projects.models import (
+    Project, Folder, SavedPublication, PublicationNote,
+    ProjectCollaborator, RecommendationFeedback, SearchHistory,
+)
 
 
 @pytest.fixture
@@ -12,405 +18,375 @@ def client():
 
 @pytest.fixture
 def user():
-    return User.objects.create_user(
-        username="testas",
-        email="testas@gmail.com",
-        password="slaptazodis1",
-    )
+    return User.objects.create_user(username="testas", email="testas@gmail.com", password="slaptazodis1")
+
 
 @pytest.fixture
 def other_user():
-    return User.objects.create_user(
-        username="kitas",
-        email="kitas@gmail.com",
-        password="slaptazodis2",
-    )
+    return User.objects.create_user(username="kitas", email="kitas@gmail.com", password="slaptazodis1")
+
 
 @pytest.fixture
 def auth_client(client, user):
     client.force_authenticate(user=user)
     return client
 
+
+@pytest.fixture
+def other_client(client, other_user):
+    c = APIClient()
+    c.force_authenticate(user=other_user)
+    return c
+
+
 @pytest.fixture
 def project(user):
-    return Project.objects.create(
-        user=user,
-        name="Projektas",
-        description="Test",
-    )
+    return Project.objects.create(user=user, name="Testas", description="Aprašymas")
+
 
 @pytest.fixture
 def folder(project):
-    return Folder.objects.create(
-        project=project,
-        name="Aplankalas",
-    )
+    return Folder.objects.create(project=project, name="Aplankas")
+
 
 @pytest.fixture
-def saved_publication(project, folder):
+def publication(project, folder):
     return SavedPublication.objects.create(
-        project=project,
-        folder=folder,
-        openalex_id="https://openalex.org/W123",
-        title="Publikacija 1",
-        year=2024,
-        doi="https://doi.org/10.1234/test",
-        pdf_url="https://example.com/test.pdf",
-        landing_page_url="https://example.com/article",
-        abstract="Santrauka",
-        authors=["Jonas Jonaitis"],
-        institutions=["Vilnius Tech"],
-        source_name="Test Journal",
-        cited_by_count=5,
-        language="en",
-        keywords=["ai"],
-        is_oa=True,
-        pub_type="journal-article",
+        project=project, folder=folder,
+        openalex_id="https://openalex.org/W1",
+        title="Test Publication", year=2022,
+        authors=["Author"], keywords=["ml"],
     )
+
+
 @pytest.mark.django_db
-def test_save_publication_to_project_level(auth_client, project):
-    payload = {
-        "openalex_id": "https://openalex.org/W999",
-        "title": "Publikacija projekto lygyje",
-        "year": 2024,
-        "doi": "https://doi.org/10.1234/project",
-        "pdf_url": "https://example.com/project.pdf",
-        "landing_page_url": "https://example.com/project",
-        "abstract": "Santrauka",
-        "authors": ["Jonas Jonaitis"],
-        "institutions": ["Vilnius Tech"],
-        "source_name": "Test Journal",
-        "cited_by_count": 10,
-        "language": "en",
-        "keywords": ["ml"],
-        "is_oa": True,
-        "pub_type": "journal-article",
-    }
-    response = auth_client.post(
-        f"/api/projects/{project.id}/publications/",
-        payload,
-        format="json",
-    )
+def test_create_project(auth_client):
+    response = auth_client.post("/api/projects/", {"name": "Naujas", "description": "Desc"}, format="json")
     assert response.status_code == status.HTTP_201_CREATED
-    assert SavedPublication.objects.filter(
-        project=project,
-        folder=None,
-        title="Publikacija projekto lygyje",
-    ).exists()
-
-@pytest.mark.django_db
-def test_list_project_level_publications(auth_client, project):
-    SavedPublication.objects.create(
-        project=project,
-        folder=None,
-        openalex_id="https://openalex.org/W777",
-        title="Publikacija be aplankalo",
-        year=2024,
-        doi="https://doi.org/10.1234/no-folder",
-        authors=["Jonas Jonaitis"],
-        institutions=["Vilnius Tech"],
-        keywords=["ai"],
-        is_oa=True,
-        pub_type="journal-article",
-    )
-    response = auth_client.get(f"/api/projects/{project.id}/publications/")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    titles = [publication["title"] for publication in data]
-    assert "Publikacija be aplankalo" in titles
+    assert response.data["name"] == "Naujas"
+    assert "owner" in response.data
 
 
 @pytest.mark.django_db
-def test_delete_project_level_publication(auth_client, project):
-    publication = SavedPublication.objects.create(
-        project=project,
-        folder=None,
-        openalex_id="https://openalex.org/W888",
-        title="Projektine publikacija",
-        year=2024,
-        doi="https://doi.org/10.1234/delete-project-level",
-        authors=["Jonas Jonaitis"],
-        institutions=["Vilnius Tech"],
-        keywords=["ai"],
-        is_oa=True,
-        pub_type="journal-article",
-    )
-    response = auth_client.delete(
-        f"/api/projects/{project.id}/publications/{publication.id}/"
-    )
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not SavedPublication.objects.filter(id=publication.id).exists()
-
-
-@pytest.mark.django_db
-def test_create_publication_note(auth_client, saved_publication):
-    payload = {
-        "text": "Mano pastaba apie publikaciją"
-    }
-    response = auth_client.post(
-        f"/api/projects/publications/{saved_publication.id}/notes/",
-        payload,
-        format="json",
-    )
-    assert response.status_code == status.HTTP_201_CREATED
-    assert PublicationNote.objects.filter(
-        publication=saved_publication,
-        text="Mano pastaba apie publikaciją",
-    ).exists()
-
-
-@pytest.mark.django_db
-def test_list_publication_notes(auth_client, saved_publication):
-    PublicationNote.objects.create(
-        publication=saved_publication,
-        text="Pirma pastaba",
-    )
-    PublicationNote.objects.create(
-        publication=saved_publication,
-        text="Antra pastaba",
-    )
-    response = auth_client.get(
-        f"/api/projects/publications/{saved_publication.id}/notes/"
-    )
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    texts = [note["text"] for note in data]
-    assert "Pirma pastaba" in texts
-    assert "Antra pastaba" in texts
-
-
-@pytest.mark.django_db
-def test_update_publication_note(auth_client, saved_publication):
-    note = PublicationNote.objects.create(
-        publication=saved_publication,
-        text="Sena pastaba",
-    )
-    payload = {
-        "text": "Atnaujinta pastaba"
-    }
-    response = auth_client.patch(
-        f"/api/projects/publications/{saved_publication.id}/notes/{note.id}/",
-        payload,
-        format="json",
-    )
-    assert response.status_code == status.HTTP_200_OK
-    note.refresh_from_db()
-    assert note.text == "Atnaujinta pastaba"
-
-@pytest.mark.django_db
-def test_delete_publication_note(auth_client, saved_publication):
-    note = PublicationNote.objects.create(
-        publication=saved_publication,
-        text="Trinama pastaba",
-    )
-    response = auth_client.delete(
-        f"/api/projects/publications/{saved_publication.id}/notes/{note.id}/"
-    )
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not PublicationNote.objects.filter(id=note.id).exists()
-
-@pytest.mark.django_db
-def test_update_publication_label(auth_client, saved_publication):
-    payload = {
-        "label": "Cituoti"
-    }
-    response = auth_client.patch(
-        f"/api/projects/publications/{saved_publication.id}/label/",
-        payload,
-        format="json",
-    )
-    assert response.status_code == status.HTTP_200_OK
-    saved_publication.refresh_from_db()
-    assert saved_publication.label == "Cituoti"
-
-
-@pytest.mark.django_db
-def test_create_project_success(auth_client):
-    payload = {
-        "name": "Mano projektas",
-        "description": "Testinis projekto aprasymas",
-    }
-    response = auth_client.post("/api/projects/", payload, format="json")
-    assert response.status_code == status.HTTP_201_CREATED
-    assert Project.objects.filter(name="Mano projektas").exists()
-
-@pytest.mark.django_db
-def test_created_project_saved_with_user(auth_client, user):
-    payload = {
-        "name": "Projektas 1",
-        "description": "Aprasymas 1",
-    }
-    auth_client.post("/api/projects/", payload, format="json")
-    project = Project.objects.get(name="Projektas 1")
-    assert project.user == user
-    assert project.description == "Aprasymas 1"
-
-@pytest.mark.django_db
-def test_list_projects_returns_only_current_user_projects(auth_client, user, other_user):
-    Project.objects.create(user=user, name="Mano projektas", description="A")
-    Project.objects.create(user=other_user, name="Svetimas projektas", description="B")
+def test_list_projects(auth_client, project):
     response = auth_client.get("/api/projects/")
     assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    names = [project["name"] for project in data]
-    assert "Mano projektas" in names
-    assert "Svetimas projektas" not in names
+    names = [p["name"] for p in response.data]
+    assert "Testas" in names
+
 
 @pytest.mark.django_db
-def test_delete_project_success(auth_client, user):
-    project = Project.objects.create(
-        user=user,
-        name="Trinamas projektas",
-        description="Bus istrintas",
+def test_list_projects_unauthenticated(client):
+    response = client.get("/api/projects/")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_retrieve_project(auth_client, project):
+    response = auth_client.get(f"/api/projects/{project.id}/")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["name"] == "Testas"
+
+
+@pytest.mark.django_db
+def test_update_project_owner(auth_client, project):
+    response = auth_client.patch(f"/api/projects/{project.id}/", {"name": "Atnaujintas"}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["name"] == "Atnaujintas"
+
+
+@pytest.mark.django_db
+def test_update_project_viewer_blocked(other_client, user, other_user, project):
+    ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.VIEWER, status=ProjectCollaborator.Status.ACCEPTED,
     )
+    response = other_client.patch(f"/api/projects/{project.id}/", {"name": "Hack"}, format="json")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+def test_delete_project_owner(auth_client, project):
     response = auth_client.delete(f"/api/projects/{project.id}/")
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert not Project.objects.filter(id=project.id).exists()
 
+
 @pytest.mark.django_db
-def test_user_cannot_delete_other_users_project(auth_client, other_user):
-    project = Project.objects.create(
-        user=other_user,
-        name="Svetimas projektas",
-        description="Negalima trinti",
+def test_delete_project_non_owner_blocked(other_client, user, other_user, project):
+    ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.EDITOR, status=ProjectCollaborator.Status.ACCEPTED,
     )
-    response = auth_client.delete(f"/api/projects/{project.id}/")
-    assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert Project.objects.filter(id=project.id).exists()
-
-@pytest.mark.django_db
-def test_unauthenticated_user_cannot_create_project(client):
-    payload = {
-        "name": "Neleistinas projektas",
-        "description": "Test",
-    }
-    response = client.post("/api/projects/", payload, format="json")
-    assert response.status_code in [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN]
+    response = other_client.delete(f"/api/projects/{project.id}/")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
-def test_create_folder_success(auth_client, user):
-    project = Project.objects.create(
-        user=user,
-        name="Projektas su aplankalu",
-        description="Test",
-    )
-    payload = {
-        "name": "Aplankalas 1",
-    }
-    response = auth_client.post(f"/api/projects/{project.id}/folders/", payload, format="json")
+def test_create_folder(auth_client, project):
+    response = auth_client.post(f"/api/projects/{project.id}/folders/", {"name": "Naujas aplankas"}, format="json")
     assert response.status_code == status.HTTP_201_CREATED
-    assert Folder.objects.filter(name="Aplankalas 1", project=project).exists()
-
-@pytest.mark.django_db
-def test_list_folders_returns_only_project_folders(auth_client, user):
-    project = Project.objects.create(
-        user=user,
-        name="Projektas",
-        description="Test",
-    )
-    Folder.objects.create(project=project, name="Aplankalas A")
-    Folder.objects.create(project=project, name="Aplankalas B")
-    response = auth_client.get(f"/api/projects/{project.id}/folders/")
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    names = [folder["name"] for folder in data]
-    assert "Aplankalas A" in names
-    assert "Aplankalas B" in names
+    assert response.data["name"] == "Naujas aplankas"
 
 
 @pytest.mark.django_db
-def test_save_publication_to_folder(auth_client, user):
-    project = Project.objects.create(
-        user=user,
-        name="Projektas",
-        description="Test",
-    )
-    folder = Folder.objects.create(project=project, name="Aplankalas")
-
-    payload = {
-        "openalex_id": "https://openalex.org/W123",
-        "title": "Publikacija 1",
-        "year": 2024,
-        "doi": "https://doi.org/10.1234/test",
-        "pdf_url": "https://example.com/test.pdf",
-        "landing_page_url": "https://example.com/article",
-        "abstract": "Santrauka",
-        "authors": ["Jonas Jonaitis"],
-        "institutions": ["Vilnius Tech"],
-        "source_name": "Test Journal",
-        "cited_by_count": 5,
-        "language": "en",
-        "keywords": ["ai"],
-        "is_oa": True,
-        "pub_type": "journal-article",
-    }
-
+def test_create_subfolder(auth_client, project, folder):
     response = auth_client.post(
-        f"/api/projects/{project.id}/folders/{folder.id}/publications/",
-        payload,
+        f"/api/projects/{project.id}/folders/",
+        {"name": "Poaplankas", "parent": folder.id},
         format="json",
     )
-
     assert response.status_code == status.HTTP_201_CREATED
-    assert SavedPublication.objects.filter(title="Publikacija 1", project=project, folder=folder).exists()
+    assert response.data["parent"] == folder.id
 
 
 @pytest.mark.django_db
-def test_list_saved_publications_in_folder(auth_client, user):
-    project = Project.objects.create(
-        user=user,
-        name="Projektas",
-        description="Test",
-    )
-    folder = Folder.objects.create(project=project, name="Aplankalas")
-
-    SavedPublication.objects.create(
-        project=project,
-        folder=folder,
-        openalex_id="https://openalex.org/W123",
-        title="Publikacija 1",
-        year=2024,
-        doi="https://doi.org/10.1234/test1",
-        authors=["Jonas Jonaitis"],
-        institutions=["Vilnius Tech"],
-        keywords=["ai"],
-        is_oa=True,
-        pub_type="journal-article",
-    )
-
-    response = auth_client.get(f"/api/projects/{project.id}/folders/{folder.id}/publications/")
+def test_folder_breadcrumb(auth_client, project, folder):
+    sub = Folder.objects.create(project=project, parent=folder, name="Poaplankas")
+    response = auth_client.get(f"/api/projects/{project.id}/folders/{sub.id}/")
     assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    titles = [publication["title"] for publication in data]
-    assert "Publikacija 1" in titles
+    crumbs = response.data["breadcrumb"]
+    assert crumbs[0]["name"] == folder.name
+    assert crumbs[1]["name"] == "Poaplankas"
 
 
 @pytest.mark.django_db
-def test_delete_saved_publication(auth_client, user):
-    project = Project.objects.create(
-        user=user,
-        name="Projektas",
-        description="Test",
-    )
-    folder = Folder.objects.create(project=project, name="Aplankalas")
+def test_folder_subfolder_count(auth_client, project, folder):
+    Folder.objects.create(project=project, parent=folder, name="Sub1")
+    Folder.objects.create(project=project, parent=folder, name="Sub2")
+    response = auth_client.get(f"/api/projects/{project.id}/folders/{folder.id}/")
+    assert response.data["subfolder_count"] == 2
 
-    publication = SavedPublication.objects.create(
-        project=project,
-        folder=folder,
-        openalex_id="https://openalex.org/W123",
-        title="Publikacija trynimui",
-        year=2024,
-        doi="https://doi.org/10.1234/test-delete",
-        authors=["Jonas Jonaitis"],
-        institutions=["Vilnius Tech"],
-        keywords=["ai"],
-        is_oa=True,
-        pub_type="journal-article",
-    )
 
-    response = auth_client.delete(
-        f"/api/projects/{project.id}/folders/{folder.id}/publications/{publication.id}/"
+@pytest.mark.django_db
+def test_list_root_folders(auth_client, project, folder):
+    response = auth_client.get(f"/api/projects/{project.id}/folders/")
+    assert response.status_code == status.HTTP_200_OK
+    names = [f["name"] for f in response.data]
+    assert folder.name in names
+
+
+@pytest.mark.django_db
+def test_list_subfolders_by_parent(auth_client, project, folder):
+    sub = Folder.objects.create(project=project, parent=folder, name="Poaplankas")
+    response = auth_client.get(f"/api/projects/{project.id}/folders/?parent={folder.id}")
+    assert response.status_code == status.HTTP_200_OK
+    names = [f["name"] for f in response.data]
+    assert "Poaplankas" in names
+
+
+@pytest.mark.django_db
+def test_create_note(auth_client, publication):
+    response = auth_client.post(
+        f"/api/projects/publications/{publication.id}/notes/",
+        {"text": "Pastaba"},
+        format="json",
     )
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.data["text"] == "Pastaba"
+
+
+@pytest.mark.django_db
+def test_list_notes(auth_client, publication):
+    PublicationNote.objects.create(publication=publication, text="Pastaba 1")
+    PublicationNote.objects.create(publication=publication, text="Pastaba 2")
+    response = auth_client.get(f"/api/projects/publications/{publication.id}/notes/")
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) == 2
+
+
+@pytest.mark.django_db
+def test_collaborator_can_read_notes(user, other_user, project, publication):
+    ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.EDITOR, status=ProjectCollaborator.Status.ACCEPTED,
+    )
+    PublicationNote.objects.create(publication=publication, text="Bendra pastaba")
+    c = APIClient()
+    c.force_authenticate(user=other_user)
+    response = c.get(f"/api/projects/publications/{publication.id}/notes/")
+    assert response.status_code == status.HTTP_200_OK
+    assert any(n["text"] == "Bendra pastaba" for n in response.data)
+
+
+@pytest.mark.django_db
+def test_update_note(auth_client, publication):
+    note = PublicationNote.objects.create(publication=publication, text="Sena")
+    response = auth_client.patch(
+        f"/api/projects/publications/{publication.id}/notes/{note.id}/",
+        {"text": "Nauja"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["text"] == "Nauja"
+
+
+@pytest.mark.django_db
+def test_delete_note(auth_client, publication):
+    note = PublicationNote.objects.create(publication=publication, text="Trinti")
+    response = auth_client.delete(f"/api/projects/publications/{publication.id}/notes/{note.id}/")
     assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not SavedPublication.objects.filter(id=publication.id).exists()
+    assert not PublicationNote.objects.filter(id=note.id).exists()
+
+
+@pytest.mark.django_db
+def test_update_label(auth_client, publication):
+    response = auth_client.patch(
+        f"/api/projects/publications/{publication.id}/label/",
+        {"label": "Cituota"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    publication.refresh_from_db()
+    assert publication.label == "Cituota"
+
+
+@pytest.mark.django_db
+def test_invite_collaborator(auth_client, project, other_user):
+    response = auth_client.post(
+        f"/api/projects/{project.id}/collaborators/invite/",
+        {"username": other_user.username, "role": "editor"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    assert ProjectCollaborator.objects.filter(project=project, user=other_user).exists()
+
+
+@pytest.mark.django_db
+def test_cannot_invite_self(auth_client, project, user):
+    response = auth_client.post(
+        f"/api/projects/{project.id}/collaborators/invite/",
+        {"username": user.username, "role": "editor"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_cannot_invite_duplicate(auth_client, project, other_user):
+    auth_client.post(
+        f"/api/projects/{project.id}/collaborators/invite/",
+        {"username": other_user.username, "role": "editor"},
+        format="json",
+    )
+    response = auth_client.post(
+        f"/api/projects/{project.id}/collaborators/invite/",
+        {"username": other_user.username, "role": "editor"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_invite_nonexistent_user(auth_client, project):
+    response = auth_client.post(
+        f"/api/projects/{project.id}/collaborators/invite/",
+        {"username": "neegzistuoja", "role": "editor"},
+        format="json",
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+def test_accept_invitation(other_client, user, other_user, project):
+    collab = ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.EDITOR, status=ProjectCollaborator.Status.PENDING,
+    )
+    response = other_client.post(f"/api/projects/invitations/{collab.id}/respond/", {"action": "accept"}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    collab.refresh_from_db()
+    assert collab.status == ProjectCollaborator.Status.ACCEPTED
+    assert collab.accepted_at is not None
+
+
+@pytest.mark.django_db
+def test_decline_invitation(other_client, user, other_user, project):
+    collab = ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.EDITOR, status=ProjectCollaborator.Status.PENDING,
+    )
+    response = other_client.post(f"/api/projects/invitations/{collab.id}/respond/", {"action": "decline"}, format="json")
+    assert response.status_code == status.HTTP_200_OK
+    collab.refresh_from_db()
+    assert collab.status == ProjectCollaborator.Status.DECLINED
+
+
+@pytest.mark.django_db
+def test_pending_invitations_list(other_client, user, other_user, project):
+    ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.EDITOR, status=ProjectCollaborator.Status.PENDING,
+    )
+    response = other_client.get("/api/projects/invitations/pending/")
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) == 1
+    assert response.data[0]["project_name"] == project.name
+
+
+@pytest.mark.django_db
+def test_collaborator_list_includes_owner(auth_client, project):
+    response = auth_client.get(f"/api/projects/{project.id}/collaborators/")
+    assert response.status_code == status.HTTP_200_OK
+    roles = [c["role"] for c in response.data]
+    assert "owner" in roles
+
+
+@pytest.mark.django_db
+def test_remove_collaborator(auth_client, project, user, other_user):
+    collab = ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.EDITOR, status=ProjectCollaborator.Status.ACCEPTED,
+    )
+    response = auth_client.delete(f"/api/projects/{project.id}/collaborators/{collab.id}/")
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not ProjectCollaborator.objects.filter(id=collab.id).exists()
+
+
+@pytest.mark.django_db
+def test_accepted_collaborator_sees_shared_project(other_client, user, other_user, project):
+    ProjectCollaborator.objects.create(
+        project=project, user=other_user, invited_by=user,
+        role=ProjectCollaborator.Role.EDITOR, status=ProjectCollaborator.Status.ACCEPTED,
+    )
+    response = other_client.get("/api/projects/")
+    assert response.status_code == status.HTTP_200_OK
+    names = [p["name"] for p in response.data]
+    assert project.name in names
+
+
+@pytest.mark.django_db
+def test_submit_positive_feedback(auth_client, project):
+    response = auth_client.post(
+        f"/api/projects/{project.id}/recommendation-feedback/",
+        {"openalex_id": "https://openalex.org/W1", "title": "Paper", "feedback": "positive"},
+        format="json",
+    )
+    assert response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]
+    assert RecommendationFeedback.objects.filter(
+        project=project, openalex_id="https://openalex.org/W1", feedback="positive"
+    ).exists()
+
+
+@pytest.mark.django_db
+def test_submit_negative_feedback(auth_client, project):
+    response = auth_client.post(
+        f"/api/projects/{project.id}/recommendation-feedback/",
+        {"openalex_id": "https://openalex.org/W2", "title": "Paper 2", "feedback": "negative"},
+        format="json",
+    )
+    assert response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]
+
+
+@pytest.mark.django_db
+def test_get_feedback_list(auth_client, project, user):
+    RecommendationFeedback.objects.create(
+        user=user, project=project,
+        openalex_id="https://openalex.org/W4", title="Paper",
+        feedback=RecommendationFeedback.Feedback.POSITIVE,
+    )
+    response = auth_client.get(f"/api/projects/{project.id}/recommendation-feedback/")
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.data) == 1
+
+

@@ -50,12 +50,16 @@ export async function getPublicationDetail(openalexId) {
   return await response.json();
 }
 
-export const searchAuthors = async (query) => {
-  const response = await apiClient.get("/search/authors/", { params: { q: query } });
+export const searchAuthors = async (query, page = 1) => {
+  const response = await apiClient.get("/search/authors/", {
+    params: { q: query, page },
+  });
   return response.data;
 };
- 
+
 export const getAuthorDetail = async (authorId) => {
-  const response = await apiClient.get("/search/authors/detail/", { params: { id: authorId } });
+  const response = await apiClient.get("/search/authors/detail/", {
+    params: { id: authorId },
+  });
   return response.data;
 };
