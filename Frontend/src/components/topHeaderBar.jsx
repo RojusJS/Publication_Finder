@@ -4,7 +4,10 @@ import { useLanguage } from "./language";
 import {
   getPendingInvitations,
   respondInvitation,
+  getSharedPublications,
+  markSharedPublicationViewed,
 } from "../services/projectApi";
+import PublicationCardModal from "./publicationCardModal";
 
 function HeaderBar({
   isLoggedIn,
@@ -18,6 +21,10 @@ function HeaderBar({
   const [invitationsOpen, setInvitationsOpen] = useState(false);
   const [pendingInvitations, setPendingInvitations] = useState([]);
   const [respondingId, setRespondingId] = useState(null);
+  const [sharedPubs, setSharedPubs] = useState([]);
+  const [sharedPubsOpen, setSharedPubsOpen] = useState(false);
+  const [selectedSharedPub, setSelectedSharedPub] = useState(null);
+  const [sharedPubModalOpen, setSharedPubModalOpen] = useState(false);
   const dropdownRef = useRef(null);
   const { lang, setLang, t } = useLanguage();
 
@@ -35,10 +42,15 @@ function HeaderBar({
   useEffect(() => {
     if (!isLoggedIn) {
       setPendingInvitations([]);
+      setSharedPubs([]);
       return;
     }
     fetchInvitations();
-    const interval = setInterval(fetchInvitations, 30000);
+    fetchSharedPubs();
+    const interval = setInterval(() => {
+      fetchInvitations();
+      fetchSharedPubs();
+    }, 30000);
     return () => clearInterval(interval);
   }, [isLoggedIn]);
 
@@ -46,6 +58,13 @@ function HeaderBar({
     try {
       const data = await getPendingInvitations();
       setPendingInvitations(data);
+    } catch {}
+  };
+
+  const fetchSharedPubs = async () => {
+    try {
+      const data = await getSharedPublications();
+      setSharedPubs(data.filter((s) => !s.viewed));
     } catch {}
   };
 
@@ -68,13 +87,16 @@ function HeaderBar({
     localStorage.removeItem("is_staff");
     setDropdownOpen(false);
     setInvitationsOpen(false);
+    setSharedPubsOpen(false);
     setPendingInvitations([]);
+    setSharedPubs([]);
     onLogout?.();
   };
 
   const isAdmin = localStorage.getItem("is_staff") === "true";
   const username = localStorage.getItem("username") || "";
-  const hasPending = pendingInvitations.length > 0;
+  const hasPending = pendingInvitations.length > 0 || sharedPubs.length > 0;
+  const totalNotifications = pendingInvitations.length + sharedPubs.length;
 
   return (
     <>
@@ -234,8 +256,8 @@ function HeaderBar({
                     height: "30px",
                     borderRadius: "50%",
                     border: hasPending
-                      ? "2px solid #ff3815"
-                      : "1.5px solid rgba(143, 67, 67, 0.97)",
+                      ? "2px solid #f59e0b"
+                      : "1.5px solid rgba(255,255,255,0.4)",
                     background: dropdownOpen
                       ? "rgba(255,255,255,0.2)"
                       : "rgba(255,255,255,0.12)",
@@ -268,7 +290,7 @@ function HeaderBar({
                         width: "14px",
                         height: "14px",
                         borderRadius: "50%",
-                        background: "#f52e0b",
+                        background: "#f59e0b",
                         border: "2px solid #1e2d4a",
                         display: "flex",
                         alignItems: "center",
@@ -279,7 +301,7 @@ function HeaderBar({
                         lineHeight: 1,
                       }}
                     >
-                      {pendingInvitations.length}
+                      {totalNotifications}
                     </span>
                   )}
                 </button>
@@ -299,10 +321,11 @@ function HeaderBar({
                       overflow: "hidden",
                     }}
                   >
-                    {hasPending && (
+                    {pendingInvitations.length > 0 && (
                       <button
                         onClick={() => {
                           setInvitationsOpen(true);
+                          setSharedPubsOpen(false);
                           setDropdownOpen(false);
                         }}
                         style={{
@@ -330,7 +353,7 @@ function HeaderBar({
                         <span>Pakvietimai</span>
                         <span
                           style={{
-                            background: "#f5220ba9",
+                            background: "#f59e0b",
                             color: "#1e2d4a",
                             borderRadius: "10px",
                             padding: "1px 7px",
@@ -339,6 +362,50 @@ function HeaderBar({
                           }}
                         >
                           {pendingInvitations.length}
+                        </span>
+                      </button>
+                    )}
+                    {sharedPubs.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setSharedPubsOpen(true);
+                          setInvitationsOpen(false);
+                          setDropdownOpen(false);
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "10px 14px",
+                          background: "none",
+                          border: "none",
+                          borderBottom: "1px solid #eef1f6",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          fontFamily: "Times New Roman",
+                          fontSize: "13px",
+                          color: "#1e2d4a",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = "#f0f4fa")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "none")
+                        }
+                      >
+                        <span>Gautos publikacijos</span>
+                        <span
+                          style={{
+                            background: "#f59e0b",
+                            color: "#1e2d4a",
+                            borderRadius: "10px",
+                            padding: "1px 7px",
+                            fontSize: "11px",
+                            fontWeight: "700",
+                          }}
+                        >
+                          {sharedPubs.length}
                         </span>
                       </button>
                     )}
@@ -525,6 +592,130 @@ function HeaderBar({
                     )}
                   </div>
                 )}
+
+                {sharedPubsOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "38px",
+                      right: 0,
+                      background: "#ffffff",
+                      border: "1px solid #dce3ed",
+                      borderRadius: "8px",
+                      boxShadow: "0 8px 24px rgba(30,45,74,0.15)",
+                      minWidth: "320px",
+                      zIndex: 1000,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: "10px 14px",
+                        borderBottom: "1px solid #eef1f6",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          color: "#1e2d4a",
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          fontFamily: "Times New Roman",
+                        }}
+                      >
+                        Gautos publikacijos
+                      </span>
+                      <button
+                        onClick={() => setSharedPubsOpen(false)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#7a90aa",
+                          fontSize: "13px",
+                          padding: 0,
+                          lineHeight: 1,
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.color = "#1e2d4a")
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.color = "#7a90aa")
+                        }
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {sharedPubs.length === 0 ? (
+                      <div
+                        style={{
+                          padding: "16px 14px",
+                          color: "#7a90aa",
+                          fontSize: "13px",
+                          fontFamily: "Times New Roman",
+                        }}
+                      >
+                        Nėra naujų publikacijų
+                      </div>
+                    ) : (
+                      sharedPubs.map((s) => (
+                        <div
+                          key={s.id}
+                          style={{
+                            padding: "12px 14px",
+                            borderBottom: "1px solid #eef1f6",
+                            cursor: "pointer",
+                          }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.background = "#f7f9fc")
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.background = "none")
+                          }
+                          onClick={async () => {
+                            await markSharedPublicationViewed(s.id);
+                            setSharedPubs((prev) =>
+                              prev.filter((p) => p.id !== s.id),
+                            );
+                            setSelectedSharedPub(s.publication_data);
+                            setSharedPubsOpen(false);
+                            setSharedPubModalOpen(true);
+                          }}
+                        >
+                          <p
+                            style={{
+                              margin: "0 0 3px",
+                              fontSize: "13px",
+                              fontWeight: "600",
+                              color: "#1e2d4a",
+                              fontFamily: "Times New Roman",
+                              lineHeight: "1.3",
+                            }}
+                          >
+                            {s.publication_data?.title?.length > 60
+                              ? s.publication_data.title.slice(0, 60) + "..."
+                              : s.publication_data?.title}
+                          </p>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "11px",
+                              color: "#7a90aa",
+                              fontFamily: "Times New Roman",
+                            }}
+                          >
+                            Siuntė: {s.sender?.username}{" "}
+                            {s.message && `· „${s.message}"`}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -532,6 +723,16 @@ function HeaderBar({
       </div>
 
       <AdminModal open={adminOpen} onClose={() => setAdminOpen(false)} />
+      <PublicationCardModal
+        open={sharedPubModalOpen}
+        onClose={() => {
+          setSharedPubModalOpen(false);
+          setSelectedSharedPub(null);
+        }}
+        pub={selectedSharedPub}
+        institutionName={null}
+        projects={[]}
+      />
     </>
   );
 }

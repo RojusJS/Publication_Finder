@@ -10,7 +10,10 @@ from .views import (
     CollaboratorListView, InviteCollaboratorView,
     RespondInvitationView, PendingInvitationsView, RemoveCollaboratorView,
     SearchHistoryListView, SearchHistoryCreateView, SearchHistoryDeleteOneView,
+    SharePublicationView, SharedPublicationsListView,
+    SharedPublicationMarkViewedView, SharedPublicationsUnreadCountView,
 )
+
 urlpatterns = [
     path("", ProjectListCreateView.as_view()),
     path("<int:project_id>/", ProjectDetailView.as_view()),
@@ -34,4 +37,8 @@ urlpatterns = [
     path("search-history/", SearchHistoryListView.as_view()),
     path("search-history/add/", SearchHistoryCreateView.as_view()),
     path("search-history/<int:entry_id>/", SearchHistoryDeleteOneView.as_view()),
+    path("share-publication/", SharePublicationView.as_view()),
+    path("shared-publications/", SharedPublicationsListView.as_view()),
+    path("shared-publications/<int:shared_id>/viewed/", SharedPublicationMarkViewedView.as_view()),
+    path("shared-publications/unread-count/", SharedPublicationsUnreadCountView.as_view()),
 ]

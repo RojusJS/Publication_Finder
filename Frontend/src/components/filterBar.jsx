@@ -33,7 +33,7 @@ function FiltersBar({
   const dropdownRef = useRef(null);
   const debounceRef = useRef(null);
   const { t } = useLanguage();
-  const {showToast} = useToast();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -41,7 +41,6 @@ function FiltersBar({
         setDropdownOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -52,9 +51,7 @@ function FiltersBar({
       setDropdownOpen(false);
       return;
     }
-
     clearTimeout(debounceRef.current);
-
     debounceRef.current = setTimeout(async () => {
       setLoadingSuggestions(true);
       try {
@@ -139,7 +136,7 @@ function FiltersBar({
     fontSize: "13px",
     color: "#1e2d4a",
     boxSizing: "border-box",
-    background: "#ffffff",
+    background: "#fff",
     outline: "none",
     transition: "border-color 0.15s",
   };
@@ -153,7 +150,7 @@ function FiltersBar({
     fontSize: "13px",
     color: "#1e2d4a",
     boxSizing: "border-box",
-    background: "#fdfdfd",
+    background: "#fff",
     outline: "none",
     appearance: "none",
     WebkitAppearance: "none",
@@ -256,6 +253,8 @@ function FiltersBar({
             <option value="">{t.sort_default}</option>
             <option value="year_desc">{t.sort_year_desc}</option>
             <option value="year_asc">{t.sort_year_asc}</option>
+            <option value="cited_by_count_desc">Citavimai: daugiausia</option>
+            <option value="cited_by_count_asc">Citavimai: mažiausia</option>
           </select>
           <span
             style={{
@@ -296,6 +295,33 @@ function FiltersBar({
         </label>
       </div>
 
+      <div style={{ marginBottom: "14px" }}>
+        <label
+          style={{
+            fontSize: "13px",
+            color: "#1e2d4a",
+            fontFamily: "Times New Roman",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            margin: 0,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={yearFrom === String(new Date().getFullYear() - 5)}
+            onChange={(e) =>
+              setYearFrom(
+                e.target.checked ? String(new Date().getFullYear() - 5) : "",
+              )
+            }
+            style={{ accentColor: "#1e2d4a" }}
+          />
+          Ne senesnės nei 5 m.
+        </label>
+      </div>
+
       <div
         style={{ height: "1px", background: "#dce3ed", margin: "6px 0 14px" }}
       />
@@ -328,7 +354,7 @@ function FiltersBar({
             }}
             style={{
               ...inputStyle,
-              background: institution ? "#e8eef7" : "#ffffff",
+              background: institution ? "#e8eef7" : "#fff",
               borderColor: institution ? "#7fa8d4" : "#c8d4e3",
               paddingRight: institution ? "28px" : "10px",
             }}
@@ -440,7 +466,7 @@ function FiltersBar({
               width: "100%",
               padding: "9px",
               background: saving ? "#7a90aa" : "#1e2d4a",
-              color: "#ffffff",
+              color: "#fff",
               border: "none",
               borderRadius: "8px",
               cursor: saving ? "not-allowed" : "pointer",
@@ -465,7 +491,7 @@ function FiltersBar({
                 position: "absolute",
                 bottom: "calc(100% + 6px)",
                 left: 0,
-                background: "#ffffff",
+                background: "#fff",
                 border: "1px solid #dce3ed",
                 borderRadius: "8px",
                 boxShadow: "0 8px 24px rgba(30,45,74,0.12)",

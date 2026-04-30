@@ -54,11 +54,8 @@ class OpenAlexClient:
         meta_url = f"https://api.openalex.org/works/{short_id}"
         meta_resp = requests.get(
             meta_url,
-            params={
-                "select": "referenced_works",
-                "api_key": OPENALEX_API_KEY,
-            },
-            timeout=15
+            params={"select": "referenced_works", "api_key": OPENALEX_API_KEY},
+            timeout=15,
         )
         meta_resp.raise_for_status()
         refs = meta_resp.json().get("referenced_works", [])
@@ -136,6 +133,8 @@ class OpenAlexClient:
         sort_map = {
             "year_desc": "publication_date:desc",
             "year_asc": "publication_date:asc",
+            "cited_by_count_desc": "cited_by_count:desc",
+            "cited_by_count_asc": "cited_by_count:asc",
         }
         if sort:
             params["sort"] = sort_map.get(sort, "publication_date:desc")

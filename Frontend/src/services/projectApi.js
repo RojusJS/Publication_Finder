@@ -264,3 +264,35 @@ export const deleteSearchHistoryEntry = async (entryId) => {
 export const clearSearchHistory = async () => {
   await apiClient.delete("/projects/search-history/");
 };
+
+export const sharePublication = async (
+  username,
+  publicationData,
+  message = "",
+) => {
+  const response = await apiClient.post("/projects/share-publication/", {
+    username,
+    publication_data: publicationData,
+    message,
+  });
+  return response.data;
+};
+
+export const getSharedPublications = async () => {
+  const response = await apiClient.get("/projects/shared-publications/");
+  return response.data;
+};
+
+export const markSharedPublicationViewed = async (sharedId) => {
+  const response = await apiClient.post(
+    `/projects/shared-publications/${sharedId}/viewed/`,
+  );
+  return response.data;
+};
+
+export const getSharedPublicationsUnreadCount = async () => {
+  const response = await apiClient.get(
+    "/projects/shared-publications/unread-count/",
+  );
+  return response.data.count;
+};

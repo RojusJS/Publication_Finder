@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'apps.search',
     'apps.accounts',
     'apps.projects',
-    "apps.recommendations",
+    'apps.recommendations',
+    'apps.insights',
     'rest_framework',
     'corsheaders',
 ]

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from apps.projects.models import (
     Project, Folder, SavedPublication, PublicationNote,
-    ProjectCollaborator, RecommendationFeedback, SearchHistory,
+    ProjectCollaborator, RecommendationFeedback, SearchHistory, SharedPublication,
 )
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -88,6 +88,15 @@ class RecommendationFeedbackSerializer(serializers.ModelSerializer):
         model = RecommendationFeedback
         fields = ["id", "openalex_id", "title", "feedback", "created_at"]
         read_only_fields = ["id", "created_at"]
+
+
+class SharedPublicationSerializer(serializers.ModelSerializer):
+    sender = CollaboratorUserSerializer(read_only=True)
+
+    class Meta:
+        model = SharedPublication
+        fields = ["id", "sender", "publication_data", "message", "viewed", "created_at"]
+        read_only_fields = ["id", "sender", "viewed", "created_at"]
 
 
 class SearchHistorySerializer(serializers.ModelSerializer):

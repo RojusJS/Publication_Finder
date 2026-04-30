@@ -9,13 +9,14 @@ import numpy as np
 
 from apps.projects.models import (
     Project, Folder, SavedPublication, PublicationNote,
-    ProjectCollaborator, RecommendationFeedback, SearchHistory,
+    ProjectCollaborator, RecommendationFeedback, SearchHistory, SharedPublication,
 )
 from apps.projects.api.serializers import (
     ProjectSerializer, FolderSerializer,
     SavedPublicationSerializer, PublicationNoteSerializer,
     ProjectCollaboratorSerializer, InviteCollaboratorSerializer,
     RecommendationFeedbackSerializer, SearchHistorySerializer,
+    SharedPublicationSerializer,
 )
 from apps.projects.embedding_service import generate_embedding, encode_query
 
@@ -449,6 +450,62 @@ class RecommendationFeedbackView(APIView):
         project = get_accessible_project(request.user, project_id)
         feedback = RecommendationFeedback.objects.filter(user=request.user, project=project)
         return Response(RecommendationFeedbackSerializer(feedback, many=True).data)
+
+
+class SharePublicationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        username = request.data.get("username", "").strip()
+        publication_data = request.data.get("publication_data")
+        message = request.data.get("message", "").strip()
+
+        if not username:
+            return Response({"error": "username yra būtinas"}, status=status.HTTP_400_BAD_REQUEST)
+        if not publication_data:
+            return Response({"error": "publication_data yra būtina"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            recipient = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({"error": "Vartotojas nerastas"}, status=status.HTTP_404_NOT_FOUND)
+
+        if recipient == request.user:
+            return Response({"error": "Negalite siųsti publikacijos sau"}, status=status.HTTP_400_BAD_REQUEST)
+
+        shared = SharedPublication.objects.create(
+            sender=request.user,
+            recipient=recipient,
+            publication_data=publication_data,
+            message=message,
+        )
+        return Response(SharedPublicationSerializer(shared).data, status=status.HTTP_201_CREATED)
+
+
+class SharedPublicationsListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        shared = SharedPublication.objects.filter(recipient=request.user)
+        return Response(SharedPublicationSerializer(shared, many=True).data)
+
+
+class SharedPublicationMarkViewedView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, shared_id):
+        shared = get_object_or_404(SharedPublication, id=shared_id, recipient=request.user)
+        shared.viewed = True
+        shared.save(update_fields=["viewed"])
+        return Response({"status": "viewed"})
+
+
+class SharedPublicationsUnreadCountView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        count = SharedPublication.objects.filter(recipient=request.user, viewed=False).count()
+        return Response({"count": count})
 
 
 class SearchHistoryListView(APIView):

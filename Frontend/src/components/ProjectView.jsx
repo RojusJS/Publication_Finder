@@ -27,6 +27,7 @@ import {
   getRecommendationFeedback,
 } from "../services/projectApi";
 import { useToast } from "./toastContext";
+import { getProjectInsights } from "../services/insightsApi";
 import LabelBadge from "./labelBadge";
 import jsPDF from "jspdf";
 
@@ -74,6 +75,8 @@ function ProjectView({
   const [semanticLoading, setSemanticLoading] = useState(false);
   const [selectedRecommendationFolder, setSelectedRecommendationFolder] =
     useState("");
+  const [insightsText, setInsightsText] = useState("");
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   const [collaborators, setCollaborators] = useState([]);
   const [showCollabPanel, setShowCollabPanel] = useState(false);
@@ -118,6 +121,8 @@ function ProjectView({
     setSemanticResults([]);
     setSemanticQuery("");
     setSelectedRecommendationFolder("");
+    setInsightsText("");
+    setInsightsLoading(false);
     setAnalytics(null);
     setAnalyticsLoading(true);
     setFeedback({});
@@ -400,6 +405,19 @@ function ProjectView({
     }
   };
 
+  const handleGetInsights = async () => {
+    setInsightsText("");
+    setInsightsLoading(true);
+    try {
+      const text = await getProjectInsights(project.id);
+      setInsightsText(text);
+    } catch {
+      showToast("Nepavyko gauti įžvalgų");
+    } finally {
+      setInsightsLoading(false);
+    }
+  };
+
   const handleInvite = async () => {
     if (!inviteUsername.trim()) return;
     setInviting(true);
@@ -675,78 +693,6 @@ function ProjectView({
           </div>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          <div style={{ position: "relative", display: "flex" }}>
-            <button
-              onClick={handleGetRecommendations}
-              disabled={recLoading}
-              style={{
-                padding: "6px 13px",
-                background: recLoading ? "#eef1f6" : "#1e2d4a",
-                color: recLoading ? "#7a90aa" : "#ffffff",
-                border: "1px solid",
-                borderColor: recLoading ? "#dce3ed" : "#1e2d4a",
-                borderRight: "none",
-                borderRadius: "6px 0 0 6px",
-                cursor: recLoading ? "not-allowed" : "pointer",
-                fontFamily: "Times New Roman",
-                fontSize: "13px",
-                fontWeight: "600",
-              }}
-              onMouseEnter={(e) => {
-                if (!recLoading) e.currentTarget.style.background = "#2a3f63";
-              }}
-              onMouseLeave={(e) => {
-                if (!recLoading)
-                  e.currentTarget.style.background = recLoading
-                    ? "#eef1f6"
-                    : "#1e2d4a";
-              }}
-            >
-              {recLoading ? t.searching : t.get_recommendations}
-            </button>
-            <select
-              value={selectedRecommendationFolder}
-              onChange={(e) => setSelectedRecommendationFolder(e.target.value)}
-              disabled={recLoading}
-              style={{
-                padding: "6px 24px 6px 8px",
-                background: recLoading ? "#eef1f6" : "#1e2d4a",
-                color: recLoading ? "#7a90aa" : "rgba(255,255,255,0.85)",
-                border: "1px solid",
-                borderColor: recLoading ? "#dce3ed" : "#1e2d4a",
-                borderLeft: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "0 6px 6px 0",
-                cursor: recLoading ? "not-allowed" : "pointer",
-                fontFamily: "Times New Roman",
-                fontSize: "12px",
-                outline: "none",
-                appearance: "none",
-                WebkitAppearance: "none",
-                minWidth: "90px",
-              }}
-            >
-              <option value="">Visas projektas</option>
-              {subfolders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-            <span
-              style={{
-                position: "absolute",
-                right: "8px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                pointerEvents: "none",
-                fontSize: "9px",
-                color: recLoading ? "#7a90aa" : "rgba(255,255,255,0.6)",
-              }}
-            >
-              ▼
-            </span>
-          </div>
-
           <div
             style={{ width: "1px", height: "20px", background: "#dce3ed" }}
           />
@@ -761,9 +707,12 @@ function ProjectView({
             onMouseEnter={ghostHover}
             onMouseLeave={ghostLeave}
           >
-            Bendradarbiai{" "}
-            {collaborators.filter((c) => c.status === "accepted").length > 0 &&
-              `(${collaborators.filter((c) => c.status === "accepted").length})`}
+            {(() => {
+              const accepted = collaborators.filter(
+                (c) => c.status === "accepted",
+              ).length;
+              return accepted > 1 ? `Nariai (${accepted})` : "Nariai";
+            })()}
           </button>
           <button
             onClick={() => setEditProjectOpen(true)}
@@ -799,19 +748,10 @@ function ProjectView({
                 }}
               >
                 {[
-                  {
-                    label: "PDF",
-                    action: handleExportPdf,
-                  },
-                  {
-                    label: "BibTeX (.bib)",
-                    action: handleExportBibtex,
-                  },
-                  {
-                    label: "RIS (.ris)",
-                    action: handleExportRis,
-                  },
-                ].map(({ label, sublabel, action }) => (
+                  { label: "PDF", action: handleExportPdf },
+                  { label: "BibTeX (.bib)", action: handleExportBibtex },
+                  { label: "RIS (.ris)", action: handleExportRis },
+                ].map(({ label, action }) => (
                   <button
                     key={label}
                     onClick={action}
@@ -830,27 +770,12 @@ function ProjectView({
                       textAlign: "left",
                       cursor: "pointer",
                       fontFamily: "Times New Roman",
+                      fontSize: "13px",
+                      color: "#1e2d4a",
                       boxSizing: "border-box",
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        color: "#1e2d4a",
-                        fontWeight: "600",
-                      }}
-                    >
-                      {label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        color: "#7a90aa",
-                        marginTop: "1px",
-                      }}
-                    >
-                      {sublabel}
-                    </div>
+                    {label}
                   </button>
                 ))}
               </div>
@@ -1670,6 +1595,7 @@ function ProjectView({
                   label: t.recommended ?? "Rekomendacijos",
                 },
                 { key: "semantic", label: "Semantinė paieška" },
+                { key: "insights", label: "Įžvalgos" },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -1711,14 +1637,14 @@ function ProjectView({
                     }}
                     disabled={savingRecommendations}
                     style={{
-                      padding: "6px 12px",
+                      padding: "5px 12px",
                       background: "#1e2d4a",
                       color: "#ffffff",
                       border: "none",
                       borderRadius: "6px",
                       cursor: "pointer",
                       fontFamily: "Times New Roman",
-                      fontSize: "13px",
+                      fontSize: "12px",
                       fontWeight: "600",
                       opacity: savingRecommendations ? 0.5 : 1,
                     }}
@@ -2001,23 +1927,222 @@ function ProjectView({
               </div>
             )}
 
+          {rightPanelMode === "insights" && (
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  onClick={handleGetInsights}
+                  disabled={insightsLoading}
+                  style={{
+                    padding: "7px 16px",
+                    background: insightsLoading ? "#eef1f6" : "#1e2d4a",
+                    color: insightsLoading ? "#7a90aa" : "#ffffff",
+                    border: "none",
+                    borderRadius: "7px",
+                    cursor: insightsLoading ? "not-allowed" : "pointer",
+                    fontFamily: "Times New Roman",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    whiteSpace: "nowrap",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!insightsLoading)
+                      e.currentTarget.style.background = "#2a3f63";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!insightsLoading)
+                      e.currentTarget.style.background = "#1e2d4a";
+                  }}
+                >
+                  {insightsLoading
+                    ? "Analizuojama..."
+                    : insightsText
+                      ? "Analizuoti iš naujo"
+                      : "Analizuoti"}
+                </button>
+              </div>
+
+              {!insightsText && !insightsLoading && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "220px",
+                    color: "#7a90aa",
+                    fontFamily: "Times New Roman",
+                    fontSize: "13px",
+                    border: "1px dashed #c8d4e3",
+                    borderRadius: "10px",
+                    textAlign: "center",
+                    padding: "20px",
+                  }}
+                >
+                  Spauskite „Analizuoti" ir dirbtinio intelekto modelis pateiks
+                  įžvalgas apie projekto publikacijas
+                </div>
+              )}
+
+              {(insightsText || insightsLoading) && (
+                <div
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #dce3ed",
+                    borderRadius: "10px",
+                    padding: "18px 20px",
+                    fontFamily: "Times New Roman",
+                    fontSize: "13.5px",
+                    lineHeight: "1.75",
+                    color: "#1e2d4a",
+                    whiteSpace: "pre-wrap",
+                    minHeight: "120px",
+                  }}
+                >
+                  {insightsLoading ? (
+                    <span style={{ color: "#7a90aa" }}>
+                      Modelis analizuoja publikacijas...
+                    </span>
+                  ) : (
+                    insightsText
+                  )}
+                </div>
+              )}
+
+              {insightsText && !insightsLoading && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "8px",
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(insightsText);
+                      showToast("Įžvalgos nukopijuotos", "success");
+                    }}
+                    style={{
+                      padding: "5px 12px",
+                      background: "none",
+                      border: "1px solid #dce3ed",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      fontSize: "12px",
+                      color: "#5a7090",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#1e2d4a";
+                      e.currentTarget.style.color = "#1e2d4a";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "#dce3ed";
+                      e.currentTarget.style.color = "#5a7090";
+                    }}
+                  >
+                    Kopijuoti
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {rightPanelMode === "recommendations" &&
             !recLoading &&
             recommendations.length === 0 && (
               <div
                 style={{
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "260px",
-                  color: "#7a90aa",
-                  fontFamily: "Times New Roman",
-                  fontSize: "13px",
-                  border: "1px dashed #c8d4e3",
-                  borderRadius: "10px",
+                  flexDirection: "column",
+                  gap: "12px",
                 }}
               >
-                {t.get_recommendations ?? "Gauti rekomendacijas"}
+                <div style={{ display: "flex" }}>
+                  <button
+                    onClick={handleGetRecommendations}
+                    disabled={recLoading}
+                    style={{
+                      padding: "7px 14px",
+                      background: "#1e2d4a",
+                      color: "#ffffff",
+                      border: "1px solid #1e2d4a",
+                      borderRight: "none",
+                      borderRadius: "6px 0 0 6px",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#2a3f63")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#1e2d4a")
+                    }
+                  >
+                    {t.get_recommendations}
+                  </button>
+                  <div style={{ position: "relative" }}>
+                    <select
+                      value={selectedRecommendationFolder}
+                      onChange={(e) =>
+                        setSelectedRecommendationFolder(e.target.value)
+                      }
+                      style={{
+                        padding: "7px 22px 7px 8px",
+                        background: "#1e2d4a",
+                        color: "rgba(255,255,255,0.85)",
+                        border: "1px solid #1e2d4a",
+                        borderLeft: "1px solid rgba(255,255,255,0.2)",
+                        borderRadius: "0 6px 6px 0",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "12px",
+                        outline: "none",
+                        appearance: "none",
+                        WebkitAppearance: "none",
+                        minWidth: "110px",
+                      }}
+                    >
+                      <option value="">Visas projektas</option>
+                      {subfolders.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: "6px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                        fontSize: "8px",
+                        color: "rgba(255,255,255,0.6)",
+                      }}
+                    >
+                      ▼
+                    </span>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "220px",
+                    color: "#7a90aa",
+                    fontFamily: "Times New Roman",
+                    fontSize: "13px",
+                    border: "1px dashed #c8d4e3",
+                    borderRadius: "10px",
+                  }}
+                >
+                  {t.get_recommendations ?? "Gauti rekomendacijas"}
+                </div>
               </div>
             )}
           {rightPanelMode === "recommendations" && recLoading && (
@@ -2042,6 +2167,74 @@ function ProjectView({
               <div
                 style={{ display: "flex", flexDirection: "column", gap: "8px" }}
               >
+                <div style={{ display: "flex", marginBottom: "4px" }}>
+                  <button
+                    onClick={handleGetRecommendations}
+                    style={{
+                      padding: "5px 12px",
+                      background: "#1e2d4a",
+                      color: "#ffffff",
+                      border: "1px solid #1e2d4a",
+                      borderRight: "none",
+                      borderRadius: "6px 0 0 6px",
+                      cursor: "pointer",
+                      fontFamily: "Times New Roman",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#2a3f63")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = "#1e2d4a")
+                    }
+                  >
+                    Atnaujinti
+                  </button>
+                  <div style={{ position: "relative" }}>
+                    <select
+                      value={selectedRecommendationFolder}
+                      onChange={(e) =>
+                        setSelectedRecommendationFolder(e.target.value)
+                      }
+                      style={{
+                        padding: "5px 20px 5px 8px",
+                        background: "#1e2d4a",
+                        color: "rgba(255,255,255,0.85)",
+                        border: "1px solid #1e2d4a",
+                        borderLeft: "1px solid rgba(255,255,255,0.2)",
+                        borderRadius: "0 6px 6px 0",
+                        cursor: "pointer",
+                        fontFamily: "Times New Roman",
+                        fontSize: "11px",
+                        outline: "none",
+                        appearance: "none",
+                        WebkitAppearance: "none",
+                        minWidth: "100px",
+                      }}
+                    >
+                      <option value="">Visas projektas</option>
+                      {subfolders.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: "6px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                        fontSize: "8px",
+                        color: "rgba(255,255,255,0.6)",
+                      }}
+                    >
+                      ▼
+                    </span>
+                  </div>
+                </div>
                 {recommendations.map((rec, i) => {
                   const isSelected = selectedRecs.some(
                     (p) => p.openalex_id === rec.openalex_id,
@@ -2194,13 +2387,14 @@ function ProjectView({
                         <button
                           onClick={() => handleFeedback(rec, "positive")}
                           style={{
-                            padding: "2px 8px",
+                            padding: "2px 10px",
                             background:
                               myFeedback === "positive" ? "#e8f5ec" : "none",
                             border: `1px solid ${myFeedback === "positive" ? "#27744f" : "#dce3ed"}`,
                             borderRadius: "5px",
                             cursor: "pointer",
-                            fontSize: "12px",
+                            fontFamily: "Times New Roman",
+                            fontSize: "11px",
                             color:
                               myFeedback === "positive" ? "#27744f" : "#7a90aa",
                           }}
@@ -2222,13 +2416,14 @@ function ProjectView({
                         <button
                           onClick={() => handleFeedback(rec, "negative")}
                           style={{
-                            padding: "2px 8px",
+                            padding: "2px 10px",
                             background:
                               myFeedback === "negative" ? "#fdecea" : "none",
                             border: `1px solid ${myFeedback === "negative" ? "#c0392b" : "#dce3ed"}`,
                             borderRadius: "5px",
                             cursor: "pointer",
-                            fontSize: "12px",
+                            fontFamily: "Times New Roman",
+                            fontSize: "11px",
                             color:
                               myFeedback === "negative" ? "#c0392b" : "#7a90aa",
                           }}

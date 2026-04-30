@@ -18,6 +18,7 @@ def publication_detail(request):
     except Exception as e:
         return JsonResponse({"error": "Internal error", "details": str(e)}, status=500)
 
+
 def citing_works(request):
     openalex_id = request.GET.get("id", "").strip()
     if not openalex_id:
@@ -37,6 +38,7 @@ def referenced_works(request):
     openalex_id = request.GET.get("id", "").strip()
     if not openalex_id:
         return JsonResponse({"error": "Missing query parameter: id"}, status=400)
+
     service = SearchService()
     try:
         data = service.get_referenced_works(openalex_id)
@@ -73,7 +75,7 @@ def search_publications(request):
         return JsonResponse({"error": "Missing query parameter: q"}, status=400)
 
     sort = request.GET.get("sort")
-    allowed_sorts = {"year_desc", "year_asc", "", None}
+    allowed_sorts = {"year_desc", "year_asc", "cited_by_count_desc", "cited_by_count_asc", "", None}
     if sort not in allowed_sorts:
         return JsonResponse({"error": "Invalid sort value"}, status=400)
 

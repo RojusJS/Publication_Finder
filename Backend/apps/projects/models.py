@@ -135,6 +135,21 @@ class RecommendationFeedback(models.Model):
         return f"{self.user.username} / {self.feedback} / {self.openalex_id}"
 
 
+class SharedPublication(models.Model):
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="sent_publications")
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="received_publications")
+    publication_data = models.JSONField()
+    message = models.TextField(blank=True)
+    viewed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.sender.username} → {self.recipient.username}: {self.publication_data.get('title', '')[:40]}"
+
+
 class SearchHistory(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="search_history")
     query = models.CharField(max_length=500)
