@@ -14,6 +14,8 @@ function FiltersBar({
   setOaOnly,
   sort,
   setSort,
+  language,
+  setLanguage,
   institution,
   setInstitution,
   selectedPubs = [],
@@ -37,9 +39,8 @@ function FiltersBar({
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
         setDropdownOpen(false);
-      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -126,7 +127,6 @@ function FiltersBar({
     color: "#7a90aa",
     fontFamily: "Times New Roman",
   };
-
   const inputStyle = {
     width: "100%",
     padding: "7px 10px",
@@ -140,7 +140,6 @@ function FiltersBar({
     outline: "none",
     transition: "border-color 0.15s",
   };
-
   const selectStyle = {
     width: "100%",
     padding: "7px 30px 7px 10px",
@@ -220,11 +219,46 @@ function FiltersBar({
             style={selectStyle}
           >
             <option value="">{t.type_all}</option>
-            <option value="journal-article">Journal article</option>
-            <option value="book-chapter">Book chapter</option>
-            <option value="book">Book</option>
-            <option value="preprint">Preprint</option>
-            <option value="proceedings-article">Proceedings article</option>
+            <option value="article">Žurnalo straipsnis</option>
+            <option value="book-chapter">Knygos skyrius</option>
+            <option value="book">Knyga</option>
+            <option value="preprint">Išankstinė publikacija</option>
+            <option value="proceedings-article">Konferencijų straipsnis</option>
+          </select>
+          <span
+            style={{
+              position: "absolute",
+              right: "10px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              pointerEvents: "none",
+              fontSize: "10px",
+              color: "#7a90aa",
+            }}
+          >
+            ▼
+          </span>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: "14px" }}>
+        <label style={labelStyle}>Kalba</label>
+        <div style={{ position: "relative" }}>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            style={selectStyle}
+          >
+            <option value="">Visos</option>
+            <option value="en">Anglų (EN)</option>
+            <option value="lt">Lietuvių (LT)</option>
+            <option value="fr">Prancūzų (FR)</option>
+            <option value="de">Vokiečių (DE)</option>
+            <option value="es">Ispanų (ES)</option>
+            <option value="it">Italų (IT)</option>
+            <option value="pl">Lenkų (PL)</option>
+            <option value="zh">Kinų (ZH)</option>
+            <option value="ja">Japonų (JA)</option>
           </select>
           <span
             style={{
@@ -342,7 +376,6 @@ function FiltersBar({
             </span>
           )}
         </label>
-
         <div style={{ position: "relative" }}>
           <input
             type="text"
@@ -386,7 +419,6 @@ function FiltersBar({
             </button>
           )}
         </div>
-
         {dropdownOpen && suggestions.length > 0 && (
           <div
             style={{
@@ -484,7 +516,6 @@ function FiltersBar({
           >
             {saving ? t.saving : `${t.save} (${selectedPubs.length})`}
           </button>
-
           {saveOpen && (
             <div
               style={{
@@ -500,8 +531,8 @@ function FiltersBar({
                 overflow: "hidden",
               }}
             >
-              {!selectedProject &&
-                (projects.length === 0 ? (
+              {!selectedProject ? (
+                projects.length === 0 ? (
                   <div
                     style={{
                       padding: "10px 14px",
@@ -542,9 +573,8 @@ function FiltersBar({
                       </div>
                     </div>
                   ))
-                ))}
-
-              {selectedProject && (
+                )
+              ) : (
                 <>
                   <button
                     onClick={() => {

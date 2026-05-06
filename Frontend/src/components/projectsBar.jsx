@@ -31,11 +31,11 @@ function ProjectsBar({
       <p
         style={{
           margin: "0 0 14px 4px",
-          fontSize: "10px",
+          fontSize: "12px",
           fontWeight: "700",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
-          color: "rgba(255,255,255,0.4)",
+          color: "rgba(255, 255, 255, 0.94)",
         }}
       >
         {t.projects}
@@ -90,7 +90,7 @@ function ProjectsBar({
           style={{
             marginTop: "8px",
             fontSize: "11px",
-            color: "rgba(255,255,255,0.3)",
+            color: "rgba(255, 255, 255, 0.76)",
             fontFamily: "sans-serif",
             paddingLeft: "4px",
           }}
@@ -111,9 +111,9 @@ function ProjectsBar({
           <p
             style={{
               margin: 0,
-              fontSize: "12px",
-              color: "rgba(255,255,255,0.3)",
-              fontFamily: "sans-serif",
+              fontSize: "14px",
+              color: "rgba(255, 255, 255, 0.75)",
+              fontFamily: "Times New Roman",
               paddingLeft: "4px",
             }}
           >

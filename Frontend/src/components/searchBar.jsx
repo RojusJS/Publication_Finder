@@ -107,7 +107,6 @@ function SearchBar({
             letterSpacing: "0.02em",
           }}
         >
-          Ieškote autorių — rodomi autorių profiliai
         </p>
       )}
 

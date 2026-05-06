@@ -8,7 +8,14 @@ from openai import OpenAI
 from apps.projects.models import Project, SavedPublication
 from apps.projects.api.views import get_accessible_project
 
-SYSTEM_PROMPT = """Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
+BASE_INSTRUCTIONS = """Rašyk akademiniu, bet suprantamu stiliumi. Būk konkretus ir remkis pateiktais duomenimis.
+Jei publikacijų santraukos nepateiktos, analizuok pagal pavadinimus.
+Nenaudok jokio markdown formatavimo — jokių ### antraščių, jokių ** paryškinimų, jokių brūkšnelių sąrašų.
+Rašyk grynu tekstu, skirstyk į pastraipas naudodamas tuščias eilutes tarp skyrių.
+Kiekvieno skyriaus pradžioje parašyk jo pavadinimą kaip paprastą tekstą, po to dvitaškį."""
+
+FOCUS_PROMPTS = {
+    "bendros": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
 Tavo užduotis — išanalizuoti vartotojo pateiktą akademinių publikacijų rinkinį ir pateikti išsamias, \
 struktūruotas įžvalgas lietuvių kalba.
 
@@ -19,12 +26,54 @@ Analizuodamas publikacijas, aptark šiuos aspektus:
 4. Ryšiai tarp publikacijų — kaip publikacijos papildo viena kitą arba prieštarauja?
 5. Mokslinės spragos — ko trūksta šiame rinkinyje, kokie klausimai lieka neatsakyti?
 6. Bendros išvados — kokią bendrą mokslinę vertę turi šis publikacijų rinkinys?
+7. Kokias panašias publikacijas siūlytum ieškoti, kurios atitktų tematiką, bet nebūtų tokios visiškai tokios pačios?
 
-Rašyk akademiniu, bet suprantamu stiliumi. Būk konkretus ir remkis pateiktais duomenimis.
-Jei publikacijų santraukos nepateiktos, analizuok pagal pavadinimus.
-Nenaudok jokio markdown formatavimo — jokių ### antraščių, jokių ** paryškinimų, jokių brūkšnelių sąrašų.
-Rašyk grynu tekstu, skirstyk į pastraipas naudodamas tuščias eilutes tarp skyrių.
-Kiekvieno skyriaus pradžioje parašyk jo pavadinimą kaip paprastą tekstą, po to dvitaškį."""
+{BASE_INSTRUCTIONS}""",
+
+    "temos": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
+Tavo užduotis — atlikti išsamią teminę analizę pateikto publikacijų rinkinio lietuvių kalba.
+
+Sutelk dėmesį išskirtinai į šiuos aspektus:
+1. Pagrindinės temos ir kryptys — aptark kiekvieną temą atskirai, nurodyk konkrečias publikacijas, kurios ją nagrinėja
+2. Tematiniai ryšiai — kaip temos siejasi tarpusavyje, kokios sąsajos tarp skirtingų krypčių
+3. Temų raida laikui bėgant — ar temos keitėsi, ar atsirado naujų temų vėlesnėse publikacijose
+4. Dominuojančios ir marginalinės temos — kurioms temoms skiriama daugiausiai dėmesio, kokios lieka periferijoje
+5. Rekomenduojamos paieškos kryptys — kokiomis temomis verta ieškoti papildomų šaltinių
+
+Kiekvieną aspektą aptark išsamiai, cituok autorius ir metus, pateik konkrečius pavyzdžius.
+
+{BASE_INSTRUCTIONS}""",
+
+    "metodologija": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
+Tavo užduotis — atlikti išsamią metodologinę analizę pateikto publikacijų rinkinio lietuvių kalba.
+
+Sutelk dėmesį išskirtinai į šiuos aspektus:
+1. Naudojami tyrimo metodai — aptark kiekvienos publikacijos metodologinį požiūrį atskirai
+2. Kiekybiniai ir kokybiniai metodai — kaip jie pasiskirsto rinkinyje, kurie dominuoja
+3. Metodologiniai stiprumai — kokie metodai atrodo labiausiai pagrįsti ir tinkami
+4. Metodologiniai trūkumai — kokių metodologinių aspektų trūksta, kas galėtų būti geriau
+5. Metodologijų palyginimas — kaip skirtingų autorių metodologiniai pasirinkimai skiriasi ir kodėl
+6. Rekomendacijos — kokius metodus verta naudoti tolesniam tyrimui šia tematika
+
+Kiekvieną aspektą aptark išsamiai, cituok autorius ir metus, pateik konkrečius pavyzdžius.
+
+{BASE_INSTRUCTIONS}""",
+
+    "spragos": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
+Tavo užduotis — atlikti išsamią mokslinių spragų analizę pateikto publikacijų rinkinio lietuvių kalba.
+
+Sutelk dėmesį išskirtinai į šiuos aspektus:
+1. Teminės spragos — kokios svarbios temos nepakankamiai nagrinėjamos arba visai nenagrinėjamos
+2. Metodologinės spragos — kokių tyrimo metodų ar požiūrių trūksta
+3. Geografinės ir kultūrinės spragos — ar tyrimai apima tik tam tikrus regionus ar kultūras
+4. Chronologinės spragos — kokie laikotarpiai ar raidos etapai nepakankamiai aprašyti
+5. Praktinio taikymo spragos — kur trūksta ryšio tarp teorijos ir praktikos
+6. Ateities tyrimų rekomendacijos — kokius klausimus būtų labiausiai verta tirti toliau ir kodėl
+
+Kiekvieną aspektą aptark išsamiai, cituok autorius ir metus, pateik konkrečius pavyzdžius.
+
+{BASE_INSTRUCTIONS}""",
+}
 
 
 def build_user_prompt(publications: list[dict]) -> str:
@@ -36,7 +85,7 @@ def build_user_prompt(publications: list[dict]) -> str:
         if pub.get("authors"):
             authors = ", ".join(pub["authors"][:4])
             if len(pub["authors"]) > 4:
-                authors += f" ir kt."
+                authors += " ir kt."
             lines.append(f"    Autoriai: {authors}")
         if pub.get("abstract"):
             abstract = pub["abstract"][:600]
@@ -60,6 +109,10 @@ class ProjectInsightsView(APIView):
         if not publications.exists():
             return JsonResponse({"error": "Projekte nėra publikacijų analizei"}, status=400)
 
+        focus = request.data.get("focus", "bendros")
+        if focus not in FOCUS_PROMPTS:
+            focus = "bendros"
+
         pub_data = [
             {
                 "title": pub.title,
@@ -72,17 +125,18 @@ class ProjectInsightsView(APIView):
         ]
 
         user_prompt = build_user_prompt(pub_data)
+        system_prompt = FOCUS_PROMPTS[focus]
 
         try:
             client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.5,
-                max_tokens=1500,
+                max_tokens=2000,
             )
             text = response.choices[0].message.content
             return Response({"insights": text})

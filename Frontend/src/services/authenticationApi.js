@@ -11,7 +11,9 @@ export async function registerUser({ email, username, password, password2 }) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data?.error || JSON.stringify(data) || "registration failed");
+    throw new Error(
+      data?.error || JSON.stringify(data) || "registration failed",
+    );
   }
   return data;
 }
@@ -36,4 +38,16 @@ export const getUsers = async () => {
 
 export const deleteUser = async (userId) => {
   await apiClient.delete(`/auth/users/${userId}/`);
+};
+
+export const resetUserPassword = async (userId) => {
+  const response = await apiClient.post(
+    `/auth/users/${userId}/reset-password/`,
+  );
+  return response.data;
+};
+
+export const toggleUserStaff = async (userId) => {
+  const response = await apiClient.post(`/auth/users/${userId}/toggle-staff/`);
+  return response.data;
 };

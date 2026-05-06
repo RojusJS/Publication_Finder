@@ -148,7 +148,7 @@ function PublicationCard({
                   fontWeight: "600",
                 }}
               >
-                Open Access
+                Atviroji prieiga
               </span>
             )}
             {pub.doi && (

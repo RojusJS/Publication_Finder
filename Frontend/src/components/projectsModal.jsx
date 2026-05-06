@@ -69,7 +69,6 @@ function CreateProjectModal({
           <label style={labelStyle}>{t.project_name_label}</label>
           <input
             type="text"
-            placeholder={t.project_name_placeholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={inputStyle}
@@ -80,7 +79,6 @@ function CreateProjectModal({
         <div>
           <label style={labelStyle}>{t.project_desc_label}</label>
           <textarea
-            placeholder={t.project_desc_placeholder}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}

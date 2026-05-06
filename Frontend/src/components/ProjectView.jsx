@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import PublicationCardModal from "./publicationCardModal";
+import CollaboratorsModal from "./collaboratorModal";
 import ConfirmModal from "./confirmModal";
 import { getPublicationDetail } from "../services/openalexApi";
 import { useLanguage } from "./language";
@@ -20,11 +21,9 @@ import {
   updateProject,
   updateFolder,
   semanticSearch,
-  getCollaborators,
-  inviteCollaborator,
-  removeCollaborator,
-  submitRecommendationFeedback,
   getRecommendationFeedback,
+  submitRecommendationFeedback,
+  getCollaborators,
 } from "../services/projectApi";
 import { useToast } from "./toastContext";
 import { getProjectInsights } from "../services/insightsApi";
@@ -62,6 +61,8 @@ function ProjectView({
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [currentProject, setCurrentProject] = useState(project);
   const [editProjectOpen, setEditProjectOpen] = useState(false);
+  const [collabModalOpen, setCollabModalOpen] = useState(false);
+  const [collaborators, setCollaborators] = useState([]);
 
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -77,12 +78,7 @@ function ProjectView({
     useState("");
   const [insightsText, setInsightsText] = useState("");
   const [insightsLoading, setInsightsLoading] = useState(false);
-
-  const [collaborators, setCollaborators] = useState([]);
-  const [showCollabPanel, setShowCollabPanel] = useState(false);
-  const [inviteUsername, setInviteUsername] = useState("");
-  const [inviteRole, setInviteRole] = useState("editor");
-  const [inviting, setInviting] = useState(false);
+  const [insightsFocus, setInsightsFocus] = useState("bendros");
 
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef(null);
@@ -123,6 +119,7 @@ function ProjectView({
     setSelectedRecommendationFolder("");
     setInsightsText("");
     setInsightsLoading(false);
+    setInsightsFocus("bendros");
     setAnalytics(null);
     setAnalyticsLoading(true);
     setFeedback({});
@@ -190,10 +187,6 @@ function ProjectView({
     setCurrentFolder(target);
     loadContent(target ? target.id : null);
   };
-
-  const breadcrumb = [null, ...folderStack, currentFolder].filter(
-    (_, i, arr) => i < arr.length,
-  );
 
   if (!project) return null;
 
@@ -409,47 +402,13 @@ function ProjectView({
     setInsightsText("");
     setInsightsLoading(true);
     try {
-      const text = await getProjectInsights(project.id);
+      const text = await getProjectInsights(project.id, insightsFocus);
       setInsightsText(text);
     } catch {
       showToast("Nepavyko gauti įžvalgų");
     } finally {
       setInsightsLoading(false);
     }
-  };
-
-  const handleInvite = async () => {
-    if (!inviteUsername.trim()) return;
-    setInviting(true);
-    try {
-      const collab = await inviteCollaborator(
-        project.id,
-        inviteUsername.trim(),
-        inviteRole,
-      );
-      setCollaborators((prev) => [...prev, collab]);
-      setInviteUsername("");
-      showToast("Pakvietimas išsiųstas", "success");
-    } catch {
-      showToast("Nepavyko pakviesti vartotojo");
-    } finally {
-      setInviting(false);
-    }
-  };
-
-  const handleRemoveCollaborator = (collabId, username) => {
-    openConfirm(
-      "Pašalinti bendradarbį?",
-      `Ar tikrai norite pašalinti ${username} iš šio projekto?`,
-      async () => {
-        try {
-          await removeCollaborator(project.id, collabId);
-          setCollaborators((prev) => prev.filter((c) => c.id !== collabId));
-        } catch {
-          showToast("Nepavyko pašalinti bendradarbio");
-        }
-      },
-    );
   };
 
   const handleLabelChange = (pubId, newLabel) => {
@@ -533,7 +492,29 @@ function ProjectView({
   };
 
   const collectAllPubs = async () => {
-    return publications;
+    const allPubs = [];
+    const rootPubs = await getProjectPublications(project.id);
+    allPubs.push(...rootPubs);
+    const rootFolders = await getFolders(project.id, null);
+    const collectFromFolder = async (folderId) => {
+      const [pubs, folders] = await Promise.all([
+        getPublications(project.id, folderId),
+        getFolders(project.id, folderId),
+      ]);
+      allPubs.push(...pubs);
+      for (const folder of folders) {
+        await collectFromFolder(folder.id);
+      }
+    };
+    for (const folder of rootFolders) {
+      await collectFromFolder(folder.id);
+    }
+    const seen = new Set();
+    return allPubs.filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
   };
 
   const handleExportBibtex = async () => {
@@ -567,6 +548,7 @@ function ProjectView({
 
   const handleExportPdf = async () => {
     setExportOpen(false);
+    const all = await collectAllPubs();
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 18;
@@ -590,7 +572,7 @@ function ProjectView({
     if (currentProject.description)
       addText(currentProject.description, 11, false, [80, 80, 80]);
     y += 4;
-    publications.forEach((pub, i) => {
+    all.forEach((pub, i) => {
       if (y > 255) {
         doc.addPage();
         y = 20;
@@ -614,6 +596,7 @@ function ProjectView({
     color: "#1e2d4a",
     fontFamily: "Times New Roman",
     fontSize: "13px",
+    outline: "none",
   };
   const ghostHover = (e) => {
     e.currentTarget.style.background = "#f0f4fa";
@@ -624,7 +607,9 @@ function ProjectView({
     e.currentTarget.style.borderColor = "#dce3ed";
   };
 
-  const isOwner = project.user === undefined || true;
+  const membersCount = collaborators.filter(
+    (c) => c.status === "accepted",
+  ).length;
 
   return (
     <div
@@ -696,23 +681,13 @@ function ProjectView({
           <div
             style={{ width: "1px", height: "20px", background: "#dce3ed" }}
           />
-
           <button
-            onClick={() => setShowCollabPanel((p) => !p)}
-            style={{
-              ...ghostBtn,
-              color: showCollabPanel ? "#1e2d4a" : "#5a7090",
-              background: showCollabPanel ? "#eef1f6" : "none",
-            }}
+            onClick={() => setCollabModalOpen(true)}
+            style={ghostBtn}
             onMouseEnter={ghostHover}
             onMouseLeave={ghostLeave}
           >
-            {(() => {
-              const accepted = collaborators.filter(
-                (c) => c.status === "accepted",
-              ).length;
-              return accepted > 1 ? `Nariai (${accepted})` : "Nariai";
-            })()}
+            {membersCount > 1 ? `Nariai (${membersCount})` : "Nariai"}
           </button>
           <button
             onClick={() => setEditProjectOpen(true)}
@@ -722,7 +697,6 @@ function ProjectView({
           >
             Redaguoti
           </button>
-
           <div style={{ position: "relative" }} ref={exportRef}>
             <button
               onClick={() => setExportOpen((p) => !p)}
@@ -749,8 +723,6 @@ function ProjectView({
               >
                 {[
                   { label: "PDF", action: handleExportPdf },
-                  { label: "BibTeX (.bib)", action: handleExportBibtex },
-                  { label: "RIS (.ris)", action: handleExportRis },
                 ].map(({ label, action }) => (
                   <button
                     key={label}
@@ -781,7 +753,6 @@ function ProjectView({
               </div>
             )}
           </div>
-
           <button
             onClick={handleDeleteProject}
             style={{ ...ghostBtn, color: "#c0392b" }}
@@ -811,296 +782,58 @@ function ProjectView({
           flexWrap: "wrap",
         }}
       >
-        <span
-          onClick={() => navigateToCrumb(-1)}
-          style={{
-            fontSize: "12px",
-            color: currentFolder ? "#2a5db0" : "#1e2d4a",
-            fontWeight: currentFolder ? "400" : "600",
-            cursor: currentFolder ? "pointer" : "default",
-          }}
-        >
-          {currentProject.name}
-        </span>
         {folderStack.filter(Boolean).map((f, i) => (
           <span
             key={f.id}
             style={{ display: "flex", alignItems: "center", gap: "6px" }}
           >
-            <span style={{ color: "#7a90aa", fontSize: "11px" }}>›</span>
             <span
               onClick={() => navigateToCrumb(i)}
               style={{ fontSize: "12px", color: "#2a5db0", cursor: "pointer" }}
             >
               {f.name}
             </span>
+            <span style={{ color: "#7a90aa", fontSize: "11px" }}>›</span>
           </span>
         ))}
         {currentFolder && (
-          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ color: "#7a90aa", fontSize: "11px" }}>›</span>
-            <span
-              style={{ fontSize: "12px", color: "#1e2d4a", fontWeight: "600" }}
-            >
-              {currentFolder.name}
-            </span>
+          <span
+            style={{ fontSize: "12px", color: "#1e2d4a", fontWeight: "600" }}
+          >
+            {currentFolder.name}
           </span>
         )}
-
-        <div style={{ marginLeft: "auto", display: "flex", gap: "16px" }}>
-          {[
-            {
-              label: "Publikacijos",
-              value: analyticsLoading
-                ? "..."
-                : (analytics?.total_publications ?? 0),
-            },
-            {
-              label: "Citavimai",
-              value: analyticsLoading
-                ? "..."
-                : (analytics?.total_citations ?? 0),
-            },
-            {
-              label: "Vid. metai",
-              value: analyticsLoading
-                ? "..."
-                : (analytics?.average_year ?? "—"),
-            },
-          ].map((item) => (
-            <span
-              key={item.label}
-              style={{
-                display: "flex",
-                gap: "4px",
-                alignItems: "center",
-                fontSize: "11px",
-              }}
-            >
-              <span
-                style={{
-                  color: "#7a90aa",
-                  fontWeight: "700",
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  fontSize: "9px",
-                }}
-              >
-                {item.label}
-              </span>
-              <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
-                {item.value}
-              </span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {showCollabPanel && (
-        <div
-          style={{
-            background: "#f7f9fc",
-            borderBottom: "1px solid #dce3ed",
-            padding: "14px 20px",
-            flexShrink: 0,
-          }}
-        >
-          <div
+        {!currentFolder && folderStack.filter(Boolean).length === 0 && (
+          <span style={{ fontSize: "12px", color: "#7a90aa" }}>
+            Pradžia
+          </span>
+        )}
+        <div style={{ marginLeft: "auto" }}>
+          <span
             style={{
               display: "flex",
-              gap: "20px",
-              alignItems: "flex-start",
-              flexWrap: "wrap",
+              gap: "4px",
+              alignItems: "center",
+              fontSize: "11px",
             }}
           >
-            <div style={{ flex: 1, minWidth: "260px" }}>
-              <p
-                style={{
-                  margin: "0 0 10px",
-                  fontSize: "11px",
-                  fontWeight: "700",
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "#7a90aa",
-                }}
-              >
-                Pakviesti bendradarbį
-              </p>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <input
-                  value={inviteUsername}
-                  onChange={(e) => setInviteUsername(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-                  placeholder="Vartotojo vardas"
-                  style={{
-                    flex: 1,
-                    padding: "6px 10px",
-                    borderRadius: "6px",
-                    border: "1px solid #c8d4e3",
-                    fontFamily: "Times New Roman",
-                    fontSize: "13px",
-                    outline: "none",
-                    color: "#1e2d4a",
-                  }}
-                  onFocus={(e) =>
-                    (e.currentTarget.style.borderColor = "#1e2d4a")
-                  }
-                  onBlur={(e) =>
-                    (e.currentTarget.style.borderColor = "#c8d4e3")
-                  }
-                />
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  style={{
-                    padding: "6px 8px",
-                    borderRadius: "6px",
-                    border: "1px solid #c8d4e3",
-                    fontFamily: "Times New Roman",
-                    fontSize: "12px",
-                    color: "#1e2d4a",
-                    outline: "none",
-                    background: "#ffffff",
-                  }}
-                >
-                  <option value="editor">Redaktorius</option>
-                  <option value="viewer">Stebėtojas</option>
-                </select>
-                <button
-                  onClick={handleInvite}
-                  disabled={inviting || !inviteUsername.trim()}
-                  style={{
-                    padding: "6px 14px",
-                    background:
-                      inviting || !inviteUsername.trim()
-                        ? "#eef1f6"
-                        : "#1e2d4a",
-                    color:
-                      inviting || !inviteUsername.trim()
-                        ? "#7a90aa"
-                        : "#ffffff",
-                    border: "none",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontFamily: "Times New Roman",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                  }}
-                >
-                  {inviting ? "..." : "Pakviesti"}
-                </button>
-              </div>
-            </div>
-            {collaborators.length > 0 && (
-              <div style={{ flex: 2, minWidth: "300px" }}>
-                <p
-                  style={{
-                    margin: "0 0 10px",
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    letterSpacing: "0.1em",
-                    textTransform: "uppercase",
-                    color: "#7a90aa",
-                  }}
-                >
-                  Bendradarbiai
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                  {collaborators.map((c) => {
-                    const isOwner = c.role === "owner";
-                    const isMe =
-                      c.user.username ===
-                      (localStorage.getItem("username") || "");
-                    return (
-                      <div
-                        key={c.id ?? `owner-${c.user.id}`}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "4px 10px",
-                          background: "#ffffff",
-                          border: "1px solid #dce3ed",
-                          borderRadius: "20px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
-                          {c.user.username}
-                          {isMe ? " (aš)" : ""}
-                        </span>
-                        <span style={{ color: "#7a90aa" }}>
-                          {isOwner
-                            ? "Savininkas"
-                            : c.role === "editor"
-                              ? "Redaktorius"
-                              : "Stebėtojas"}
-                        </span>
-                        {!isOwner && (
-                          <span
-                            style={{
-                              padding: "1px 6px",
-                              borderRadius: "10px",
-                              fontSize: "10px",
-                              fontWeight: "600",
-                              background:
-                                c.status === "accepted"
-                                  ? "#e8f5ec"
-                                  : c.status === "pending"
-                                    ? "#fef9e7"
-                                    : "#fdecea",
-                              color:
-                                c.status === "accepted"
-                                  ? "#1e6640"
-                                  : c.status === "pending"
-                                    ? "#6b5200"
-                                    : "#922b21",
-                            }}
-                          >
-                            {c.status === "accepted"
-                              ? "Aktyvus"
-                              : c.status === "pending"
-                                ? "Laukiama"
-                                : "Atmesta"}
-                          </span>
-                        )}
-                        {(!isOwner && project.user === undefined) ||
-                        (!isOwner &&
-                          collaborators[0]?.role === "owner" &&
-                          collaborators[0]?.user?.username ===
-                            (localStorage.getItem("username") || "")) ? (
-                          <button
-                            onClick={() =>
-                              handleRemoveCollaborator(c.id, c.user.username)
-                            }
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              color: "#7a90aa",
-                              fontSize: "12px",
-                              padding: "0",
-                              lineHeight: 1,
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.color = "#c0392b")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.color = "#7a90aa")
-                            }
-                          >
-                            ✕
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+            <span
+              style={{
+                color: "#7a90aa",
+                fontWeight: "700",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                fontSize: "9px",
+              }}
+            >
+              Publikacijos
+            </span>
+            <span style={{ color: "#1e2d4a", fontWeight: "600" }}>
+              {analyticsLoading ? "..." : (analytics?.total_publications ?? 0)}
+            </span>
+          </span>
         </div>
-      )}
+      </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <div
@@ -1212,7 +945,6 @@ function ProjectView({
           {loadingContent && (
             <p style={{ color: "#7a90aa", fontSize: "13px" }}>{t.loading}</p>
           )}
-
           {!loadingContent &&
             subfolders.length === 0 &&
             publications.length === 0 && (
@@ -1442,118 +1174,151 @@ function ProjectView({
               <div
                 style={{ display: "flex", flexDirection: "column", gap: "4px" }}
               >
-                {publications.map((pub) => (
-                  <div
-                    key={pub.id}
-                    onClick={() => handleOpenPublication(pub)}
-                    style={{
-                      background: "#ffffff",
-                      padding: "12px 14px",
-                      borderRadius: "8px",
-                      border: "1px solid #dce3ed",
-                      cursor: "pointer",
-                      transition: "border-color 0.15s, box-shadow 0.15s",
-                      position: "relative",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#7fa8d4";
-                      e.currentTarget.style.boxShadow =
-                        "0 2px 8px rgba(30,45,74,0.08)";
-                      const btn = e.currentTarget.querySelector(".delete-btn");
-                      if (btn) btn.style.opacity = "1";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#dce3ed";
-                      e.currentTarget.style.boxShadow = "none";
-                      const btn = e.currentTarget.querySelector(".delete-btn");
-                      if (btn) btn.style.opacity = "0";
-                    }}
-                  >
-                    <button
-                      className="delete-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeletePublication(pub);
-                      }}
+                {publications.map((pub) => {
+                  const firstNote = pub.notes?.[0];
+                  return (
+                    <div
+                      key={pub.id}
+                      onClick={() => handleOpenPublication(pub)}
                       style={{
-                        position: "absolute",
-                        top: "10px",
-                        right: "10px",
-                        padding: "2px 8px",
-                        background: "none",
+                        background: "#ffffff",
+                        padding: "12px 14px",
+                        borderRadius: "8px",
                         border: "1px solid #dce3ed",
-                        borderRadius: "5px",
                         cursor: "pointer",
-                        fontFamily: "Times New Roman",
-                        fontSize: "11px",
-                        color: "#7a90aa",
-                        opacity: 0,
-                        transition: "opacity 0.15s",
+                        transition: "border-color 0.15s, box-shadow 0.15s",
+                        position: "relative",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "#c0392b";
-                        e.currentTarget.style.borderColor = "#c0392b";
+                        e.currentTarget.style.borderColor = "#7fa8d4";
+                        e.currentTarget.style.boxShadow =
+                          "0 2px 8px rgba(30,45,74,0.08)";
+                        const btn =
+                          e.currentTarget.querySelector(".delete-btn");
+                        if (btn) btn.style.opacity = "1";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "#7a90aa";
                         e.currentTarget.style.borderColor = "#dce3ed";
+                        e.currentTarget.style.boxShadow = "none";
+                        const btn =
+                          e.currentTarget.querySelector(".delete-btn");
+                        if (btn) btn.style.opacity = "0";
                       }}
                     >
-                      {t.delete}
-                    </button>
-                    <p
-                      style={{
-                        margin: "0 32px 0 0",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        lineHeight: "1.45",
-                        color: "#1e2d4a",
-                      }}
-                    >
-                      {pub.title}
-                    </p>
-                    <div
-                      style={{
-                        marginTop: "5px",
-                        fontSize: "12px",
-                        color: "#5a7090",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2px",
-                      }}
-                    >
-                      <span>
-                        {t.year} {pub.year ?? "—"}
-                      </span>
-                      {pub.doi && (
+                      <button
+                        className="delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePublication(pub);
+                        }}
+                        style={{
+                          position: "absolute",
+                          top: "10px",
+                          right: "10px",
+                          padding: "2px 8px",
+                          background: "none",
+                          border: "1px solid #dce3ed",
+                          borderRadius: "5px",
+                          cursor: "pointer",
+                          fontFamily: "Times New Roman",
+                          fontSize: "11px",
+                          color: "#7a90aa",
+                          opacity: 0,
+                          transition: "opacity 0.15s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "#c0392b";
+                          e.currentTarget.style.borderColor = "#c0392b";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "#7a90aa";
+                          e.currentTarget.style.borderColor = "#dce3ed";
+                        }}
+                      >
+                        {t.delete}
+                      </button>
+                      <p
+                        style={{
+                          margin: "0 32px 0 0",
+                          fontSize: "13px",
+                          fontWeight: "600",
+                          lineHeight: "1.45",
+                          color: "#1e2d4a",
+                        }}
+                      >
+                        {pub.title}
+                      </p>
+                      <div
+                        style={{
+                          marginTop: "5px",
+                          fontSize: "12px",
+                          color: "#5a7090",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "2px",
+                        }}
+                      >
                         <span>
-                          DOI:{" "}
-                          <a
-                            href={pub.doi}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ color: "#2a5db0" }}
-                          >
-                            {pub.doi}
-                          </a>
+                          {t.year} {pub.year ?? "—"}
                         </span>
-                      )}
-                      {pub.saved_at && (
-                        <span style={{ color: "#7a90aa", fontSize: "11px" }}>
-                          Išsaugota: {formatDate(pub.saved_at)}
-                        </span>
-                      )}
-                      <LabelBadge
-                        pubId={pub.id}
-                        currentLabel={pub.label}
-                        onChange={(newLabel) =>
-                          handleLabelChange(pub.id, newLabel)
-                        }
-                      />
+                        {pub.doi && (
+                          <span>
+                            DOI:{" "}
+                            <a
+                              href={pub.doi}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ color: "#2a5db0" }}
+                            >
+                              {pub.doi}
+                            </a>
+                          </span>
+                        )}
+                        {pub.saved_at && (
+                          <span style={{ color: "#7a90aa", fontSize: "11px" }}>
+                            Išsaugota: {formatDate(pub.saved_at)}
+                          </span>
+                        )}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-end",
+                            marginTop: "2px",
+                          }}
+                        >
+                          <LabelBadge
+                            pubId={pub.id}
+                            currentLabel={pub.label}
+                            onChange={(newLabel) =>
+                              handleLabelChange(pub.id, newLabel)
+                            }
+                          />
+                          {firstNote && (
+                            <span
+                              style={{
+                                fontSize: "11px",
+                                color: "#7a90aa",
+                                fontStyle: "italic",
+                                maxWidth: "55%",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                textAlign: "right",
+                              }}
+                            >
+                              Pastaba:{" "}
+                              {firstNote.text.length > 40
+                                ? firstNote.text.slice(0, 40) + "..."
+                                : firstNote.text}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1594,7 +1359,7 @@ function ProjectView({
                   key: "recommendations",
                   label: t.recommended ?? "Rekomendacijos",
                 },
-                { key: "semantic", label: "Semantinė paieška" },
+                { key: "semantic", label: "Paieška" },
                 { key: "insights", label: "Įžvalgos" },
               ].map(({ key, label }) => (
                 <button
@@ -1625,7 +1390,6 @@ function ProjectView({
                 </button>
               ))}
             </div>
-
             {rightPanelMode === "recommendations" &&
               selectedRecs.length > 0 && (
                 <div style={{ position: "relative" }}>
@@ -1773,7 +1537,7 @@ function ProjectView({
                 value={semanticQuery}
                 onChange={(e) => setSemanticQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSemanticSearch()}
-                placeholder="pvz. machine learning in healthcare..."
+                placeholder=""
                 style={{
                   flex: 1,
                   padding: "8px 12px",
@@ -1840,7 +1604,7 @@ function ProjectView({
                   padding: "20px",
                 }}
               >
-                Įveskite užklausą ir raskite semantiškai artimas publikacijas iš
+                Įveskite užklausą ir raskite publikacijas iš
                 šio projekto
               </div>
             )}
@@ -1931,7 +1695,52 @@ function ProjectView({
             <div
               style={{ display: "flex", flexDirection: "column", gap: "14px" }}
             >
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <div style={{ position: "relative" }}>
+                  <select
+                    value={insightsFocus}
+                    onChange={(e) => setInsightsFocus(e.target.value)}
+                    disabled={insightsLoading}
+                    style={{
+                      padding: "7px 28px 7px 10px",
+                      borderRadius: "6px",
+                      border: "1px solid #c8d4e3",
+                      fontFamily: "Times New Roman",
+                      fontSize: "12px",
+                      color: "#1e2d4a",
+                      outline: "none",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                      background: "#ffffff",
+                      cursor: insightsLoading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <option value="bendros">Bendros įžvalgos</option>
+                    <option value="temos">Temos ir kryptys</option>
+                    <option value="metodologija">Metodologija</option>
+                    <option value="spragos">Mokslinės spragos</option>
+                  </select>
+                  <span
+                    style={{
+                      position: "absolute",
+                      right: "8px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                      fontSize: "9px",
+                      color: "#7a90aa",
+                    }}
+                  >
+                    ▼
+                  </span>
+                </div>
                 <button
                   onClick={handleGetInsights}
                   disabled={insightsLoading}
@@ -1984,7 +1793,6 @@ function ProjectView({
                   įžvalgas apie projekto publikacijas
                 </div>
               )}
-
               {(insightsText || insightsLoading) && (
                 <div
                   style={{
@@ -2009,15 +1817,8 @@ function ProjectView({
                   )}
                 </div>
               )}
-
               {insightsText && !insightsLoading && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "8px",
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(insightsText);
@@ -2145,6 +1946,7 @@ function ProjectView({
                 </div>
               </div>
             )}
+
           {rightPanelMode === "recommendations" && recLoading && (
             <div
               style={{
@@ -2468,6 +2270,14 @@ function ProjectView({
           pub={selectedPub}
           institutionName={institutionName}
           projects={projects}
+        />,
+        document.body,
+      )}
+      {createPortal(
+        <CollaboratorsModal
+          open={collabModalOpen}
+          onClose={() => setCollabModalOpen(false)}
+          project={project}
         />,
         document.body,
       )}
