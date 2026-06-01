@@ -33,7 +33,7 @@ def test_save_publication_to_project_success(auth_client, user):
     )
     folder = Folder.objects.create(
         project=project,
-        name="Folderis",
+        name="Aplankalas",
     )
     payload = {
         "openalex_id": "https://openalex.org/W123",
@@ -73,7 +73,7 @@ def test_saved_publication_is_visible_in_project_folder_list(auth_client, user):
     )
     folder = Folder.objects.create(
         project=project,
-        name="Folderis",
+        name="Aplankalas",
     )
     SavedPublication.objects.create(
         project=project,
@@ -105,7 +105,7 @@ def test_unauthenticated_user_cannot_save_publication(client, user):
     )
     folder = Folder.objects.create(
         project=project,
-        name="Folderis",
+        name="Aplankalas",
     )
     payload = {
         "openalex_id": "https://openalex.org/W123",

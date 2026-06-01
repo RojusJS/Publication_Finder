@@ -501,7 +501,7 @@ function HeaderBar({
                           fontFamily: "Times New Roman",
                         }}
                       >
-                        Nėra laukiančių pakvietimų
+                        Nėra pakvietimų
                       </div>
                     ) : (
                       pendingInvitations.map((inv) => (

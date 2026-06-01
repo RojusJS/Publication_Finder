@@ -257,8 +257,6 @@ function FiltersBar({
             <option value="es">Ispanų (ES)</option>
             <option value="it">Italų (IT)</option>
             <option value="pl">Lenkų (PL)</option>
-            <option value="zh">Kinų (ZH)</option>
-            <option value="ja">Japonų (JA)</option>
           </select>
           <span
             style={{

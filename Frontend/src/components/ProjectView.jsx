@@ -43,11 +43,9 @@ function ProjectView({
   const [subfolders, setSubfolders] = useState([]);
   const [publications, setPublications] = useState([]);
   const [loadingContent, setLoadingContent] = useState(false);
-
   const [recommendations, setRecommendations] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
   const [feedback, setFeedback] = useState({});
-
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPub, setSelectedPub] = useState(null);
   const [selectedRecs, setSelectedRecs] = useState([]);
@@ -56,20 +54,17 @@ function ProjectView({
   const [saveFolders, setSaveFolders] = useState([]);
   const [saveFoldersLoading, setSaveFoldersLoading] = useState(false);
   const [savingRecommendations, setSavingRecommendations] = useState(false);
-
   const [analytics, setAnalytics] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [currentProject, setCurrentProject] = useState(project);
   const [editProjectOpen, setEditProjectOpen] = useState(false);
   const [collabModalOpen, setCollabModalOpen] = useState(false);
   const [collaborators, setCollaborators] = useState([]);
-
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [editingFolderId, setEditingFolderId] = useState(null);
   const [editingFolderName, setEditingFolderName] = useState("");
-
   const [rightPanelMode, setRightPanelMode] = useState("recommendations");
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticResults, setSemanticResults] = useState([]);
@@ -79,7 +74,6 @@ function ProjectView({
   const [insightsText, setInsightsText] = useState("");
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [insightsFocus, setInsightsFocus] = useState("bendros");
-
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef(null);
   const [confirm, setConfirm] = useState({
@@ -88,10 +82,8 @@ function ProjectView({
     message: "",
     onConfirm: null,
   });
-
   const { t } = useLanguage();
   const { showToast } = useToast();
-
   const openConfirm = (title, message, onConfirm) =>
     setConfirm({ open: true, title, message, onConfirm });
   const closeConfirm = () =>
@@ -202,7 +194,7 @@ function ProjectView({
       setNewFolderName("");
       setShowNewFolderInput(false);
     } catch {
-      showToast("Nepavyko sukurti aplanko");
+      showToast("Nepavyko sukurti aplankalo");
     } finally {
       setCreatingFolder(false);
     }
@@ -210,14 +202,14 @@ function ProjectView({
 
   const handleDeleteFolder = (folder) => {
     openConfirm(
-      "Ištrinti aplanką?",
-      `Ar tikrai norite ištrinti aplanką "${folder.name}"? Visi poaplankiai ir publikacijos bus pašalinti.`,
+      "Ištrinti aplankalą?",
+      `Ar tikrai norite ištrinti aplankalą "${folder.name}"?`,
       async () => {
         try {
           await deleteFolder(project.id, folder.id);
           setSubfolders((prev) => prev.filter((f) => f.id !== folder.id));
         } catch {
-          showToast("Nepavyko ištrinti aplanko");
+          showToast("Nepavyko ištrinti aplankalo");
         }
       },
     );
@@ -234,9 +226,9 @@ function ProjectView({
       );
       setEditingFolderId(null);
       setEditingFolderName("");
-      showToast("Aplankas atnaujintas", "success");
+      showToast("Aplankalas atnaujintas", "success");
     } catch {
-      showToast("Nepavyko atnaujinti aplanko");
+      showToast("Nepavyko atnaujinti aplankalo");
     }
   };
 
@@ -262,7 +254,7 @@ function ProjectView({
   const handleDeleteProject = () => {
     openConfirm(
       "Ištrinti projektą?",
-      `Ar tikrai norite ištrinti projektą "${currentProject.name}"? Šis veiksmas negrįžtamas.`,
+      `Ar tikrai norite ištrinti projektą "${currentProject.name}"?`,
       async () => {
         try {
           await deleteProject(project.id);
@@ -328,8 +320,8 @@ function ProjectView({
       setFeedback((prev) => ({ ...prev, [rec.openalex_id]: value }));
       showToast(
         value === "positive"
-          ? "Ačiū už teigiamą įvertinimą"
-          : "Ačiū už įvertinimą",
+          ? "Įvertinta teigiamai"
+          : "Įvertinta neigiamai",
         "success",
       );
     } catch {
@@ -346,7 +338,7 @@ function ProjectView({
       const data = await getFolders(projectItem.id);
       setSaveFolders(data);
     } catch {
-      showToast("Nepavyko gauti aplankų");
+      showToast("Nepavyko gauti aplankalų");
     } finally {
       setSaveFoldersLoading(false);
     }
@@ -463,24 +455,6 @@ function ProjectView({
     return `@${type}{${key},\n${fields.join(",\n")}\n}`;
   };
 
-  const formatRisEntry = (pub) => {
-    const typeMap = {
-      "journal-article": "JOUR",
-      "book-chapter": "CHAP",
-      book: "BOOK",
-      preprint: "RPRT",
-      "proceedings-article": "CONF",
-    };
-    const lines = [`TY  - ${typeMap[pub.pub_type || pub.type] || "GEN"}`];
-    if (pub.title) lines.push(`TI  - ${pub.title}`);
-    (pub.authors || []).forEach((a) => lines.push(`AU  - ${a}`));
-    if (pub.year) lines.push(`PY  - ${pub.year}`);
-    if (pub.source_name) lines.push(`JO  - ${pub.source_name}`);
-    if (pub.doi) lines.push(`DO  - ${pub.doi}`);
-    lines.push("ER  -");
-    return lines.join("\n");
-  };
-
   const downloadFile = (content, filename, mime) => {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
@@ -532,16 +506,6 @@ function ProjectView({
     downloadFile(
       entries.join("\n\n"),
       `${currentProject.name}.bib`,
-      "text/plain",
-    );
-  };
-
-  const handleExportRis = async () => {
-    setExportOpen(false);
-    const all = await collectAllPubs();
-    downloadFile(
-      all.map(formatRisEntry).join("\n\n"),
-      `${currentProject.name}.ris`,
       "text/plain",
     );
   };
@@ -723,6 +687,7 @@ function ProjectView({
               >
                 {[
                   { label: "PDF", action: handleExportPdf },
+                  { label: "BibTeX (.bib)", action: handleExportBibtex },
                 ].map(({ label, action }) => (
                   <button
                     key={label}
@@ -804,9 +769,7 @@ function ProjectView({
           </span>
         )}
         {!currentFolder && folderStack.filter(Boolean).length === 0 && (
-          <span style={{ fontSize: "12px", color: "#7a90aa" }}>
-            Pradžia
-          </span>
+          <span style={{ fontSize: "12px", color: "#7a90aa" }}>Pradžia</span>
         )}
         <div style={{ marginLeft: "auto" }}>
           <span
@@ -1604,8 +1567,7 @@ function ProjectView({
                   padding: "20px",
                 }}
               >
-                Įveskite užklausą ir raskite publikacijas iš
-                šio projekto
+                Įveskite užklausą ir raskite publikacijas iš šio projekto
               </div>
             )}
 
@@ -1790,7 +1752,7 @@ function ProjectView({
                   }}
                 >
                   Spauskite „Analizuoti" ir dirbtinio intelekto modelis pateiks
-                  įžvalgas apie projekto publikacijas
+                  įžvalgas apie projekte esančias publikacijas
                 </div>
               )}
               {(insightsText || insightsLoading) && (
@@ -1810,41 +1772,11 @@ function ProjectView({
                 >
                   {insightsLoading ? (
                     <span style={{ color: "#7a90aa" }}>
-                      Modelis analizuoja publikacijas...
+                      Dirbtinio intelekto modelis analizuoja publikacijas...
                     </span>
                   ) : (
                     insightsText
                   )}
-                </div>
-              )}
-              {insightsText && !insightsLoading && (
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(insightsText);
-                      showToast("Įžvalgos nukopijuotos", "success");
-                    }}
-                    style={{
-                      padding: "5px 12px",
-                      background: "none",
-                      border: "1px solid #dce3ed",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                      fontFamily: "Times New Roman",
-                      fontSize: "12px",
-                      color: "#5a7090",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#1e2d4a";
-                      e.currentTarget.style.color = "#1e2d4a";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#dce3ed";
-                      e.currentTarget.style.color = "#5a7090";
-                    }}
-                  >
-                    Kopijuoti
-                  </button>
                 </div>
               )}
             </div>

@@ -18,7 +18,7 @@ from apps.projects.api.serializers import (
     RecommendationFeedbackSerializer, SearchHistorySerializer,
     SharedPublicationSerializer,
 )
-from apps.projects.embedding_service import generate_embedding, encode_query
+from apps.projects.services.embedding_service import generate_embedding, encode_query
 
 
 def get_accessible_project(user, project_id):
@@ -74,12 +74,12 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         project = self.get_object()
         if project.user != self.request.user:
-            self.permission_denied(self.request, message="Only the owner can edit this project.")
+            self.permission_denied(self.request, message="Tik savininkas gali redaguoti šį projektą.")
         serializer.save()
 
     def perform_destroy(self, instance):
         if instance.user != self.request.user:
-            self.permission_denied(self.request, message="Only the owner can delete this project.")
+            self.permission_denied(self.request, message="Tik savininkas gali ištrinti šį projektą.")
         instance.delete()
 
 
@@ -391,7 +391,7 @@ class SemanticSearchView(APIView):
         project = get_accessible_project(request.user, project_id)
         query = (request.data.get("query") or "").strip()
         if not query:
-            return Response({"error": "query is required"}, status=400)
+            return Response({"error": "reikalinga užklausa"}, status=400)
 
         publications = SavedPublication.objects.filter(project=project, embedding__isnull=False)
         if not publications.exists():
@@ -436,7 +436,7 @@ class RecommendationFeedbackView(APIView):
         title = request.data.get("title", "").strip()
 
         if not openalex_id or feedback_value not in RecommendationFeedback.Feedback.values:
-            return Response({"error": "openalex_id and valid feedback required"}, status=400)
+            return Response({"error": "reikalingi openalex_id ir atsiliepimas"}, status=400)
 
         obj, created = RecommendationFeedback.objects.update_or_create(
             user=request.user,
@@ -526,7 +526,7 @@ class SearchHistoryCreateView(APIView):
     def post(self, request):
         query = request.data.get("query", "").strip()
         if not query:
-            return Response({"error": "query required"}, status=400)
+            return Response({"error": "reikalinga užklausa"}, status=400)
 
         existing = SearchHistory.objects.filter(
             user=request.user,

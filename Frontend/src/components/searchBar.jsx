@@ -337,7 +337,7 @@ function SearchBar({
                                 border: "1px solid #b8dfc8",
                               }}
                             >
-                              Open Access
+                              Atviroji prieiga
                             </span>
                           )}
                         </div>

@@ -11,10 +11,8 @@ import { useToast } from "./toastContext";
 function AdminModal({ open, onClose }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-
   const { t } = useLanguage();
   const { showToast } = useToast();
-
   useEffect(() => {
     if (open) {
       handleOpen();
@@ -264,7 +262,7 @@ function AdminModal({ open, onClose }) {
                     }}
                   >
                     {user.is_staff
-                      ? "Pašalinti iš adminų"
+                      ? "Pašalinti iš administratorių"
                       : "Skirti administratoriumi"}
                   </button>
 

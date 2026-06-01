@@ -19,9 +19,7 @@ SELECTED_FIELDS = ",".join([
 ])
 
 SELECTED_FIELDS_WITH_ABSTRACT = SELECTED_FIELDS + ",abstract_inverted_index"
-
 CITATION_GRAPH_FIELDS = "id,title,publication_year,cited_by_count"
-
 
 class OpenAlexClient:
 

@@ -8,7 +8,7 @@ import math
 import re
 
 from apps.projects.models import Project, SavedPublication, Folder, RecommendationFeedback
-from apps.projects.embedding_service import get_model
+from apps.projects.services.embedding_service import get_model
 from apps.search.integrations.openalex_client import OpenAlexClient
 
 
@@ -39,7 +39,6 @@ class ProjectRecommendationsView(generics.GenericAPIView):
         saved_ids = {pub.openalex_id for pub in saved_publications if pub.openalex_id}
         saved_dois = {pub.doi.lower().strip() for pub in saved_publications if pub.doi}
         saved_titles = {self.normalize_title(pub.title) for pub in saved_publications if pub.title}
-
         current_year = datetime.now().year
 
         def publication_text(pub):
@@ -61,7 +60,6 @@ class ProjectRecommendationsView(generics.GenericAPIView):
         profile_text = " ".join(saved_texts)
         queries = [pub.title for pub in saved_publications[:5] if pub.title]
         queries = [re.sub(r"\s+", " ", q).strip() for q in queries if q.strip()][:6]
-
         top_authors = [
             name for name, _ in Counter(
                 author for pub in saved_publications for author in (pub.authors or [])
@@ -139,7 +137,6 @@ class ProjectRecommendationsView(generics.GenericAPIView):
         candidate_vectors = model.encode([c["_text"] for c in candidates], normalize_embeddings=True)
         similarity_scores = cosine_similarity(profile_vector, candidate_vectors)[0]
         max_citations = max((c["citation_count"] for c in candidates), default=1)
-
         def combined_score(similarity, citation_count, year):
             citation_score = math.log1p(citation_count) / math.log1p(max_citations)
             return 0.90 * similarity + 0.10 * citation_score

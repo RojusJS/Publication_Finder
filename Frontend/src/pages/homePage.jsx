@@ -8,7 +8,7 @@ import HeaderBar from "../components/topHeaderBar";
 import AuthModal from "../components/AuthModal";
 import ProjectsBar from "../components/projectsBar";
 import CreateProjectModal from "../components/projectsModal";
-import ProjectView from "../components/ProjectView";
+import ProjectView from "../components/projectView";
 import { getProjects, createProject } from "../services/projectApi";
 import apiClient from "../services/apiClient";
 import { useLanguage } from "../components/language";
@@ -347,7 +347,6 @@ function HomePage() {
                         fontFamily: "Times New Roman",
                       }}
                     >
-                      Rasta autorių
                     </p>
                     {authorResults.map((a, index) => (
                       <AuthorCard

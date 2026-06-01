@@ -124,16 +124,16 @@ def test_delete_project_non_owner_blocked(other_client, user, other_user, projec
 
 @pytest.mark.django_db
 def test_create_folder(auth_client, project):
-    response = auth_client.post(f"/api/projects/{project.id}/folders/", {"name": "Naujas aplankas"}, format="json")
+    response = auth_client.post(f"/api/projects/{project.id}/folders/", {"name": "Naujas aplankalas"}, format="json")
     assert response.status_code == status.HTTP_201_CREATED
-    assert response.data["name"] == "Naujas aplankas"
+    assert response.data["name"] == "Naujas aplankalas"
 
 
 @pytest.mark.django_db
 def test_create_subfolder(auth_client, project, folder):
     response = auth_client.post(
         f"/api/projects/{project.id}/folders/",
-        {"name": "Poaplankas", "parent": folder.id},
+        {"name": "Aplankalas aplankale", "parent": folder.id},
         format="json",
     )
     assert response.status_code == status.HTTP_201_CREATED
@@ -142,12 +142,12 @@ def test_create_subfolder(auth_client, project, folder):
 
 @pytest.mark.django_db
 def test_folder_breadcrumb(auth_client, project, folder):
-    sub = Folder.objects.create(project=project, parent=folder, name="Poaplankas")
+    sub = Folder.objects.create(project=project, parent=folder, name="Aplankalas aplankale")
     response = auth_client.get(f"/api/projects/{project.id}/folders/{sub.id}/")
     assert response.status_code == status.HTTP_200_OK
     crumbs = response.data["breadcrumb"]
     assert crumbs[0]["name"] == folder.name
-    assert crumbs[1]["name"] == "Poaplankas"
+    assert crumbs[1]["name"] == "Aplankalas aplankale"
 
 
 @pytest.mark.django_db
@@ -168,11 +168,11 @@ def test_list_root_folders(auth_client, project, folder):
 
 @pytest.mark.django_db
 def test_list_subfolders_by_parent(auth_client, project, folder):
-    sub = Folder.objects.create(project=project, parent=folder, name="Poaplankas")
+    sub = Folder.objects.create(project=project, parent=folder, name="Aplankalas aplankale")
     response = auth_client.get(f"/api/projects/{project.id}/folders/?parent={folder.id}")
     assert response.status_code == status.HTTP_200_OK
     names = [f["name"] for f in response.data]
-    assert "Poaplankas" in names
+    assert "Aplankalas aplankale" in names
 
 
 @pytest.mark.django_db

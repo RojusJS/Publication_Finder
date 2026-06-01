@@ -9,7 +9,7 @@ OPENALEX_API_KEY = os.getenv("OPENALEX_API_KEY")
 def author_search(request):
     q = request.GET.get("q", "").strip()
     if not q:
-        return JsonResponse({"error": "Missing query parameter: q"}, status=400)
+        return JsonResponse({"error": "Trūksta parametro: q"}, status=400)
 
     try:
         url = "https://api.openalex.org/authors"
@@ -56,7 +56,7 @@ def author_search(request):
 def author_detail(request):
     author_id = request.GET.get("id", "").strip()
     if not author_id:
-        return JsonResponse({"error": "Missing query parameter: id"}, status=400)
+        return JsonResponse({"error": "Trūksta parametro: id"}, status=400)
 
     try:
         short_id = author_id.replace("https://openalex.org/", "")
@@ -116,6 +116,6 @@ def author_detail(request):
         })
 
     except requests.RequestException as e:
-        return JsonResponse({"error": "OpenAlex request failed", "details": str(e)}, status=502)
+        return JsonResponse({"error": "OpenAlex užklausa nepavyko", "details": str(e)}, status=502)
     except Exception as e:
-        return JsonResponse({"error": "Internal error", "details": str(e)}, status=500)
+        return JsonResponse({"error": "Serverio klaida", "details": str(e)}, status=500)

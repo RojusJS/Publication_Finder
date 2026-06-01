@@ -16,40 +16,40 @@ Kiekvieno skyriaus pradžioje parašyk jo pavadinimą kaip paprastą tekstą, po
 
 FOCUS_PROMPTS = {
     "bendros": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
-Tavo užduotis — išanalizuoti vartotojo pateiktą akademinių publikacijų rinkinį ir pateikti išsamias, \
-struktūruotas įžvalgas lietuvių kalba.
+Tavo užduotis — išanalizuoti vartotojo pateiktą akademinių publikacijų sąrašą ir pateikti išsamias, \
+struktūrizuotas įžvalgas lietuvių kalba.
 
 Analizuodamas publikacijas, aptark šiuos aspektus:
-1. Pagrindinės temos ir kryptys — kokie pagrindiniai moksliniai klausimai nagrinėjami šiame rinkinyje?
+1. Pagrindinės temos ir kryptys — kokie pagrindiniai moksliniai klausimai nagrinėjami šiame sąraše?
 2. Chronologinė raida — kaip kito tyrimų kryptys laikui bėgant?
 3. Metodologiniai požiūriai — kokius tyrimo metodus dažniausiai naudoja autoriai?
 4. Ryšiai tarp publikacijų — kaip publikacijos papildo viena kitą arba prieštarauja?
-5. Mokslinės spragos — ko trūksta šiame rinkinyje, kokie klausimai lieka neatsakyti?
-6. Bendros išvados — kokią bendrą mokslinę vertę turi šis publikacijų rinkinys?
-7. Kokias panašias publikacijas siūlytum ieškoti, kurios atitktų tematiką, bet nebūtų tokios visiškai tokios pačios?
+5. Mokslinės spragos — ko trūksta šiame sąraše, kokie klausimai lieka neatsakyti?
+6. Bendros išvados — kokią bendrą mokslinę vertę turi šis publikacijų sąrašas?
+7. Kokias panašias publikacijas siūlytum ieškoti, kurios atitktų tematiką, bet nebūtų visiškai tokios pačios?
 
 {BASE_INSTRUCTIONS}""",
 
     "temos": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
-Tavo užduotis — atlikti išsamią teminę analizę pateikto publikacijų rinkinio lietuvių kalba.
+Tavo užduotis — atlikti išsamią teminę analizę pateikto publikacijų sąrašo lietuvių kalba.
 
-Sutelk dėmesį išskirtinai į šiuos aspektus:
+Sutelk dėmesį į šiuos aspektus:
 1. Pagrindinės temos ir kryptys — aptark kiekvieną temą atskirai, nurodyk konkrečias publikacijas, kurios ją nagrinėja
-2. Tematiniai ryšiai — kaip temos siejasi tarpusavyje, kokios sąsajos tarp skirtingų krypčių
-3. Temų raida laikui bėgant — ar temos keitėsi, ar atsirado naujų temų vėlesnėse publikacijose
-4. Dominuojančios ir marginalinės temos — kurioms temoms skiriama daugiausiai dėmesio, kokios lieka periferijoje
-5. Rekomenduojamos paieškos kryptys — kokiomis temomis verta ieškoti papildomų šaltinių
+2. Tematiniai ryšiai — kaip temos siejasi tarpusavyje, kokios sąsajos tarp krypčių
+3. Temų raida laikui bėgant — ar temos keitėsi, ar atsirado naujų tematikų vėlesnėse publikacijose
+4. Dominuojančios ir marginalinės temos — kurioms temoms skiriama daugiausiai dėmesio, kokios lieka mažiau pastebimos
+5. Rekomenduojamos paieškos kryptys — kokia tematika verta ieškoti papildomų šaltinių
 
 Kiekvieną aspektą aptark išsamiai, cituok autorius ir metus, pateik konkrečius pavyzdžius.
 
 {BASE_INSTRUCTIONS}""",
 
     "metodologija": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
-Tavo užduotis — atlikti išsamią metodologinę analizę pateikto publikacijų rinkinio lietuvių kalba.
+Tavo užduotis — atlikti išsamią metodologinę analizę pateikto publikacijų sąrašo lietuvių kalba.
 
 Sutelk dėmesį išskirtinai į šiuos aspektus:
 1. Naudojami tyrimo metodai — aptark kiekvienos publikacijos metodologinį požiūrį atskirai
-2. Kiekybiniai ir kokybiniai metodai — kaip jie pasiskirsto rinkinyje, kurie dominuoja
+2. Kiekybiniai ir kokybiniai metodai — kaip jie pasiskirsto sąraše, kurie dominuoja
 3. Metodologiniai stiprumai — kokie metodai atrodo labiausiai pagrįsti ir tinkami
 4. Metodologiniai trūkumai — kokių metodologinių aspektų trūksta, kas galėtų būti geriau
 5. Metodologijų palyginimas — kaip skirtingų autorių metodologiniai pasirinkimai skiriasi ir kodėl
@@ -60,14 +60,14 @@ Kiekvieną aspektą aptark išsamiai, cituok autorius ir metus, pateik konkreči
 {BASE_INSTRUCTIONS}""",
 
     "spragos": f"""Esi mokslinis tyrėjų asistentas, specializuojantis akademinių publikacijų analizėje.
-Tavo užduotis — atlikti išsamią mokslinių spragų analizę pateikto publikacijų rinkinio lietuvių kalba.
+Tavo užduotis — atlikti išsamią mokslinių spragų analizę pateikto publikacijų sąrašo lietuvių kalba.
 
 Sutelk dėmesį išskirtinai į šiuos aspektus:
 1. Teminės spragos — kokios svarbios temos nepakankamiai nagrinėjamos arba visai nenagrinėjamos
 2. Metodologinės spragos — kokių tyrimo metodų ar požiūrių trūksta
 3. Geografinės ir kultūrinės spragos — ar tyrimai apima tik tam tikrus regionus ar kultūras
 4. Chronologinės spragos — kokie laikotarpiai ar raidos etapai nepakankamiai aprašyti
-5. Praktinio taikymo spragos — kur trūksta ryšio tarp teorijos ir praktikos
+5. Praktinio taikymo spragos — ar yra ryšys tarp teorijos ir jos taikymo praktikoje?
 6. Ateities tyrimų rekomendacijos — kokius klausimus būtų labiausiai verta tirti toliau ir kodėl
 
 Kiekvieną aspektą aptark išsamiai, cituok autorius ir metus, pateik konkrečius pavyzdžius.
@@ -77,7 +77,7 @@ Kiekvieną aspektą aptark išsamiai, cituok autorius ir metus, pateik konkreči
 
 
 def build_user_prompt(publications: list[dict]) -> str:
-    lines = [f"Pateikiu {len(publications)} akademinių publikacijų rinkinį analizei:\n"]
+    lines = [f"Pateikiu {len(publications)} akademinių publikacijų sąrašą analizei:\n"]
     for i, pub in enumerate(publications, 1):
         lines.append(f"[{i}] Pavadinimas: {pub['title']}")
         if pub.get("year"):
@@ -95,7 +95,7 @@ def build_user_prompt(publications: list[dict]) -> str:
         if pub.get("keywords"):
             lines.append(f"    Raktažodžiai: {', '.join(pub['keywords'][:6])}")
         lines.append("")
-    lines.append("Pateik išsamią mokslinę analizę šio publikacijų rinkinio.")
+    lines.append("Pateik išsamią mokslinę analizę remiantis šiuo publikacijų sąrašu.")
     return "\n".join(lines)
 
 

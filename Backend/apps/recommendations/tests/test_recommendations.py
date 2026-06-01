@@ -77,7 +77,7 @@ def test_recommendations_unauthenticated_blocked(client, user):
 
 
 @pytest.mark.django_db
-def test_recommendations_nonexistent_project_returns_404(auth_client):
+def test_recommendations_nonexistent_project(auth_client):
     response = auth_client.post("/api/recommendations/99999/", {}, format="json")
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
