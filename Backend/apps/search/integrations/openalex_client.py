@@ -30,7 +30,7 @@ class OpenAlexClient:
             "select": SELECTED_FIELDS_WITH_ABSTRACT,
             "api_key": OPENALEX_API_KEY,
         }
-        resp = requests.get(url, params=params, timeout=15)
+        resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
         return resp.json()
 
@@ -43,7 +43,7 @@ class OpenAlexClient:
             "per-page": per_page,
             "api_key": OPENALEX_API_KEY,
         }
-        resp = requests.get(url, params=params, timeout=15)
+        resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
         return resp.json().get("results", [])
 
@@ -53,7 +53,7 @@ class OpenAlexClient:
         meta_resp = requests.get(
             meta_url,
             params={"select": "referenced_works", "api_key": OPENALEX_API_KEY},
-            timeout=15,
+            timeout=10,
         )
         meta_resp.raise_for_status()
         refs = meta_resp.json().get("referenced_works", [])
@@ -70,7 +70,7 @@ class OpenAlexClient:
             "per-page": per_page,
             "api_key": OPENALEX_API_KEY,
         }
-        resp = requests.get(url, params=params, timeout=15)
+        resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
         return resp.json().get("results", [])
 
@@ -137,6 +137,6 @@ class OpenAlexClient:
         if sort:
             params["sort"] = sort_map.get(sort, "publication_date:desc")
 
-        resp = requests.get(url, params=params, timeout=15)
+        resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
         return resp.json()

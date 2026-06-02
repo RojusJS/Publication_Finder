@@ -11,8 +11,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ("email", "username", "password", "password2")
     def validate(self, attrs):
         if attrs["password"] != attrs["password2"]:
-            raise serializers.ValidationError({"password2": "passwords dont match"})
+            raise serializers.ValidationError({"password2": "Slaptažodžiai nesutampa"})
         return attrs
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Naudotojas su šiuo el. pašto adresu jau egzistuoja")
+        return value
     def create(self, validated_data):
         validated_data.pop("password2")
         password = validated_data.pop("password")

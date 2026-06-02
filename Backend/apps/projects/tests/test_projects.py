@@ -46,7 +46,7 @@ def project(user):
 
 @pytest.fixture
 def folder(project):
-    return Folder.objects.create(project=project, name="Aplankas")
+    return Folder.objects.create(project=project, name="Aplankalas")
 
 
 @pytest.fixture

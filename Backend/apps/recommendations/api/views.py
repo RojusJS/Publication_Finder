@@ -35,7 +35,11 @@ class ProjectRecommendationsView(generics.GenericAPIView):
                 feedback=RecommendationFeedback.Feedback.NEGATIVE,
             ).values_list("openalex_id", flat=True)
         )
-
+        positive_feedback = RecommendationFeedback.objects.filter(
+            user=request.user,
+            project=project,
+            feedback=RecommendationFeedback.Feedback.POSITIVE,
+        )
         saved_ids = {pub.openalex_id for pub in saved_publications if pub.openalex_id}
         saved_dois = {pub.doi.lower().strip() for pub in saved_publications if pub.doi}
         saved_titles = {self.normalize_title(pub.title) for pub in saved_publications if pub.title}
@@ -53,6 +57,10 @@ class ProjectRecommendationsView(generics.GenericAPIView):
             age = max(0, current_year - year)
             weight = 1 + max(0, 3 - age)
             saved_texts.extend([text] * weight)
+
+        for fb in positive_feedback:
+            if fb.title and fb.title.strip():
+                saved_texts.extend([fb.title] * 2)
 
         if not saved_texts:
             return Response({"recommendations": []})

@@ -105,14 +105,11 @@ class ProjectInsightsView(APIView):
     def post(self, request, project_id):
         project = get_accessible_project(request.user, project_id)
         publications = SavedPublication.objects.filter(project=project)
-
         if not publications.exists():
             return JsonResponse({"error": "Projekte nėra publikacijų analizei"}, status=400)
-
         focus = request.data.get("focus", "bendros")
         if focus not in FOCUS_PROMPTS:
             focus = "bendros"
-
         pub_data = [
             {
                 "title": pub.title,
@@ -123,10 +120,8 @@ class ProjectInsightsView(APIView):
             }
             for pub in publications
         ]
-
         user_prompt = build_user_prompt(pub_data)
         system_prompt = FOCUS_PROMPTS[focus]
-
         try:
             client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
             response = client.chat.completions.create(

@@ -319,9 +319,7 @@ function ProjectView({
       );
       setFeedback((prev) => ({ ...prev, [rec.openalex_id]: value }));
       showToast(
-        value === "positive"
-          ? "Įvertinta teigiamai"
-          : "Įvertinta neigiamai",
+        value === "positive" ? "Įvertinta teigiamai" : "Įvertinta neigiamai",
         "success",
       );
     } catch {
@@ -476,13 +474,9 @@ function ProjectView({
         getFolders(project.id, folderId),
       ]);
       allPubs.push(...pubs);
-      for (const folder of folders) {
-        await collectFromFolder(folder.id);
-      }
+      for (const folder of folders) await collectFromFolder(folder.id);
     };
-    for (const folder of rootFolders) {
-      await collectFromFolder(folder.id);
-    }
+    for (const folder of rootFolders) await collectFromFolder(folder.id);
     const seen = new Set();
     return allPubs.filter((p) => {
       if (seen.has(p.id)) return false;
@@ -512,42 +506,89 @@ function ProjectView({
 
   const handleExportPdf = async () => {
     setExportOpen(false);
-    const all = await collectAllPubs();
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 18;
     const maxWidth = pageWidth - margin * 2;
     let y = 20;
-    const addText = (text, size, isBold = false, color = [0, 0, 0]) => {
+    let pubIndex = 1;
+
+    const addText = (
+      text,
+      size,
+      isBold = false,
+      color = [0, 0, 0],
+      extraLeft = 0,
+    ) => {
       doc.setFontSize(size);
       doc.setFont("Times New Roman", isBold ? "bold" : "normal");
       doc.setTextColor(...color);
-      doc.splitTextToSize(String(text ?? ""), maxWidth).forEach((line) => {
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.text(line, margin, y);
-        y += size * 0.45;
-      });
+      doc
+        .splitTextToSize(String(text ?? ""), maxWidth - extraLeft)
+        .forEach((line) => {
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(line, margin + extraLeft, y);
+          y += size * 0.45;
+        });
       y += 2;
     };
     addText(currentProject.name, 20, true);
     if (currentProject.description)
       addText(currentProject.description, 11, false, [80, 80, 80]);
-    y += 4;
-    all.forEach((pub, i) => {
-      if (y > 255) {
+    y += 6;
+
+    const renderPubs = (pubs, indent) => {
+      pubs.forEach((pub) => {
+        if (y > 255) {
+          doc.addPage();
+          y = 20;
+        }
+        addText(`${pubIndex}. ${pub.title}`, 11, true, [0, 0, 0], indent);
+        if (pub.year)
+          addText(`Year: ${pub.year}`, 10, false, [0, 0, 0], indent);
+        if (pub.authors?.length)
+          addText(
+            `Authors: ${pub.authors.slice(0, 5).join(", ")}`,
+            10,
+            false,
+            [0, 0, 0],
+            indent,
+          );
+        if (pub.doi) addText(`DOI: ${pub.doi}`, 10, false, [0, 0, 0], indent);
+        y += 2;
+        pubIndex++;
+      });
+    };
+
+    const renderFolder = async (folderId, folderName, depth) => {
+      const indent = depth * 6;
+      if (y > 260) {
         doc.addPage();
         y = 20;
       }
-      addText(`${i + 1}. ${pub.title}`, 11, true);
-      if (pub.year) addText(`Year: ${pub.year}`, 10);
-      if (pub.authors?.length)
-        addText(`Authors: ${pub.authors.slice(0, 5).join(", ")}`, 10);
-      if (pub.doi) addText(`DOI: ${pub.doi}`, 10);
-      y += 3;
-    });
+      addText(folderName, 12, true, [30, 45, 74], indent);
+      y += 1;
+      const [pubs, childFolders] = await Promise.all([
+        getPublications(project.id, folderId),
+        getFolders(project.id, folderId),
+      ]);
+      renderPubs(pubs, indent + 5);
+      for (const sub of childFolders) {
+        await renderFolder(sub.id, sub.name, depth + 1);
+      }
+    };
+
+    const rootPubs = await getProjectPublications(project.id);
+    const rootFolders = await getFolders(project.id, null);
+
+    if (rootPubs.length > 0) renderPubs(rootPubs, 0);
+    for (const folder of rootFolders) {
+      await renderFolder(folder.id, folder.name, 0);
+    }
+
     doc.save(`${currentProject.name}.pdf`);
   };
 
@@ -570,7 +611,6 @@ function ProjectView({
     e.currentTarget.style.background = "none";
     e.currentTarget.style.borderColor = "#dce3ed";
   };
-
   const membersCount = collaborators.filter(
     (c) => c.status === "accepted",
   ).length;
@@ -1036,7 +1076,7 @@ function ProjectView({
                             }}
                           >
                             {folder.subfolder_count > 0 &&
-                              `${folder.subfolder_count} aplankai · `}
+                              `${folder.subfolder_count} aplankalai · `}
                             {folder.publication_count} pub.
                           </span>
                         </div>
@@ -1734,7 +1774,6 @@ function ProjectView({
                       : "Analizuoti"}
                 </button>
               </div>
-
               {!insightsText && !insightsLoading && (
                 <div
                   style={{
