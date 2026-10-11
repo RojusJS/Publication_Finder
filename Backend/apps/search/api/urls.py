@@ -1,12 +1,14 @@
 from django.urls import path
-from .views import search_publications, publication_detail, citing_works, referenced_works
-from .author_views import author_search, author_detail
+
+from apps.search.api import views
 
 urlpatterns = [
-    path("publications/", search_publications),
-    path("publications/detail/", publication_detail),
-    path("publications/citing/", citing_works),
-    path("publications/referenced/", referenced_works),
-    path("authors/", author_search),
-    path("authors/detail/", author_detail),
+    path("publications/", views.PublicationSearchView.as_view()),
+    path("publications/detail/", views.PublicationDetailView.as_view()),
+    path("publications/network/", views.CitationNetworkView.as_view()),
+    path("publications/cite/", views.CitationView.as_view()),
+    path("authors/", views.AuthorSearchView.as_view()),
+    path("authors/detail/", views.AuthorDetailView.as_view()),
+    path("authors/works/", views.AuthorWorksView.as_view()),
+    path("institutions/autocomplete/", views.InstitutionAutocompleteView.as_view()),
 ]

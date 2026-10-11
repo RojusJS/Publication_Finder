@@ -1,25 +1,46 @@
 stages:
+  - test
   - build
 
 variables:
   PYTHONDONTWRITEBYTECODE: "1"
   PYTHONUNBUFFERED: "1"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
-build-backend:
-  stage: build
-  image: python:3.11
+backend-test:
+  stage: test
+  image: python:3.12
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: publication_finder
+    POSTGRES_USER: publication_finder
+    POSTGRES_PASSWORD: ci-password
+  cache:
+    key: pip
+    paths: [.cache/pip]
   script:
     - cd Backend
-    - pip install -r requirements.txt
+    - pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu
+    - pip install -r requirements-dev.txt
+    - pytest -q
+    - DJANGO_DEBUG=true DB_ENGINE=sqlite python manage.py makemigrations --check --dry-run
+    - DJANGO_DEBUG=true DB_ENGINE=postgresql DB_HOST=postgres DB_NAME=publication_finder DB_USER=publication_finder DB_PASSWORD=ci-password python manage.py migrate --noinput
+    - DJANGO_DEBUG=false DJANGO_SECRET_KEY=ci-only-secret-key-0123456789-abcdefghijklmnopqrstuvwxyz DJANGO_ALLOWED_HOSTS=example.org DB_ENGINE=sqlite python manage.py check --deploy --fail-level ERROR
 
-build-frontend:
+frontend-build:
   stage: build
   image: node:20
+  cache:
+    key: npm
+    paths: [Frontend/node_modules]
   script:
     - cd Frontend
-    - npm install
+    - npm ci
+    - npm run lint
     - npm run build
   artifacts:
     paths:
       - Frontend/dist/
-    expire_in: 1 hour
+    expire_in: 1 week
